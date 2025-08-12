@@ -16,21 +16,16 @@ app.use(express.static('public'));
 const TEACHER_PASSWORD = 'GPwinner2026';
 
 // Initialiser la base de données
-// Utiliser /tmp en production (Render) car le système de fichiers est en lecture seule
+// Créer le dossier de données
 const dataDir = process.env.NODE_ENV === 'production' ? '/tmp' : path.join(__dirname, 'data');
-
-// Créer le dossier s'il n'existe pas
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
-  console.log('✅ Dossier créé:', dataDir);
 }
-
-// Chemin de la base de données
+// Base de données
 const dbPath = path.join(dataDir, 'teams.db');
 console.log('📁 Dossier de données:', dataDir);
 console.log('🗄️ Base de données:', dbPath);
 
-// Créer la base de données
 const db = new Database(dbPath);
 
 // Configuration SQLite
