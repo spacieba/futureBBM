@@ -122,18 +122,110 @@
           const [foundPlayer, setFoundPlayer] = useState(null);
           const [searchHistory, setSearchHistory] = useState([]);
           
-          // Fonction pour obtenir le badge selon le score
-          const getBadge = (score) => {
-            if (score >= 200) return { emoji: '👑', name: 'Empereur', color: 'text-yellow-300' };
-            if (score >= 150) return { emoji: '🏆', name: 'Légende', color: 'text-yellow-400' };
-            if (score >= 100) return { emoji: '🥇', name: 'Centurion', color: 'text-yellow-500' };
-            if (score >= 75) return { emoji: '🥈', name: 'Vétéran', color: 'text-gray-300' };
-            if (score >= 50) return { emoji: '🥉', name: 'Guerrier', color: 'text-orange-400' };
-            if (score >= 25) return { emoji: '🎖️', name: 'Soldat', color: 'text-blue-400' };
-            if (score >= 10) return { emoji: '🏅', name: 'Recrue', color: 'text-green-400' };
-            if (score >= 0) return { emoji: '🌱', name: 'Débutant', color: 'text-green-300' };
-            return { emoji: '💀', name: 'Banni', color: 'text-red-400' };
-          };
+                 // Fonction pour obtenir le badge selon le score - VERSION BASKETBALL
+const getBadge = (score) => {
+  // Grades négatifs
+  if (score < -50) return { 
+    emoji: '🗑️', 
+    name: 'Scrub', 
+    color: 'text-red-600',
+    description: 'Le pire niveau possible - Travaille dur pour remonter !',
+    level: 1
+  };
+  
+  if (score < -25) return { 
+    emoji: '🪑', 
+    name: 'Benchwarmer', 
+    color: 'text-red-500',
+    description: 'Cloué sur le banc - Montre ta motivation !',
+    level: 2
+  };
+  
+  if (score < 0) return { 
+    emoji: '📉', 
+    name: 'Plot', 
+    color: 'text-red-400',
+    description: 'Personnage sans importance - Change le script !',
+    level: 3
+  };
+
+  // Grades débutants
+  if (score < 10) return { 
+    emoji: '👶', 
+    name: 'Freshman', 
+    color: 'text-green-300',
+    description: 'Première année - Apprend les bases du jeu',
+    level: 4
+  };
+  
+  if (score < 25) return { 
+    emoji: '🏀', 
+    name: 'Rookie', 
+    color: 'text-green-400',
+    description: 'Débutant prometteur - Potentiel détecté !',
+    level: 5
+  };
+
+  // Grades développement
+  if (score < 50) return { 
+    emoji: '🏃', 
+    name: 'Sixth Man', 
+    color: 'text-blue-400',
+    description: 'Premier remplaçant de qualité - Impact du banc !',
+    level: 6
+  };
+  
+  if (score < 75) return { 
+    emoji: '⭐', 
+    name: 'Starting Five', 
+    color: 'text-blue-500',
+    description: 'Titulaire indiscutable - Membre du cinq majeur !',
+    level: 7
+  };
+
+  // Grades confirmés
+  if (score < 100) return { 
+    emoji: '💎', 
+    name: 'Franchise Player', 
+    color: 'text-purple-400',
+    description: 'Pilier de l\'équipe - L\'avenir se construit autour de toi !',
+    level: 8
+  };
+  
+  if (score < 150) return { 
+    emoji: '🌟', 
+    name: 'All-Star', 
+    color: 'text-yellow-400',
+    description: 'Sélectionné parmi l\'élite - Reconnaissance nationale !',
+    level: 9
+  };
+
+  // Grades elite
+  if (score < 200) return { 
+    emoji: '🔥', 
+    name: 'Superstar', 
+    color: 'text-orange-300',
+    description: 'Phénomène basketball - Tu électrises les foules !',
+    level: 10
+  };
+  
+  if (score < 250) return { 
+    emoji: '🏛️', 
+    name: 'Hall of Fame', 
+    color: 'text-purple-300',
+    description: 'Légende du sport - Intronisé au panthéon !',
+    level: 11
+  };
+
+  // Grade ultime
+  return { 
+    emoji: '🐐', 
+    name: 'GOAT', 
+    color: 'text-pink-300',
+    description: 'Greatest Of All Time - Perfection absolue atteinte !',
+    level: 12
+  };
+};
 
           // Fonction pour obtenir l'avatar animé de la franchise
           const getFranchiseAvatar = (franchise) => {
