@@ -975,7 +975,7 @@ if (!foundPlayer) {
   setSearchHistory([]);
   alert('Élève non trouvé. Vérifiez l\'orthographe de votre nom.');
   return;
-}
+} else {
 
 // Si trouvé, récupérer l'historique
 const historyResponse = await fetch(`/api/history/${encodeURIComponent(foundPlayer.name)}`);
