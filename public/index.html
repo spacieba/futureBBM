@@ -961,16 +961,28 @@ const getBadge = (score) => {
               }
 
               try {
-                const response = await fetch(`/api/player/${encodeURIComponent(searchName.trim())}`);
-                if (response.ok) {
-                  const player = await response.json();
-                  setFoundPlayer(player);
-                  
-                  const historyResponse = await fetch(`/api/history/${encodeURIComponent(searchName.trim())}`);
-                  const history = await historyResponse.json();
-                  setSearchHistory(history);
-                } else {
-                  setFoundPlayer(null);
+                // D'abord récupérer tous les élèves
+const allResponse = await fetch('/api/players');
+const allPlayers = await allResponse.json();
+
+// Recherche insensible à la casse
+const foundPlayer = allPlayers.find(p => 
+  p.name.toLowerCase() === searchName.trim().toLowerCase()
+);
+
+if (!foundPlayer) {
+  setFoundPlayer(null);
+  setSearchHistory([]);
+  alert('Élève non trouvé. Vérifiez l\'orthographe de votre nom.');
+  return;
+}
+
+// Si trouvé, récupérer l'historique
+const historyResponse = await fetch(`/api/history/${encodeURIComponent(foundPlayer.name)}`);
+const history = await historyResponse.json();
+setFoundPlayer(foundPlayer);
+setSearchHistory(history);
+               
                   setSearchHistory([]);
                   alert('Élève non trouvé. Vérifiez l\'orthographe de votre nom.');
                 }
