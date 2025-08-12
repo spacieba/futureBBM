@@ -983,15 +983,11 @@ const history = await historyResponse.json();
 setFoundPlayer(foundPlayer);
 setSearchHistory(history);
                
-                  setSearchHistory([]);
-                  alert('Élève non trouvé. Vérifiez l\'orthographe de votre nom.');
-                }
               } catch (error) {
                 alert('Erreur lors de la recherche');
               }
             };
-
-            return (
+            
               <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
                 <div className="max-w-4xl mx-auto">
                   <div className="flex justify-between items-center mb-8">
