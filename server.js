@@ -11,12 +11,31 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// 🔐 MOT DE PASSE PROFESSEUR - MODIFIABLE ICI
+// 🔒 MOT DE PASSE PROFESSEUR - MODIFIABLE ICI
 // Pour changer le mot de passe, modifiez la ligne ci-dessous et redémarrez l'app
 const TEACHER_PASSWORD = 'GPwinner2026';
 
 // Initialiser la base de données
-const db = new Database('.data/teams.db');
+// Utiliser /tmp en production (Render) car le système de fichiers est en lecture seule
+const dataDir = process.env.NODE_ENV === 'production' ? '/tmp' : path.join(__dirname, 'data');
+
+// Créer le dossier s'il n'existe pas
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+  console.log('✅ Dossier créé:', dataDir);
+}
+
+// Chemin de la base de données
+const dbPath = path.join(dataDir, 'teams.db');
+console.log('📁 Dossier de données:', dataDir);
+console.log('🗄️ Base de données:', dbPath);
+
+// Créer la base de données
+const db = new Database(dbPath);
+
+// Configuration SQLite
+db.pragma('journal_mode = WAL');
+db.pragma('synchronous = NORMAL');
 
 // Créer les tables si elles n'existent pas
 db.exec(`
