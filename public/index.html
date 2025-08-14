@@ -126,18 +126,118 @@
           const [chartData, setChartData] = useState(null);
           const [chartType, setChartType] = useState('player');
           
-          // Fonction pour obtenir le badge selon le score
-          const getBadge = (score) => {
-            if (score >= 200) return { emoji: '👑', name: 'Empereur', color: 'text-yellow-300' };
-            if (score >= 150) return { emoji: '🏆', name: 'Légende', color: 'text-yellow-400' };
-            if (score >= 100) return { emoji: '🥇', name: 'Centurion', color: 'text-yellow-500' };
-            if (score >= 75) return { emoji: '🥈', name: 'Vétéran', color: 'text-gray-300' };
-            if (score >= 50) return { emoji: '🥉', name: 'Guerrier', color: 'text-orange-400' };
-            if (score >= 25) return { emoji: '🎖️', name: 'Soldat', color: 'text-blue-400' };
-            if (score >= 10) return { emoji: '🏅', name: 'Recrue', color: 'text-green-400' };
-            if (score >= 0) return { emoji: '🌱', name: 'Débutant', color: 'text-green-300' };
-            return { emoji: '💀', name: 'Banni', color: 'text-red-400' };
-          };
+          // Fonction pour obtenir le grade basketball selon le score
+const getBadge = (score) => {
+  // Grade Ultime
+  if (score >= 250) return { 
+    emoji: '🐐', 
+    name: 'GOAT', 
+    fullName: 'Greatest Of All Time',
+    color: 'text-purple-300',
+    bgColor: 'from-purple-600 to-purple-800',
+    description: 'Le plus grand de tous les temps'
+  };
+  
+  // Grades Elite
+  if (score >= 200) return { 
+    emoji: '🏛️', 
+    name: 'Hall of Fame', 
+    fullName: 'Hall of Fame',
+    color: 'text-yellow-300',
+    bgColor: 'from-yellow-500 to-yellow-700',
+    description: 'Légende du sport'
+  };
+  if (score >= 150) return { 
+    emoji: '🔥', 
+    name: 'Superstar', 
+    fullName: 'Superstar',
+    color: 'text-orange-300',
+    bgColor: 'from-orange-500 to-red-600',
+    description: 'Phénomène basketball'
+  };
+  
+  // Grades Confirmés
+  if (score >= 100) return { 
+    emoji: '🌟', 
+    name: 'All-Star', 
+    fullName: 'All-Star',
+    color: 'text-blue-300',
+    bgColor: 'from-blue-500 to-blue-700',
+    description: 'Sélectionné parmi l\'élite'
+  };
+  if (score >= 75) return { 
+    emoji: '💎', 
+    name: 'Franchise Player', 
+    fullName: 'Franchise Player',
+    color: 'text-cyan-300',
+    bgColor: 'from-cyan-500 to-blue-600',
+    description: 'Pilier de l\'équipe'
+  };
+  
+  // Grades Développement
+  if (score >= 50) return { 
+    emoji: '⭐', 
+    name: 'Starting Five', 
+    fullName: 'Starting Five',
+    color: 'text-green-300',
+    bgColor: 'from-green-500 to-green-700',
+    description: 'Titulaire indiscutable'
+  };
+  if (score >= 25) return { 
+    emoji: '🏃', 
+    name: 'Sixth Man', 
+    fullName: 'Sixth Man',
+    color: 'text-emerald-300',
+    bgColor: 'from-emerald-500 to-green-600',
+    description: 'Premier remplaçant de qualité'
+  };
+  
+  // Grades Débutants
+  if (score >= 10) return { 
+    emoji: '🏀', 
+    name: 'Rookie', 
+    fullName: 'Rookie',
+    color: 'text-amber-300',
+    bgColor: 'from-amber-500 to-orange-500',
+    description: 'Débutant prometteur'
+  };
+  if (score >= 0) return { 
+    emoji: '👶', 
+    name: 'Freshman', 
+    fullName: 'Freshman',
+    color: 'text-yellow-300',
+    bgColor: 'from-yellow-400 to-amber-500',
+    description: 'Première année, apprend les bases'
+  };
+  
+  // Grades Négatifs
+  if (score >= -25) return { 
+    emoji: '📉', 
+    name: 'Plot', 
+    fullName: 'Plot',
+    color: 'text-gray-400',
+    bgColor: 'from-gray-500 to-gray-700',
+    description: 'Personnage sans importance'
+  };
+  if (score >= -50) return { 
+    emoji: '🪑', 
+    name: 'Benchwarmer', 
+    fullName: 'Benchwarmer',
+    color: 'text-red-400',
+    bgColor: 'from-red-500 to-red-700',
+    description: 'Cloué sur le banc'
+  };
+  
+  // Pire niveau
+  return { 
+    emoji: '🗑️', 
+    name: 'Scrub', 
+    fullName: 'Scrub',
+    color: 'text-red-600',
+    bgColor: 'from-red-700 to-red-900',
+    description: 'Le pire niveau possible'
+  };
+};
 
           // Fonction pour obtenir l'avatar animé de la franchise
           const getFranchiseAvatar = (franchise) => {
