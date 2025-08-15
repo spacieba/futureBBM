@@ -125,11 +125,6 @@
           const [showEvolutionChart, setShowEvolutionChart] = useState(false);
           const [chartData, setChartData] = useState(null);
           const [chartType, setChartType] = useState('player');
-            // === ÉTATS POUR LE SYSTÈME DE BADGES ===
-const [playerBadges, setPlayerBadges] = useState({});
-const [franchiseBadges, setFranchiseBadges] = useState({});
-const [badgeHistory, setBadgeHistory] = useState([]);
-const [actionStreaks, setActionStreaks] = useState({});
           
           // Fonction pour obtenir le grade basketball selon le score
 const getBadge = (score) => {
@@ -243,59 +238,6 @@ const getBadge = (score) => {
     description: 'Le pire niveau possible'
   };
 };
-            // === DÉFINITION DES BADGES ===
-const individualBadges = {
-  hotStreak: {
-    id: 'hotStreak',
-    name: 'Hot Streak',
-    emoji: '🔥',
-    description: '5 actions positives d\'affilée',
-    rarity: 'bronze',
-    points: 5
-  },
-  tsunami: {
-    id: 'tsunami', 
-    name: 'Tsunami',
-    emoji: '🌊',
-    description: '10 actions positives d\'affilée',
-    rarity: 'silver',
-    points: 10
-  },
-  phoenix: {
-    id: 'phoenix',
-    name: 'Phoenix',
-    emoji: '🦅',
-    description: 'Remonter de -50 à +50 points',
-    rarity: 'gold',
-    points: 20
-  },
-  showtime: {
-    id: 'showtime',
-    name: 'Showtime',
-    emoji: '🎪',
-    description: '3 Félicitations reçues',
-    rarity: 'diamond',
-    points: 35
-  }
-
-// Fonctions utilitaires badges
-const getRarityColor = (rarity) => {
-  switch(rarity) {
-    case 'bronze': return 'from-amber-600 to-amber-800';
-    case 'silver': return 'from-gray-400 to-gray-600';
-    case 'gold': return 'from-yellow-400 to-yellow-600';
-    case 'diamond': return 'from-cyan-400 to-blue-600';
-    default: return 'from-gray-600 to-gray-800';
-  }
-};
-
-const getPlayerBadges = (playerName) => {
-  return playerBadges[playerName] || [];
-};
-
-const getFranchiseBadges = (franchiseName) => {
-  return franchiseBadges[franchiseName] || [];
-};
 
           // Fonction pour obtenir l'avatar animé de la franchise
           const getFranchiseAvatar = (franchise) => {
@@ -372,54 +314,35 @@ const getFranchiseBadges = (franchiseName) => {
           };
 
           // Charger les joueurs
-const loadPlayers = () => {
-  const saved = localStorage.getItem('players');
-  if (saved) {
-    setPlayers(JSON.parse(saved));
-  }
-  
-  // Charger aussi les badges
-  const savedPlayerBadges = localStorage.getItem('playerBadges');
-  const savedFranchiseBadges = localStorage.getItem('franchiseBadges');
-  if (savedPlayerBadges) setPlayerBadges(JSON.parse(savedPlayerBadges));
-  if (savedFranchiseBadges) setFranchiseBadges(JSON.parse(savedFranchiseBadges));
-};
+          const loadPlayers = async () => {
+            try {
+              const response = await fetch('/api/players');
+              const data = await response.json();
+              setPlayers(data);
+            } catch (error) {
+              console.error('Erreur lors du chargement des joueurs:', error);
+            }
+          };
 
-// Sauvegarder les joueurs
-const savePlayers = (playersToSave) => {
-  localStorage.setItem('players', JSON.stringify(playersToSave));
-};
-
-         // Ajouter des points (version localStorage)
-const addPoints = (playerName, points, action) => {
-  setLoading(true);
-  
-  // Mise à jour locale
-  const updatedPlayers = players.map(player => 
-    player.name === playerName 
-      ? {...player, score: player.score + points} 
-      : player
-  );
-  
-  setPlayers(updatedPlayers);
-  savePlayers(updatedPlayers);
-  
-  // Sauvegarder dans l'historique
-  const historyKey = `history_${playerName}`;
-  const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
-  const newEntry = {
-    action,
-    points,
-    timestamp: new Date().toLocaleString('fr-FR'),
-    teacher_name: teacherName || 'Anonyme',
-    new_total: updatedPlayers.find(p => p.name === playerName).score
-  };
-  existingHistory.unshift(newEntry);
-  localStorage.setItem(historyKey, JSON.stringify(existingHistory.slice(0, 100)));
-  
-  setExpandedDropdown(null);
-  setLoading(false);
-};
+          // Ajouter des points (professeurs uniquement)
+          const addPoints = async (playerName, points, action) => {
+            setLoading(true);
+            try {
+              const response = await fetch('/api/add-points', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ playerName, points, action, teacherName })
+              });
+              
+              if (response.ok) {
+                await loadPlayers();
+                setExpandedDropdown(null);
+              }
+            } catch (error) {
+              console.error('Erreur lors de l\'ajout de points:', error);
+            }
+            setLoading(false);
+          };
 
           // Charger l'historique d'un joueur
           const loadPlayerHistory = async (playerName) => {
