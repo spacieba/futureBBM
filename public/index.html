@@ -8,78 +8,58 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
     <style>
-        /* === AVATARS ANIMÉS DES FRANCHISES === */
-
-        /* Minotaurs - Taureau qui charge */
         .minotaur-avatar {
             display: inline-block;
             font-size: 3rem;
             animation: charge 2s ease-in-out infinite;
             filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.5));
         }
-
         @keyframes charge {
             0%, 100% { transform: translateX(0) rotate(0deg); }
             50% { transform: translateX(-3px) rotate(-2deg); }
         }
-
-        /* Krakens - Tentacules qui ondulent */
         .kraken-avatar {
             display: inline-block;
             font-size: 3rem;
             animation: tentacles 3s ease-in-out infinite;
             filter: drop-shadow(0 0 10px rgba(0, 100, 255, 0.5));
         }
-
         @keyframes tentacles {
             0%, 100% { transform: rotate(0deg) scale(1); }
             33% { transform: rotate(2deg) scale(1.05); }
             66% { transform: rotate(-2deg) scale(0.95); }
         }
-
-        /* Phoenix - Flammes qui dansent */
         .phoenix-avatar {
             display: inline-block;
             font-size: 3rem;
             animation: flames 2s ease-in-out infinite;
             filter: drop-shadow(0 0 15px rgba(255, 165, 0, 0.7));
         }
-
         @keyframes flames {
             0%, 100% { transform: translateY(0px) scale(1); }
             25% { transform: translateY(-2px) scale(1.1); }
             75% { transform: translateY(1px) scale(0.9); }
         }
-
-        /* Werewolves - Yeux qui brillent */
         .werewolf-avatar {
             display: inline-block;
             font-size: 3rem;
             animation: glow 4s ease-in-out infinite;
             filter: drop-shadow(0 0 10px rgba(0, 255, 0, 0.4));
         }
-
         @keyframes glow {
             0%, 100% { filter: drop-shadow(0 0 10px rgba(0, 255, 0, 0.4)); }
             50% { filter: drop-shadow(0 0 20px rgba(0, 255, 0, 0.8)) brightness(1.2); }
         }
-
-        /* Effet de hover pour tous les avatars */
         .franchise-avatar:hover {
             transform: scale(1.2);
             transition: transform 0.3s ease;
             cursor: pointer;
         }
-
-        /* Particules de fond optionnelles */
         .franchise-card {
             position: relative;
             overflow: hidden;
         }
-
         .franchise-card::before {
             content: '';
             position: absolute;
@@ -92,7 +72,6 @@
             animation: sparkle 10s linear infinite;
             pointer-events: none;
         }
-
         @keyframes sparkle {
             0% { transform: translate(0, 0) rotate(0deg); }
             100% { transform: translate(-20px, -20px) rotate(360deg); }
@@ -122,792 +101,32 @@
           const [searchName, setSearchName] = useState('');
           const [foundPlayer, setFoundPlayer] = useState(null);
           const [searchHistory, setSearchHistory] = useState([]);
-          const [showEvolutionChart, setShowEvolutionChart] = useState(false);
-          const [chartData, setChartData] = useState(null);
-          const [chartType, setChartType] = useState('player');
-          
-          // === NOUVEAUX ÉTATS POUR LE SYSTÈME DE BADGES ===
-          const [playerBadges, setPlayerBadges] = useState({}); // { playerName: [badgeId1, badgeId2...] }
-          const [franchiseBadges, setFranchiseBadges] = useState({}); // { franchiseName: [badgeId1, badgeId2...] }
-          const [badgeHistory, setBadgeHistory] = useState([]); // Historique des badges débloqués
-          const [actionStreaks, setActionStreaks] = useState({}); // { playerName: { positive: 0, days: [] } }
-          
-          // === DÉFINITION DES BADGES INDIVIDUELS ===
-          const individualBadges = {
-            // SÉRIES
-            hotStreak: {
-              id: 'hotStreak',
-              name: 'Hot Streak',
-              emoji: '🔥',
-              description: '5 actions positives d\'affilée',
-              category: 'series',
-              rarity: 'bronze',
-              points: 5,
-              condition: (player, history) => {
-                // Vérifier 5 actions positives consécutives
-                return false; // À implémenter
-              }
-            },
-            tsunami: {
-              id: 'tsunami',
-              name: 'Tsunami',
-              emoji: '🌊',
-              description: '10 actions positives d\'affilée',
-              category: 'series',
-              rarity: 'silver',
-              points: 10,
-              condition: (player, history) => {
-                // Vérifier 10 actions positives consécutives
-                return false; // À implémenter
-              }
-            },
-            unstoppable: {
-              id: 'unstoppable',
-              name: 'Unstoppable',
-              emoji: '🚀',
-              description: '15 actions positives d\'affilée',
-              category: 'series',
-              rarity: 'gold',
-              points: 20,
-              condition: (player, history) => {
-                // Vérifier 15 actions positives consécutives
-                return false; // À implémenter
-              }
-            },
-            onFire: {
-              id: 'onFire',
-              name: 'On Fire',
-              emoji: '🔥',
-              description: '2 "Hardworker" (6pts) en 2 semaines',
-              category: 'series',
-              rarity: 'silver',
-              points: 10,
-              condition: (player, history) => {
-                // Vérifier 2 Hardworker en 14 jours
-                return false; // À implémenter
-              }
-            },
-            
-            // PERSÉVÉRANCE
-            phoenix: {
-              id: 'phoenix',
-              name: 'Phoenix',
-              emoji: '🦅',
-              description: 'Remonter de -50 à +50 points',
-              category: 'perseverance',
-              rarity: 'gold',
-              points: 20,
-              condition: (player, history) => {
-                // Vérifier remontée de -50 à +50
-                return false; // À implémenter
-              }
-            },
-            marathonRunner: {
-              id: 'marathonRunner',
-              name: 'Marathon Runner',
-              emoji: '🏃',
-              description: 'Actions positives 5 jours d\'école consécutifs',
-              category: 'perseverance',
-              rarity: 'bronze',
-              points: 5,
-              condition: (player, history) => {
-                // Vérifier 5 jours consécutifs
-                return false; // À implémenter
-              }
-            },
-            
-            // SOCIAUX/ÉQUIPE
-            teamCaptain: {
-              id: 'teamCaptain',
-              name: 'Team Captain',
-              emoji: '👑',
-              description: 'Meilleur de sa franchise pendant 1 semaine',
-              category: 'team',
-              rarity: 'silver',
-              points: 10,
-              condition: (player, franchisePlayers) => {
-                // Vérifier si meilleur de franchise
-                return false; // À implémenter
-              }
-            },
-            veteran: {
-              id: 'veteran',
-              name: 'Veteran',
-              emoji: '🎖️',
-              description: 'Top 3 de sa franchise pendant 2 mois',
-              category: 'team',
-              rarity: 'gold',
-              points: 20,
-              condition: (player, franchisePlayers) => {
-                // Vérifier top 3 pendant 2 mois
-                return false; // À implémenter
-              }
-            },
-            teamPlayer: {
-              id: 'teamPlayer',
-              name: 'Team Player',
-              emoji: '🤝',
-              description: 'Sa franchise gagne le + de points en 1 semaine',
-              category: 'team',
-              rarity: 'bronze',
-              points: 5,
-              condition: (player, franchise) => {
-                // Vérifier si franchise #1 de la semaine
-                return false; // À implémenter
-              }
-            },
-            
-            // SPÉCIAUX & RARES
-            showtime: {
-              id: 'showtime',
-              name: 'Showtime',
-              emoji: '🎪',
-              description: 'Recevoir "Félicitations" (25pts) 3 fois',
-              category: 'special',
-              rarity: 'diamond',
-              points: 35,
-              condition: (player, history) => {
-                // Compter les Félicitations
-                return false; // À implémenter
-              }
-            },
-            halloweenSpirit: {
-              id: 'halloweenSpirit',
-              name: 'Halloween Spirit',
-              emoji: '🎃',
-              description: 'Actions positives semaine Halloween',
-              category: 'special',
-              rarity: 'legendary',
-              points: 50,
-              seasonal: true,
-              condition: (player, history) => {
-                // Vérifier actions pendant Halloween
-                return false; // À implémenter
-              }
-            },
-            christmasMagic: {
-              id: 'christmasMagic',
-              name: 'Christmas Magic',
-              emoji: '🎄',
-              description: 'Actions positives pendant les fêtes',
-              category: 'special',
-              rarity: 'legendary',
-              points: 50,
-              seasonal: true,
-              condition: (player, history) => {
-                // Vérifier actions pendant Noël
-                return false; // À implémenter
-              }
-            },
-            backToSchool: {
-              id: 'backToSchool',
-              name: 'Back to School',
-              emoji: '📚',
-              description: '10 actions positives premier mois rentrée',
-              category: 'special',
-              rarity: 'legendary',
-              points: 50,
-              seasonal: true,
-              condition: (player, history) => {
-                // Vérifier actions premier mois
-                return false; // À implémenter
-              }
-            }
-          };
-          
-          // === DÉFINITION DES BADGES COLLECTIFS ===
-          const collectiveBadges = {
-            // DOMINATION COLLECTIVE
-            franchiseRoyalty: {
-              id: 'franchiseRoyalty',
-              name: 'Franchise Royalty',
-              emoji: '👑',
-              description: '#1 pendant 1 mois complet',
-              category: 'domination',
-              rarity: 'silver',
-              franchisePoints: 50
-            },
-            dynasty: {
-              id: 'dynasty',
-              name: 'Dynasty',
-              emoji: '🌟',
-              description: '#1 pendant 3 mois consécutifs',
-              category: 'domination',
-              rarity: 'gold',
-              franchisePoints: 100
-            },
-            empire: {
-              id: 'empire',
-              name: 'Empire',
-              emoji: '🏛️',
-              description: '#1 pendant 6 mois dans l\'année',
-              category: 'domination',
-              rarity: 'diamond',
-              franchisePoints: 200
-            },
-            legendaryHouse: {
-              id: 'legendaryHouse',
-              name: 'Legendary House',
-              emoji: '🐐',
-              description: '#1 à la fin de l\'année scolaire',
-              category: 'domination',
-              rarity: 'legendary',
-              franchisePoints: 500
-            },
-            
-            // PERFORMANCES
-            rocketLaunch: {
-              id: 'rocketLaunch',
-              name: 'Rocket Launch',
-              emoji: '🚀',
-              description: '+80 points collectifs en 1 semaine',
-              category: 'performance',
-              rarity: 'bronze',
-              franchisePoints: 20
-            },
-            tidalWave: {
-              id: 'tidalWave',
-              name: 'Tidal Wave',
-              emoji: '🌊',
-              description: '+200 points collectifs en 1 mois',
-              category: 'performance',
-              rarity: 'gold',
-              franchisePoints: 100
-            },
-            lightningStrike: {
-              id: 'lightningStrike',
-              name: 'Lightning Strike',
-              emoji: '⚡',
-              description: 'Tous les membres gagnent points même jour',
-              category: 'performance',
-              rarity: 'bronze',
-              franchisePoints: 20
-            },
-            houseOnFire: {
-              id: 'houseOnFire',
-              name: 'House on Fire',
-              emoji: '🔥',
-              description: '80% membres actions positives en 1 semaine',
-              category: 'performance',
-              rarity: 'silver',
-              franchisePoints: 50
-            },
-            
-            // SOLIDARITÉ & ENTRAIDE
-            unitedWeStand: {
-              id: 'unitedWeStand',
-              name: 'United We Stand',
-              emoji: '🤝',
-              description: 'Aucun membre négatif pendant 2 semaines',
-              category: 'solidarity',
-              rarity: 'silver',
-              franchisePoints: 50
-            },
-            brotherhood: {
-              id: 'brotherhood',
-              name: 'Brotherhood/Sisterhood',
-              emoji: '🛡️',
-              description: 'Aider membre à sortir du négatif',
-              category: 'solidarity',
-              rarity: 'gold',
-              franchisePoints: 100
-            },
-            perfectBalance: {
-              id: 'perfectBalance',
-              name: 'Perfect Balance',
-              emoji: '⚖️',
-              description: 'Tous membres entre 25-75 points',
-              category: 'solidarity',
-              rarity: 'gold',
-              franchisePoints: 100
-            },
-            harmony: {
-              id: 'harmony',
-              name: 'Harmony',
-              emoji: '🌈',
-              description: 'Écart <50 points entre 1er et dernier',
-              category: 'solidarity',
-              rarity: 'silver',
-              franchisePoints: 50
-            },
-            
-            // OBJECTIFS COMMUNS
-            showstoppers: {
-              id: 'showstoppers',
-              name: 'Showstoppers',
-              emoji: '🎪',
-              description: '3 membres "Félicitations" même trimestre',
-              category: 'objectives',
-              rarity: 'diamond',
-              franchisePoints: 200
-            },
-            gemCollection: {
-              id: 'gemCollection',
-              name: 'Gem Collection',
-              emoji: '💎',
-              description: 'Tous atteignent au moins "Starting Five"',
-              category: 'objectives',
-              rarity: 'gold',
-              franchisePoints: 100
-            },
-            fullSquad: {
-              id: 'fullSquad',
-              name: 'Full Squad',
-              emoji: '👥',
-              description: '100% participation activités optionnelles',
-              category: 'objectives',
-              rarity: 'silver',
-              franchisePoints: 50
-            },
-            honorGuard: {
-              id: 'honorGuard',
-              name: 'Honor Guard',
-              emoji: '🎖️',
-              description: 'Aucune action négative pendant 1 mois',
-              category: 'objectives',
-              rarity: 'gold',
-              franchisePoints: 100
-            },
-            
-            // ÉVÉNEMENTS & SAISONS
-            autumnChampions: {
-              id: 'autumnChampions',
-              name: 'Autumn Champions',
-              emoji: '🍂',
-              description: 'Meilleure franchise septembre-octobre',
-              category: 'seasonal',
-              rarity: 'legendary',
-              franchisePoints: 200,
-              seasonal: true
-            },
-            winterWarriors: {
-              id: 'winterWarriors',
-              name: 'Winter Warriors',
-              emoji: '❄️',
-              description: 'Meilleure franchise décembre-janvier',
-              category: 'seasonal',
-              rarity: 'legendary',
-              franchisePoints: 200,
-              seasonal: true
-            },
-            springAwakening: {
-              id: 'springAwakening',
-              name: 'Spring Awakening',
-              emoji: '🌸',
-              description: 'Meilleure franchise mars-avril',
-              category: 'seasonal',
-              rarity: 'legendary',
-              franchisePoints: 200,
-              seasonal: true
-            }
-          };
-          
-          // === FONCTIONS UTILITAIRES POUR LES BADGES ===
-          
-          // Obtenir la couleur selon la rareté
-          const getRarityColor = (rarity) => {
-            switch(rarity) {
-              case 'bronze': return 'from-amber-600 to-amber-800 border-amber-400';
-              case 'silver': return 'from-gray-400 to-gray-600 border-gray-300';
-              case 'gold': return 'from-yellow-400 to-yellow-600 border-yellow-300';
-              case 'diamond': return 'from-cyan-400 to-blue-600 border-cyan-300';
-              case 'legendary': return 'from-purple-400 via-pink-500 to-red-500 border-purple-300';
-              default: return 'from-gray-600 to-gray-800 border-gray-400';
-            }
-          };
-          
-          // Obtenir le texte de rareté
-          const getRarityText = (rarity) => {
-            switch(rarity) {
-              case 'bronze': return '🥉 Bronze';
-              case 'silver': return '🥈 Argent';
-              case 'gold': return '🥇 Or';
-              case 'diamond': return '💎 Diamant';
-              case 'legendary': return '🌟 Légendaire';
-              default: return '⭐ Commun';
-            }
-          };
-          
-          // Charger les badges depuis localStorage
-          const loadBadges = () => {
-            try {
-              const savedPlayerBadges = localStorage.getItem('playerBadges');
-              const savedFranchiseBadges = localStorage.getItem('franchiseBadges');
-              const savedBadgeHistory = localStorage.getItem('badgeHistory');
-              const savedActionStreaks = localStorage.getItem('actionStreaks');
-              
-              if (savedPlayerBadges) setPlayerBadges(JSON.parse(savedPlayerBadges));
-              if (savedFranchiseBadges) setFranchiseBadges(JSON.parse(savedFranchiseBadges));
-              if (savedBadgeHistory) setBadgeHistory(JSON.parse(savedBadgeHistory));
-              if (savedActionStreaks) setActionStreaks(JSON.parse(savedActionStreaks));
-            } catch (error) {
-              console.error('Erreur lors du chargement des badges:', error);
-            }
-          };
-          
-          // Sauvegarder les joueurs dans localStorage
-          const savePlayers = (playersToSave) => {
-            try {
-              localStorage.setItem('players', JSON.stringify(playersToSave));
-            } catch (error) {
-              console.error('Erreur lors de la sauvegarde des joueurs:', error);
-            }
-          };
 
-          // Ajouter des points (professeurs uniquement)
-          const addPoints = async (playerName, points, action) => {
-            setLoading(true);
-            try {
-              // Mise à jour locale
-              const updatedPlayers = players.map(player => {
-                if (player.name === playerName) {
-                  return { ...player, score: player.score + points };
-                }
-                return player;
-              });
-              
-              setPlayers(updatedPlayers);
-              savePlayers(updatedPlayers);
-              
-              // Sauvegarder dans l'historique
-              const historyKey = `history_${playerName}`;
-              const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
-              const newEntry = {
-                action,
-                points,
-                timestamp: new Date().toLocaleString('fr-FR'),
-                teacher_name: teacherName || 'Anonyme',
-                new_total: updatedPlayers.find(p => p.name === playerName).score
-              };
-              existingHistory.unshift(newEntry);
-              localStorage.setItem(historyKey, JSON.stringify(existingHistory.slice(0, 100)));
-              
-              setExpandedDropdown(null);
-            } catch (error) {
-              console.error('Erreur lors de l\'ajout de points:', error);
-            }
-            setLoading(false);
-          };
-
-          // Charger l'historique d'un joueur
-          const loadPlayerHistory = async (playerName) => {
-            try {
-              const historyKey = `history_${playerName}`;
-              const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
-              setPlayerHistory(history);
-              setSelectedPlayerHistory(playerName);
-            } catch (error) {
-              console.error('Erreur lors du chargement de l\'historique:', error);
-            }
-          };
-
-          // Annuler la dernière action (professeurs uniquement)
-          const undoLastAction = async (playerName) => {
-            setLoading(true);
-            try {
-              const historyKey = `history_${playerName}`;
-              const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
-              
-              if (history.length > 0) {
-                const lastAction = history[0];
-                
-                // Retirer les points
-                const updatedPlayers = players.map(player => {
-                  if (player.name === playerName) {
-                    return { ...player, score: player.score - lastAction.points };
-                  }
-                  return player;
-                });
-                
-                setPlayers(updatedPlayers);
-                savePlayers(updatedPlayers);
-                
-                // Supprimer de l'historique
-                history.shift();
-                localStorage.setItem(historyKey, JSON.stringify(history));
-              }
-            } catch (error) {
-              console.error('Erreur lors de l\'annulation:', error);
-            }
-            setLoading(false);
-          };
-
-          // Ajouter un élève (professeurs uniquement)
-          const addStudent = async () => {
-            if (!newStudentName.trim()) {
-              alert('Veuillez entrer un nom');
-              return;
-            }
-            
-            try {
-              // Vérifier si l'élève existe déjà
-              if (players.some(p => p.name === newStudentName.trim())) {
-                alert('Un élève avec ce nom existe déjà');
-                return;
-              }
-              
-              const newPlayer = {
-                name: newStudentName.trim(),
-                franchise: newStudentFranchise,
-                score: 0
-              };
-              
-              const updatedPlayers = [...players, newPlayer];
-              setPlayers(updatedPlayers);
-              savePlayers(updatedPlayers);
-              
-              setNewStudentName('');
-              alert('Élève ajouté avec succès !');
-            } catch (error) {
-              alert('Erreur lors de l\'ajout de l\'élève');
-            }
-          };
-
-          // Supprimer un élève (professeurs uniquement)
-          const removeStudent = async (playerName) => {
-            if (!confirm(`Êtes-vous sûr de vouloir supprimer ${playerName} ? Cette action est irréversible.`)) {
-              return;
-            }
-            
-            try {
-              const updatedPlayers = players.filter(p => p.name !== playerName);
-              setPlayers(updatedPlayers);
-              savePlayers(updatedPlayers);
-              
-              // Supprimer aussi l'historique et les badges
-              localStorage.removeItem(`history_${playerName}`);
-              
-              // Retirer les badges du joueur
-              const updatedPlayerBadges = { ...playerBadges };
-              delete updatedPlayerBadges[playerName];
-              setPlayerBadges(updatedPlayerBadges);
-              localStorage.setItem('playerBadges', JSON.stringify(updatedPlayerBadges));
-              
-              alert('Élève supprimé avec succès');
-            } catch (error) {
-              alert('Erreur lors de la suppression');
-            }
-          };
-
-          // === USEEFFECTS ===
-          
-          // Charger les données au démarrage
-          useEffect(() => {
-            loadPlayers();
-            loadBadges();
-          }, []);
-          
-          // Sauvegarder les badges quand ils changent
-          useEffect(() => {
-            if (Object.keys(playerBadges).length > 0 || Object.keys(franchiseBadges).length > 0) {
-              saveBadges();
-            }
-          }, [playerBadges, franchiseBadges, badgeHistory, actionStreaks]);
-
-          // Recharger les joueurs régulièrement si connecté
-          useEffect(() => {
-            if (userType) {
-              loadPlayers();
-              const interval = setInterval(loadPlayers, 10000);
-              return () => clearInterval(interval);
-            }
-          }, [userType]);
-
-          // Obtenir les joueurs triés par score pour une franchise
-          const getSortedPlayers = (franchise) => {
-            return players
-              .filter(player => player.franchise === franchise)
-              .sort((a, b) => b.score - a.score);
-          };
-
-          // Obtenir le classement des franchises
-          const getFranchiseRankings = () => {
-            const franchiseScores = {};
-            ['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].forEach(franchise => {
-              franchiseScores[franchise] = players
-                .filter(player => player.franchise === franchise)
-                .reduce((total, player) => total + player.score, 0);
-            });
-            
-            return Object.entries(franchiseScores)
-              .sort(([,a], [,b]) => b - a)
-              .map(([franchise, score], index) => ({ franchise, score, rank: index + 1 }));
-          };
-
-          // Obtenir le classement général des joueurs
-          const getGeneralPlayerRankings = () => {
-            return [...players].sort((a, b) => b.score - a.score);
-          };
-
-          // Rechercher un joueur par nom
-          const searchPlayer = async () => {
-            if (!searchName.trim()) {
-              alert('Veuillez entrer votre nom');
-              return;
-            }
-
-            const player = players.find(p => 
-              p.name.toLowerCase() === searchName.trim().toLowerCase()
-            );
-            
-            if (player) {
-              setFoundPlayer(player);
-              
-              const historyKey = `history_${player.name}`;
-              const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
-              setSearchHistory(history);
-            } else {
-              setFoundPlayer(null);
-              setSearchHistory([]);
-              alert('Élève non trouvé. Vérifiez l\'orthographe de votre nom.');
-            }
-          }; badges dans localStorage
-          const saveBadges = () => {
-            try {
-              localStorage.setItem('playerBadges', JSON.stringify(playerBadges));
-              localStorage.setItem('franchiseBadges', JSON.stringify(franchiseBadges));
-              localStorage.setItem('badgeHistory', JSON.stringify(badgeHistory));
-              localStorage.setItem('actionStreaks', JSON.stringify(actionStreaks));
-            } catch (error) {
-              console.error('Erreur lors de la sauvegarde des badges:', error);
-            }
-          };
-          
-          // Obtenir les badges d'un joueur
-          const getPlayerBadges = (playerName) => {
-            return playerBadges[playerName] || [];
-          };
-          
-          // Obtenir les badges d'une franchise
-          const getFranchiseBadges = (franchiseName) => {
-            return franchiseBadges[franchiseName] || [];
-          };
-          
-          // Fonction pour obtenir le grade basketball selon le score
           const getBadge = (score) => {
-            // Grade Ultime
-            if (score >= 250) return { 
-              emoji: '🐐', 
-              name: 'GOAT', 
-              fullName: 'Greatest Of All Time',
-              color: 'text-purple-300',
-              bgColor: 'from-purple-600 to-purple-800',
-              description: 'Le plus grand de tous les temps'
-            };
-            
-            // Grades Elite
-            if (score >= 200) return { 
-              emoji: '🏛️', 
-              name: 'Hall of Fame', 
-              fullName: 'Hall of Fame',
-              color: 'text-yellow-300',
-              bgColor: 'from-yellow-500 to-yellow-700',
-              description: 'Légende du sport'
-            };
-            if (score >= 150) return { 
-              emoji: '🔥', 
-              name: 'Superstar', 
-              fullName: 'Superstar',
-              color: 'text-orange-300',
-              bgColor: 'from-orange-500 to-red-600',
-              description: 'Phénomène basketball'
-            };
-            
-            // Grades Confirmés
-            if (score >= 100) return { 
-              emoji: '🌟', 
-              name: 'All-Star', 
-              fullName: 'All-Star',
-              color: 'text-blue-300',
-              bgColor: 'from-blue-500 to-blue-700',
-              description: 'Sélectionné parmi l\'élite'
-            };
-            if (score >= 75) return { 
-              emoji: '💎', 
-              name: 'Franchise Player', 
-              fullName: 'Franchise Player',
-              color: 'text-cyan-300',
-              bgColor: 'from-cyan-500 to-blue-600',
-              description: 'Pilier de l\'équipe'
-            };
-            
-            // Grades Développement
-            if (score >= 50) return { 
-              emoji: '⭐', 
-              name: 'Starting Five', 
-              fullName: 'Starting Five',
-              color: 'text-green-300',
-              bgColor: 'from-green-500 to-green-700',
-              description: 'Titulaire indiscutable'
-            };
-            if (score >= 25) return { 
-              emoji: '🏃', 
-              name: 'Sixth Man', 
-              fullName: 'Sixth Man',
-              color: 'text-emerald-300',
-              bgColor: 'from-emerald-500 to-green-600',
-              description: 'Premier remplaçant de qualité'
-            };
-            
-            // Grades Débutants
-            if (score >= 10) return { 
-              emoji: '🏀', 
-              name: 'Rookie', 
-              fullName: 'Rookie',
-              color: 'text-amber-300',
-              bgColor: 'from-amber-500 to-orange-500',
-              description: 'Débutant prometteur'
-            };
-            if (score >= 0) return { 
-              emoji: '👶', 
-              name: 'Freshman', 
-              fullName: 'Freshman',
-              color: 'text-yellow-300',
-              bgColor: 'from-yellow-400 to-amber-500',
-              description: 'Première année, apprend les bases'
-            };
-            
-            // Grades Négatifs
-            if (score >= -25) return { 
-              emoji: '📉', 
-              name: 'Plot', 
-              fullName: 'Plot',
-              color: 'text-gray-400',
-              bgColor: 'from-gray-500 to-gray-700',
-              description: 'Personnage sans importance'
-            };
-            if (score >= -50) return { 
-              emoji: '🪑', 
-              name: 'Benchwarmer', 
-              fullName: 'Benchwarmer',
-              color: 'text-red-400',
-              bgColor: 'from-red-500 to-red-700',
-              description: 'Cloué sur le banc'
-            };
-            
-            // Pire niveau
-            return { 
-              emoji: '🗑️', 
-              name: 'Scrub', 
-              fullName: 'Scrub',
-              color: 'text-red-600',
-              bgColor: 'from-red-700 to-red-900',
-              description: 'Le pire niveau possible'
-            };
+            if (score >= 250) return { emoji: '🐐', name: 'GOAT', color: 'text-purple-300', bgColor: 'from-purple-600 to-purple-800' };
+            if (score >= 200) return { emoji: '🏛️', name: 'Hall of Fame', color: 'text-yellow-300', bgColor: 'from-yellow-500 to-yellow-700' };
+            if (score >= 150) return { emoji: '🔥', name: 'Superstar', color: 'text-orange-300', bgColor: 'from-orange-500 to-red-600' };
+            if (score >= 100) return { emoji: '🌟', name: 'All-Star', color: 'text-blue-300', bgColor: 'from-blue-500 to-blue-700' };
+            if (score >= 75) return { emoji: '💎', name: 'Franchise Player', color: 'text-cyan-300', bgColor: 'from-cyan-500 to-blue-600' };
+            if (score >= 50) return { emoji: '⭐', name: 'Starting Five', color: 'text-green-300', bgColor: 'from-green-500 to-green-700' };
+            if (score >= 25) return { emoji: '🏃', name: 'Sixth Man', color: 'text-emerald-300', bgColor: 'from-emerald-500 to-green-600' };
+            if (score >= 10) return { emoji: '🏀', name: 'Rookie', color: 'text-amber-300', bgColor: 'from-amber-500 to-orange-500' };
+            if (score >= 0) return { emoji: '👶', name: 'Freshman', color: 'text-yellow-300', bgColor: 'from-yellow-400 to-amber-500' };
+            if (score >= -25) return { emoji: '📉', name: 'Plot', color: 'text-gray-400', bgColor: 'from-gray-500 to-gray-700' };
+            if (score >= -50) return { emoji: '🪑', name: 'Benchwarmer', color: 'text-red-400', bgColor: 'from-red-500 to-red-700' };
+            return { emoji: '🗑️', name: 'Scrub', color: 'text-red-600', bgColor: 'from-red-700 to-red-900' };
           };
 
-          // Fonction pour obtenir l'avatar animé de la franchise
           const getFranchiseAvatar = (franchise) => {
             const avatars = {
-              Minotaurs: { emoji: '🐂', class: 'minotaur-avatar', name: 'Taureau Enragé' },
-              Krakens: { emoji: '🐙', class: 'kraken-avatar', name: 'Kraken des Profondeurs' },
-              Phoenix: { emoji: '🔥', class: 'phoenix-avatar', name: 'Phoenix Éternel' },
-              Werewolves: { emoji: '🐺', class: 'werewolf-avatar', name: 'Loup-Garou' }
+              Minotaurs: { emoji: '🐂', class: 'minotaur-avatar' },
+              Krakens: { emoji: '🐙', class: 'kraken-avatar' },
+              Phoenix: { emoji: '🔥', class: 'phoenix-avatar' },
+              Werewolves: { emoji: '🐺', class: 'werewolf-avatar' }
             };
-            return avatars[franchise] || { emoji: '⚡', class: 'franchise-avatar', name: 'Guerrier' };
+            return avatars[franchise] || { emoji: '⚡', class: 'franchise-avatar' };
           };
 
-          // Actions positives et négatives
           const positiveActions = [
             { label: 'Hardworker', points: 6 },
             { label: 'Victoire le weekend', points: 4 },
@@ -926,7 +145,7 @@
           const negativeActions = [
             { label: 'Observation négative', points: -5 },
             { label: 'Exclusion de cours', points: -8 },
-            { label: 'Exclusion temporaire de l\'établissement', points: -15 },
+            { label: 'Exclusion temporaire', points: -15 },
             { label: 'Travail non fait', points: -3 },
             { label: 'Retard/absence non justifiée', points: -3 },
             { label: 'Absence non justifiée au club', points: -3 },
@@ -935,7 +154,6 @@
             { label: 'Pénalité', points: -5 }
           ];
 
-          // Couleurs des franchises
           const franchiseColors = {
             Minotaurs: 'from-red-600 to-red-800',
             Krakens: 'from-blue-600 to-blue-800',
@@ -943,14 +161,7 @@
             Werewolves: 'from-green-600 to-green-800'
           };
 
-          // Vérifier le mot de passe professeur (SIMULÉ)
-          const verifyTeacher = async () => {
-            if (!password.trim()) {
-              setLoginError('Veuillez entrer un mot de passe');
-              return;
-            }
-            
-            // Simulation de vérification (accepte "admin" pour les tests)
+          const verifyTeacher = () => {
             if (password === 'admin') {
               setUserType('teacher');
               setCurrentView('teacher-dashboard');
@@ -960,16 +171,691 @@
             }
           };
 
-          // Charger les joueurs depuis localStorage
-          const loadPlayers = async () => {
-            try {
-              const savedPlayers = localStorage.getItem('players');
-              if (savedPlayers) {
-                setPlayers(JSON.parse(savedPlayers));
-              }
-            } catch (error) {
-              console.error('Erreur lors du chargement des joueurs:', error);
+          const loadPlayers = () => {
+            const saved = localStorage.getItem('players');
+            if (saved) setPlayers(JSON.parse(saved));
+          };
+
+          const savePlayers = (playersToSave) => {
+            localStorage.setItem('players', JSON.stringify(playersToSave));
+          };
+
+          const addPoints = (playerName, points, action) => {
+            const updated = players.map(p => 
+              p.name === playerName ? {...p, score: p.score + points} : p
+            );
+            setPlayers(updated);
+            savePlayers(updated);
+            
+            const historyKey = `history_${playerName}`;
+            const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+            history.unshift({
+              action,
+              points,
+              timestamp: new Date().toLocaleString('fr-FR'),
+              teacher_name: teacherName || 'Anonyme',
+              new_total: updated.find(p => p.name === playerName).score
+            });
+            localStorage.setItem(historyKey, JSON.stringify(history.slice(0, 100)));
+            setExpandedDropdown(null);
+          };
+
+          const loadPlayerHistory = (playerName) => {
+            const historyKey = `history_${playerName}`;
+            const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+            setPlayerHistory(history);
+            setSelectedPlayerHistory(playerName);
+          };
+
+          const undoLastAction = (playerName) => {
+            const historyKey = `history_${playerName}`;
+            const history = JSON.parse(localStorage.getItem(historyKey) || '[]');
+            if (history.length > 0) {
+              const lastAction = history[0];
+              const updated = players.map(p => 
+                p.name === playerName ? {...p, score: p.score - lastAction.points} : p
+              );
+              setPlayers(updated);
+              savePlayers(updated);
+              history.shift();
+              localStorage.setItem(historyKey, JSON.stringify(history));
             }
           };
 
-          // Sauvegarder les
+          const addStudent = () => {
+            if (!newStudentName.trim()) {
+              alert('Veuillez entrer un nom');
+              return;
+            }
+            if (players.some(p => p.name === newStudentName.trim())) {
+              alert('Cet élève existe déjà');
+              return;
+            }
+            const updated = [...players, {
+              name: newStudentName.trim(),
+              franchise: newStudentFranchise,
+              score: 0
+            }];
+            setPlayers(updated);
+            savePlayers(updated);
+            setNewStudentName('');
+            alert('Élève ajouté avec succès !');
+          };
+
+          const removeStudent = (playerName) => {
+            if (!confirm(`Supprimer ${playerName} ?`)) return;
+            const updated = players.filter(p => p.name !== playerName);
+            setPlayers(updated);
+            savePlayers(updated);
+            localStorage.removeItem(`history_${playerName}`);
+            alert('Élève supprimé');
+          };
+
+          const searchPlayer = () => {
+            if (!searchName.trim()) {
+              alert('Veuillez entrer votre nom');
+              return;
+            }
+            const player = players.find(p => 
+              p.name.toLowerCase() === searchName.trim().toLowerCase()
+            );
+            if (player) {
+              setFoundPlayer(player);
+              const history = JSON.parse(localStorage.getItem(`history_${player.name}`) || '[]');
+              setSearchHistory(history);
+            } else {
+              setFoundPlayer(null);
+              setSearchHistory([]);
+              alert('Élève non trouvé');
+            }
+          };
+
+          useEffect(() => {
+            const isFirstLoad = !localStorage.getItem('players');
+            if (isFirstLoad) {
+              const demoPlayers = [
+                { name: 'Alice Martin', franchise: 'Minotaurs', score: 45 },
+                { name: 'Bob Dupont', franchise: 'Minotaurs', score: 28 },
+                { name: 'Charlie Durand', franchise: 'Krakens', score: 62 },
+                { name: 'Diana Moreau', franchise: 'Krakens', score: 15 },
+                { name: 'Eve Lambert', franchise: 'Phoenix', score: 89 },
+                { name: 'Frank Bernard', franchise: 'Phoenix', score: -5 },
+                { name: 'Grace Petit', franchise: 'Werewolves', score: 103 },
+                { name: 'Henry Robert', franchise: 'Werewolves', score: 37 }
+              ];
+              savePlayers(demoPlayers);
+              setPlayers(demoPlayers);
+            }
+            loadPlayers();
+          }, []);
+
+          useEffect(() => {
+            if (userType) {
+              const interval = setInterval(loadPlayers, 10000);
+              return () => clearInterval(interval);
+            }
+          }, [userType]);
+
+          const getSortedPlayers = (franchise) => {
+            return players
+              .filter(p => p.franchise === franchise)
+              .sort((a, b) => b.score - a.score);
+          };
+
+          const getFranchiseRankings = () => {
+            const scores = {};
+            ['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].forEach(f => {
+              scores[f] = players
+                .filter(p => p.franchise === f)
+                .reduce((sum, p) => sum + p.score, 0);
+            });
+            return Object.entries(scores)
+              .sort(([,a], [,b]) => b - a)
+              .map(([franchise, score], i) => ({ franchise, score, rank: i + 1 }));
+          };
+
+          const getGeneralPlayerRankings = () => {
+            return [...players].sort((a, b) => b.score - a.score);
+          };
+
+          if (currentView === 'home') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <div className="max-w-4xl mx-auto">
+                  <h1 className="text-6xl font-bold text-center text-white mb-4">
+                    🏆 Système de Gestion Scolaire 🏆
+                  </h1>
+                  <p className="text-xl text-center text-purple-200 mb-12">
+                    Choisissez votre type d'accès
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <button
+                      onClick={() => setCurrentView('teacher-login')}
+                      className="group relative overflow-hidden bg-gradient-to-r from-emerald-600 to-emerald-800 hover:from-emerald-500 hover:to-emerald-700 text-white p-8 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                    >
+                      <div className="relative z-10 flex flex-col items-center">
+                        <div className="text-6xl mb-4">👨‍🏫</div>
+                        <h2 className="text-3xl font-bold mb-2">PROFESSEUR</h2>
+                        <p className="text-emerald-100">Gestion complète</p>
+                        <p className="text-sm text-emerald-200 mt-2">🔐 Mot de passe requis</p>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setUserType('student');
+                        setCurrentView('student-dashboard');
+                      }}
+                      className="group relative overflow-hidden bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white p-8 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                    >
+                      <div className="relative z-10 flex flex-col items-center">
+                        <div className="text-6xl mb-4">👨‍🎓</div>
+                        <h2 className="text-3xl font-bold mb-2">ÉLÈVE</h2>
+                        <p className="text-amber-100">Consultation des scores</p>
+                        <p className="text-sm text-amber-200 mt-2">👁️ Lecture seule</p>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (currentView === 'teacher-login') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8 flex items-center justify-center">
+                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 max-w-md w-full">
+                  <h2 className="text-3xl font-bold text-white text-center mb-8">
+                    🔐 Connexion Professeur
+                  </h2>
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-white text-sm font-bold mb-2">Nom (optionnel)</label>
+                      <input
+                        type="text"
+                        value={teacherName}
+                        onChange={(e) => setTeacherName(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30"
+                        placeholder="Votre nom..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-white text-sm font-bold mb-2">Mot de passe *</label>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && verifyTeacher()}
+                        className="w-full px-3 py-2 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30"
+                        placeholder="Mot de passe..."
+                      />
+                    </div>
+                    {loginError && (
+                      <div className="text-red-300 text-sm text-center">{loginError}</div>
+                    )}
+                    <div className="flex space-x-4">
+                      <button
+                        onClick={() => setCurrentView('home')}
+                        className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 rounded-lg transition-colors"
+                      >
+                        ← Retour
+                      </button>
+                      <button
+                        onClick={verifyTeacher}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg transition-colors"
+                      >
+                        Se connecter
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (currentView === 'teacher-dashboard') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <div className="max-w-6xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">
+                      👨‍🏫 Tableau de Bord Professeur
+                      {teacherName && <span className="text-2xl text-purple-200"> - {teacherName}</span>}
+                    </h1>
+                    <button
+                      onClick={() => {
+                        setCurrentView('home');
+                        setUserType(null);
+                        setPassword('');
+                      }}
+                      className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg"
+                    >
+                      🚪 Déconnexion
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <button
+                      onClick={() => setCurrentView('teacher-players')}
+                      className="bg-gradient-to-r from-emerald-600 to-emerald-800 hover:from-emerald-500 hover:to-emerald-700 text-white p-6 rounded-xl shadow-2xl"
+                    >
+                      <div className="text-4xl mb-2">👥</div>
+                      <h3 className="text-xl font-bold">Gestion des Points</h3>
+                      <p className="text-emerald-100 text-sm">Ajouter/retirer des points</p>
+                    </button>
+                    <button
+                      onClick={() => setCurrentView('teacher-admin')}
+                      className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white p-6 rounded-xl shadow-2xl"
+                    >
+                      <div className="text-4xl mb-2">⚙️</div>
+                      <h3 className="text-xl font-bold">Administration</h3>
+                      <p className="text-blue-100 text-sm">Gérer les élèves</p>
+                    </button>
+                    <button
+                      onClick={() => setCurrentView('rankings')}
+                      className="bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white p-6 rounded-xl shadow-2xl"
+                    >
+                      <div className="text-4xl mb-2">🏆</div>
+                      <h3 className="text-xl font-bold">Classements</h3>
+                      <p className="text-amber-100 text-sm">Voir les résultats</p>
+                    </button>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                    <h3 className="text-2xl font-bold text-white mb-4">📊 Statistiques Rapides</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                        const franchisePlayers = getSortedPlayers(franchise);
+                        const totalPoints = franchisePlayers.reduce((sum, p) => sum + p.score, 0);
+                        const avatar = getFranchiseAvatar(franchise);
+                        return (
+                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg text-center franchise-card`}>
+                            <div className="flex items-center justify-center mb-2">
+                              <span className={`franchise-avatar ${avatar.class}`}>
+                                {avatar.emoji}
+                              </span>
+                            </div>
+                            <h4 className="font-bold text-white">{franchise}</h4>
+                            <div className="text-2xl font-bold text-white">{totalPoints}</div>
+                            <div className="text-sm text-white/80">{franchisePlayers.length} élèves</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (currentView === 'teacher-players') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <div className="max-w-7xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">👥 Gestion des Points</h1>
+                    <button
+                      onClick={() => setCurrentView('teacher-dashboard')}
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg"
+                    >
+                      ← Retour
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+                    {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                      const avatar = getFranchiseAvatar(franchise);
+                      return (
+                        <div key={franchise} className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                          <h2 className={`text-2xl font-bold text-white mb-4 text-center bg-gradient-to-r ${franchiseColors[franchise]} p-3 rounded-lg`}>
+                            <span className={`${avatar.class}`}>{avatar.emoji}</span> {franchise}
+                          </h2>
+                          <div className="space-y-3">
+                            {getSortedPlayers(franchise).map(player => (
+                              <div key={player.name} className="bg-white/20 rounded-lg p-3">
+                                <div className="flex justify-between items-center mb-2">
+                                  <button
+                                    onClick={() => loadPlayerHistory(player.name)}
+                                    className="text-white font-semibold hover:text-yellow-300"
+                                  >
+                                    {player.name} 📋
+                                  </button>
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-2xl">{getBadge(player.score).emoji}</span>
+                                    <span className="text-white font-bold">{player.score} pts</span>
+                                    <button
+                                      onClick={() => undoLastAction(player.name)}
+                                      className="bg-red-500 hover:bg-red-400 text-white px-2 py-1 rounded text-xs"
+                                    >
+                                      ↺
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="relative">
+                                  <button
+                                    onClick={() => setExpandedDropdown(expandedDropdown === player.name ? null : player.name)}
+                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded"
+                                  >
+                                    Actions {expandedDropdown === player.name ? '⌃' : '⌄'}
+                                  </button>
+                                  {expandedDropdown === player.name && (
+                                    <div className="absolute top-full left-0 right-0 bg-white rounded-lg shadow-xl z-10 mt-1 max-h-64 overflow-y-auto">
+                                      <div className="p-2">
+                                        <div className="text-green-700 font-semibold mb-2">Positifs:</div>
+                                        {positiveActions.map((action, i) => (
+                                          <button
+                                            key={i}
+                                            onClick={() => addPoints(player.name, action.points, action.label)}
+                                            className="w-full text-left px-3 py-2 hover:bg-green-100 rounded text-sm flex justify-between"
+                                          >
+                                            <span>{action.label}</span>
+                                            <span className="text-green-600 font-bold">+{action.points}</span>
+                                          </button>
+                                        ))}
+                                        <div className="text-red-700 font-semibold mb-2 mt-3">Négatifs:</div>
+                                        {negativeActions.map((action, i) => (
+                                          <button
+                                            key={i}
+                                            onClick={() => addPoints(player.name, action.points, action.label)}
+                                            className="w-full text-left px-3 py-2 hover:bg-red-100 rounded text-sm flex justify-between"
+                                          >
+                                            <span>{action.label}</span>
+                                            <span className="text-red-600 font-bold">{action.points}</span>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (currentView === 'teacher-admin') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <div className="max-w-6xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">⚙️ Administration</h1>
+                    <button
+                      onClick={() => setCurrentView('teacher-dashboard')}
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg"
+                    >
+                      ← Retour
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                      <h2 className="text-2xl font-bold text-white mb-6">➕ Ajouter un Élève</h2>
+                      <div className="space-y-4">
+                        <input
+                          type="text"
+                          value={newStudentName}
+                          onChange={(e) => setNewStudentName(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg bg-white/20 text-white"
+                          placeholder="Nom de l'élève..."
+                        />
+                        <select
+                          value={newStudentFranchise}
+                          onChange={(e) => setNewStudentFranchise(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg bg-white/20 text-white"
+                        >
+                          <option value="Minotaurs" className="text-black">Minotaurs</option>
+                          <option value="Krakens" className="text-black">Krakens</option>
+                          <option value="Phoenix" className="text-black">Phoenix</option>
+                          <option value="Werewolves" className="text-black">Werewolves</option>
+                        </select>
+                        <button
+                          onClick={addStudent}
+                          className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg"
+                        >
+                          ➕ Ajouter
+                        </button>
+                      </div>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                      <h2 className="text-2xl font-bold text-white mb-6">🗑️ Supprimer un Élève</h2>
+                      <div className="space-y-4">
+                        <select
+                          value={selectedStudent}
+                          onChange={(e) => setSelectedStudent(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg bg-white/20 text-white"
+                        >
+                          <option value="" className="text-black">-- Choisir --</option>
+                          {players.map(p => (
+                            <option key={p.name} value={p.name} className="text-black">
+                              {p.name} ({p.franchise})
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => selectedStudent && removeStudent(selectedStudent)}
+                          disabled={!selectedStudent}
+                          className="w-full bg-red-600 hover:bg-red-500 disabled:bg-gray-500 text-white py-3 rounded-lg"
+                        >
+                          🗑️ Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (currentView === 'student-dashboard') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <div className="max-w-4xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">👨‍🎓 Espace Élève</h1>
+                    <button
+                      onClick={() => {
+                        setCurrentView('home');
+                        setUserType(null);
+                      }}
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg"
+                    >
+                      ← Retour
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <button
+                      onClick={() => setCurrentView('student-search')}
+                      className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white p-6 rounded-xl shadow-2xl"
+                    >
+                      <div className="text-4xl mb-2">🔍</div>
+                      <h3 className="text-xl font-bold">Mon Score</h3>
+                      <p className="text-blue-100 text-sm">Voir mon historique</p>
+                    </button>
+                    <button
+                      onClick={() => setCurrentView('rankings')}
+                      className="bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white p-6 rounded-xl shadow-2xl"
+                    >
+                      <div className="text-4xl mb-2">🏆</div>
+                      <h3 className="text-xl font-bold">Classements</h3>
+                      <p className="text-amber-100 text-sm">Voir tous les classements</p>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (currentView === 'student-search') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <div className="max-w-4xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">🔍 Mon Score</h1>
+                    <button
+                      onClick={() => setCurrentView('student-dashboard')}
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg"
+                    >
+                      ← Retour
+                    </button>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
+                    <div className="flex space-x-4">
+                      <input
+                        type="text"
+                        value={searchName}
+                        onChange={(e) => setSearchName(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && searchPlayer()}
+                        className="flex-1 px-4 py-3 rounded-lg bg-white/20 text-white"
+                        placeholder="Votre nom..."
+                      />
+                      <button
+                        onClick={searchPlayer}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg"
+                      >
+                        🔍 Rechercher
+                      </button>
+                    </div>
+                  </div>
+                  {foundPlayer && (
+                    <div className="space-y-6">
+                      <div className={`bg-gradient-to-r ${franchiseColors[foundPlayer.franchise]} p-6 rounded-xl`}>
+                        <div className="text-center">
+                          <h2 className="text-3xl font-bold text-white mb-2">{foundPlayer.name}</h2>
+                          <div className="text-xl text-white/90 mb-4">
+                            Franchise: {getFranchiseAvatar(foundPlayer.franchise).emoji} {foundPlayer.franchise}
+                          </div>
+                          <div className="mb-4">
+                            <span className="text-3xl">{getBadge(foundPlayer.score).emoji}</span>
+                            <span className="text-xl font-bold text-white ml-2">
+                              {getBadge(foundPlayer.score).name}
+                            </span>
+                          </div>
+                          <div className="text-5xl font-bold text-white">{foundPlayer.score} points</div>
+                        </div>
+                      </div>
+                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                        <h3 className="text-2xl font-bold text-white mb-6">📋 Historique</h3>
+                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                          {searchHistory.map((entry, i) => (
+                            <div key={i} className="bg-white/20 p-4 rounded-lg">
+                              <div className="flex justify-between">
+                                <div>
+                                  <div className="font-semibold text-white">{entry.action}</div>
+                                  <div className="text-sm text-white/80">{entry.timestamp}</div>
+                                </div>
+                                <div className="text-right">
+                                  <div className={`text-lg font-bold ${entry.points > 0 ? 'text-green-300' : 'text-red-300'}`}>
+                                    {entry.points > 0 ? '+' : ''}{entry.points}
+                                  </div>
+                                  <div className="text-sm text-white/70">Total: {entry.new_total}</div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          }
+
+          if (currentView === 'rankings') {
+            const franchiseRankings = getFranchiseRankings();
+            const playerRankings = getGeneralPlayerRankings();
+            
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <div className="max-w-6xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">🏆 Classements</h1>
+                    <button
+                      onClick={() => setCurrentView(userType === 'teacher' ? 'teacher-dashboard' : 'student-dashboard')}
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg"
+                    >
+                      ← Retour
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                      <h2 className="text-2xl font-bold text-white mb-6 text-center">🏆 Franchises</h2>
+                      <div className="space-y-4">
+                        {franchiseRankings.map(({ franchise, score, rank }) => {
+                          const avatar = getFranchiseAvatar(franchise);
+                          return (
+                            <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg flex justify-between items-center`}>
+                              <div className="flex items-center space-x-3">
+                                <span className="text-2xl font-bold text-white">#{rank}</span>
+                                <span className={`${avatar.class}`}>{avatar.emoji}</span>
+                                <span className="text-xl font-semibold text-white">{franchise}</span>
+                              </div>
+                              <span className="text-2xl font-bold text-white">{score} pts</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                      <h2 className="text-2xl font-bold text-white mb-6 text-center">👑 Général</h2>
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {playerRankings.map((player, i) => (
+                          <div key={player.name} className={`bg-gradient-to-r ${franchiseColors[player.franchise]} p-3 rounded-lg flex justify-between items-center`}>
+                            <div className="flex items-center space-x-3">
+                              <span className="text-lg font-bold text-white">#{i + 1}</span>
+                              <span className="text-2xl">{getBadge(player.score).emoji}</span>
+                              <div>
+                                <span className="text-lg font-semibold text-white">{player.name}</span>
+                                <div className="text-sm text-white/80">{player.franchise}</div>
+                              </div>
+                            </div>
+                            <span className="text-lg font-bold text-white">{player.score} pts</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <>
+              {selectedPlayerHistory && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-96 overflow-y-auto">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-bold">Historique de {selectedPlayerHistory}</h3>
+                      <button
+                        onClick={() => setSelectedPlayerHistory(null)}
+                        className="text-gray-500 hover:text-gray-700 text-xl"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {playerHistory.map((entry, i) => (
+                        <div key={i} className="border-l-4 border-blue-500 pl-3 py-2">
+                          <div className="font-semibold">{entry.action}</div>
+                          <div className="text-sm text-gray-600">
+                            {entry.points > 0 ? '+' : ''}{entry.points} points
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {entry.timestamp} • Total: {entry.new_total} pts
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
