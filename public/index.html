@@ -1025,7 +1025,7 @@ const getBadge = (score) => {
           };
 
           // Ajouter des points (professeurs uniquement)
-          const addPoints = async (playerName, points, action) => {
+const addPoints = async (playerName, points, action) => {
   setLoading(true);
   try {
     const response = await fetch('/api/add-points', {
@@ -1035,34 +1035,36 @@ const getBadge = (score) => {
     });
     
     if (response.ok) {
+      // D'abord recharger les données
       await loadPlayers();
       
-      // NOUVEAU : Vérifier les badges après ajout de points
-      const player = players.find(p => p.name === playerName);
-      if (player) {
-        const newScore = player.score + points; // Nouveau score calculé
-        const badgeResult = processActionWithBadges(
-          playerName, 
-          points, 
-          action, 
-          newScore, 
-          player.franchise, 
-          players
-        );
-        
-        // Afficher les notifications de nouveaux badges
-        if (badgeResult.individualBadges.length > 0) {
-          badgeResult.individualBadges.forEach(({ badge }) => {
-            alert(`🎉 ${playerName} a débloqué le badge : ${badge.emoji} ${badge.name}!\n${badge.description}\n+${badge.points_bonus} points bonus`);
-          });
+      // Ensuite vérifier les badges avec les nouvelles données
+      setTimeout(() => {
+        const player = players.find(p => p.name === playerName);
+        if (player) {
+          const badgeResult = processActionWithBadges(
+            playerName, 
+            points, 
+            action, 
+            player.score, // Score actuel (déjà mis à jour)
+            player.franchise, 
+            players
+          );
+          
+          // Afficher les notifications de nouveaux badges
+          if (badgeResult.individualBadges.length > 0) {
+            badgeResult.individualBadges.forEach(({ badge }) => {
+              alert(`🎉 ${playerName} a débloqué le badge : ${badge.emoji} ${badge.name}!\n${badge.description}\n+${badge.points_bonus} points bonus`);
+            });
+          }
+          
+          if (badgeResult.collectiveBadges.length > 0) {
+            badgeResult.collectiveBadges.forEach(({ badge }) => {
+              alert(`🏠 La franchise ${player.franchise} a débloqué : ${badge.emoji} ${badge.name}!\n${badge.description}\n+${badge.franchise_points} points franchise`);
+            });
+          }
         }
-        
-        if (badgeResult.collectiveBadges.length > 0) {
-          badgeResult.collectiveBadges.forEach(({ badge }) => {
-            alert(`🏠 La franchise ${player.franchise} a débloqué : ${badge.emoji} ${badge.name}!\n${badge.description}\n+${badge.franchise_points} points franchise`);
-          });
-        }
-      }
+      }, 100); // Petit délai pour s'assurer que les données sont bien mises à jour
       
       setExpandedDropdown(null);
     }
@@ -1070,7 +1072,7 @@ const getBadge = (score) => {
     console.error('Erreur lors de l\'ajout de points:', error);
   }
   setLoading(false);
-          };
+};
 
           // Charger l'historique d'un joueur
           const loadPlayerHistory = async (playerName) => {
