@@ -104,6 +104,706 @@
     
     <script type="text/babel">
         const { useState, useEffect } = React;
+        // ================================
+// PHASE 1 - INFRASTRUCTURE BADGES
+// ================================
+
+// ========================================
+// 1. DÉFINITIONS DES BADGES ET CONDITIONS
+// ========================================
+
+const BADGE_DEFINITIONS = {
+  // BADGES INDIVIDUELS
+  individual: {
+    // Séries
+    'hot_streak': {
+      name: 'Hot Streak',
+      emoji: '🔥',
+      description: '5 actions positives d\'affilée',
+      rarity: 'bronze',
+      points_bonus: 5,
+      condition: 'consecutive_positive_actions',
+      threshold: 5
+    },
+    'tsunami': {
+      name: 'Tsunami',
+      emoji: '🌊',
+      description: '10 actions positives d\'affilée',
+      rarity: 'silver',
+      points_bonus: 10,
+      condition: 'consecutive_positive_actions',
+      threshold: 10
+    },
+    'unstoppable': {
+      name: 'Unstoppable',
+      emoji: '🚀',
+      description: '15 actions positives d\'affilée',
+      rarity: 'gold',
+      points_bonus: 20,
+      condition: 'consecutive_positive_actions',
+      threshold: 15
+    },
+    'on_fire': {
+      name: 'On Fire',
+      emoji: '🔥',
+      description: '2 "Hardworker" (6pts) en 2 semaines',
+      rarity: 'silver',
+      points_bonus: 10,
+      condition: 'hardworker_streak',
+      threshold: 2,
+      timeframe: 14 // jours
+    },
+    
+    // Persévérance
+    'phoenix': {
+      name: 'Phoenix',
+      emoji: '🦅',
+      description: 'Remonter de -50 à +50 points',
+      rarity: 'gold',
+      points_bonus: 20,
+      condition: 'score_recovery',
+      from: -50,
+      to: 50
+    },
+    'marathon_runner': {
+      name: 'Marathon Runner',
+      emoji: '🏃',
+      description: 'Actions positives 5 jours d\'école consécutifs',
+      rarity: 'bronze',
+      points_bonus: 5,
+      condition: 'consecutive_days_positive',
+      threshold: 5
+    },
+    
+    // Sociaux/Équipe
+    'team_captain': {
+      name: 'Team Captain',
+      emoji: '👑',
+      description: 'Meilleur de sa franchise pendant 1 semaine',
+      rarity: 'silver',
+      points_bonus: 10,
+      condition: 'franchise_leader',
+      duration: 7 // jours
+    },
+    'veteran': {
+      name: 'Veteran',
+      emoji: '🎖️',
+      description: 'Top 3 de sa franchise pendant 2 mois',
+      rarity: 'gold',
+      points_bonus: 20,
+      condition: 'franchise_top3',
+      duration: 60 // jours
+    },
+    'team_player': {
+      name: 'Team Player',
+      emoji: '🤝',
+      description: 'Sa franchise gagne le + de points en 1 semaine',
+      rarity: 'bronze',
+      points_bonus: 5,
+      condition: 'franchise_best_week',
+      duration: 7
+    },
+    
+    // Spéciaux & Rares
+    'showtime': {
+      name: 'Showtime',
+      emoji: '🎪',
+      description: 'Recevoir "Félicitations" (25pts) 3 fois',
+      rarity: 'diamond',
+      points_bonus: 35,
+      condition: 'congratulations_count',
+      threshold: 3
+    }
+  },
+  
+  // BADGES COLLECTIFS
+  collective: {
+    // Performances
+    'rocket_launch': {
+      name: 'Rocket Launch',
+      emoji: '🚀',
+      description: '+80 points collectifs en 1 semaine',
+      rarity: 'bronze',
+      franchise_points: 20,
+      condition: 'franchise_weekly_points',
+      threshold: 80
+    },
+    'tidal_wave': {
+      name: 'Tidal Wave',
+      emoji: '🌊',
+      description: '+200 points collectifs en 1 mois',
+      rarity: 'gold',
+      franchise_points: 50,
+      condition: 'franchise_monthly_points',
+      threshold: 200
+    },
+    'lightning_strike': {
+      name: 'Lightning Strike',
+      emoji: '⚡',
+      description: 'Tous les membres gagnent points même jour',
+      rarity: 'bronze',
+      franchise_points: 20,
+      condition: 'all_members_positive_day'
+    },
+    'house_on_fire': {
+      name: 'House on Fire',
+      emoji: '🔥',
+      description: '80% membres actions positives en 1 semaine',
+      rarity: 'silver',
+      franchise_points: 30,
+      condition: 'franchise_participation',
+      threshold: 0.8,
+      duration: 7
+    },
+    
+    // Suprématie
+    'franchise_royalty': {
+      name: 'Franchise Royalty',
+      emoji: '👑',
+      description: '#1 pendant 1 mois complet',
+      rarity: 'silver',
+      franchise_points: 50,
+      condition: 'franchise_rank_duration',
+      rank: 1,
+      duration: 30
+    },
+    'dynasty': {
+      name: 'Dynasty',
+      emoji: '🌟',
+      description: '#1 pendant 3 mois consécutifs',
+      rarity: 'gold',
+      franchise_points: 100,
+      condition: 'franchise_rank_duration',
+      rank: 1,
+      duration: 90
+    },
+    
+    // Solidarité
+    'united_we_stand': {
+      name: 'United We Stand',
+      emoji: '🤝',
+      description: 'Aucun membre négatif pendant 2 semaines',
+      rarity: 'silver',
+      franchise_points: 30,
+      condition: 'no_negative_members',
+      duration: 14
+    },
+    'perfect_balance': {
+      name: 'Perfect Balance',
+      emoji: '⚖️',
+      description: 'Tous membres entre 25-75 points',
+      rarity: 'gold',
+      franchise_points: 50,
+      condition: 'score_range_all',
+      min: 25,
+      max: 75
+    }
+  }
+};
+
+// =============================================
+// 2. STRUCTURE DE DONNÉES POUR LE STOCKAGE
+// =============================================
+
+// Structure pour stocker les badges en mémoire (à adapter selon votre backend)
+let BADGE_STORAGE = {
+  // Badges individuels : { playerName: [{ badgeId, dateEarned, conditions }, ...] }
+  individual: {},
+  
+  // Badges collectifs : { franchise: [{ badgeId, dateEarned, conditions }, ...] }
+  collective: {},
+  
+  // Tracking des actions pour calculs
+  actionHistory: {},
+  
+  // Tracking des statistiques temporelles
+  weeklyStats: {},
+  monthlyStats: {},
+  streaks: {}
+};
+
+// ==============================================
+// 3. FONCTIONS DE TRACKING DES ACTIONS
+// ==============================================
+
+/**
+ * Enregistrer une action et mettre à jour les statistiques
+ */
+function trackAction(playerName, points, action, timestamp = new Date()) {
+  const dateKey = timestamp.toISOString().split('T')[0]; // YYYY-MM-DD
+  
+  // Initialiser si nécessaire
+  if (!BADGE_STORAGE.actionHistory[playerName]) {
+    BADGE_STORAGE.actionHistory[playerName] = [];
+  }
+  
+  // Ajouter l'action
+  const actionEntry = {
+    points,
+    action,
+    timestamp,
+    dateKey,
+    isPositive: points > 0
+  };
+  
+  BADGE_STORAGE.actionHistory[playerName].push(actionEntry);
+  
+  // Mettre à jour les streaks
+  updateStreaks(playerName, actionEntry);
+  
+  // Mettre à jour les statistiques temporelles
+  updateTemporalStats(playerName, actionEntry);
+  
+  console.log(`🔍 Action trackée pour ${playerName}: ${action} (${points} pts)`);
+}
+
+/**
+ * Mettre à jour les streaks (séries d'actions)
+ */
+function updateStreaks(playerName, actionEntry) {
+  if (!BADGE_STORAGE.streaks[playerName]) {
+    BADGE_STORAGE.streaks[playerName] = {
+      currentPositiveStreak: 0,
+      maxPositiveStreak: 0,
+      currentNegativeStreak: 0,
+      lastActionDate: null,
+      consecutiveDaysPositive: 0
+    };
+  }
+  
+  const streak = BADGE_STORAGE.streaks[playerName];
+  
+  if (actionEntry.isPositive) {
+    streak.currentPositiveStreak++;
+    streak.currentNegativeStreak = 0;
+    streak.maxPositiveStreak = Math.max(streak.maxPositiveStreak, streak.currentPositiveStreak);
+  } else {
+    streak.currentNegativeStreak++;
+    streak.currentPositiveStreak = 0;
+  }
+  
+  // Tracking des jours consécutifs avec actions positives
+  const today = actionEntry.dateKey;
+  if (actionEntry.isPositive) {
+    if (streak.lastActionDate === today) {
+      // Déjà une action positive aujourd'hui, ne pas incrémenter
+    } else if (isConsecutiveDay(streak.lastActionDate, today)) {
+      streak.consecutiveDaysPositive++;
+    } else {
+      streak.consecutiveDaysPositive = 1; // Restart
+    }
+    streak.lastActionDate = today;
+  }
+  
+  console.log(`📊 Streak mis à jour pour ${playerName}:`, streak);
+}
+
+/**
+ * Vérifier si deux dates sont consécutives
+ */
+function isConsecutiveDay(lastDate, currentDate) {
+  if (!lastDate) return false;
+  
+  const last = new Date(lastDate);
+  const current = new Date(currentDate);
+  const diffTime = current - last;
+  const diffDays = diffTime / (1000 * 60 * 60 * 24);
+  
+  return diffDays === 1;
+}
+
+/**
+ * Mettre à jour les statistiques temporelles
+ */
+function updateTemporalStats(playerName, actionEntry) {
+  const weekKey = getWeekKey(actionEntry.timestamp);
+  const monthKey = getMonthKey(actionEntry.timestamp);
+  
+  // Stats hebdomadaires
+  if (!BADGE_STORAGE.weeklyStats[weekKey]) {
+    BADGE_STORAGE.weeklyStats[weekKey] = {};
+  }
+  if (!BADGE_STORAGE.weeklyStats[weekKey][playerName]) {
+    BADGE_STORAGE.weeklyStats[weekKey][playerName] = {
+      totalPoints: 0,
+      positiveActions: 0,
+      actions: []
+    };
+  }
+  
+  BADGE_STORAGE.weeklyStats[weekKey][playerName].totalPoints += actionEntry.points;
+  if (actionEntry.isPositive) {
+    BADGE_STORAGE.weeklyStats[weekKey][playerName].positiveActions++;
+  }
+  BADGE_STORAGE.weeklyStats[weekKey][playerName].actions.push(actionEntry);
+  
+  // Stats mensuelles (même logique)
+  if (!BADGE_STORAGE.monthlyStats[monthKey]) {
+    BADGE_STORAGE.monthlyStats[monthKey] = {};
+  }
+  if (!BADGE_STORAGE.monthlyStats[monthKey][playerName]) {
+    BADGE_STORAGE.monthlyStats[monthKey][playerName] = {
+      totalPoints: 0,
+      positiveActions: 0,
+      actions: []
+    };
+  }
+  
+  BADGE_STORAGE.monthlyStats[monthKey][playerName].totalPoints += actionEntry.points;
+  if (actionEntry.isPositive) {
+    BADGE_STORAGE.monthlyStats[monthKey][playerName].positiveActions++;
+  }
+  BADGE_STORAGE.monthlyStats[monthKey][playerName].actions.push(actionEntry);
+}
+
+/**
+ * Obtenir la clé de semaine (année-semaine)
+ */
+function getWeekKey(date) {
+  const d = new Date(date);
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+  const weekNo = Math.ceil(((d - yearStart) / 86400000 + yearStart.getDay() + 1) / 7);
+  return `${d.getFullYear()}-W${weekNo}`;
+}
+
+/**
+ * Obtenir la clé de mois (année-mois)
+ */
+function getMonthKey(date) {
+  const d = new Date(date);
+  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+}
+
+// ===============================================
+// 4. MOTEUR DE VÉRIFICATION DES CONDITIONS
+// ===============================================
+
+/**
+ * Vérifier toutes les conditions de badges pour un joueur
+ */
+function checkAllBadgesForPlayer(playerName, currentScore, franchise) {
+  console.log(`🎯 Vérification badges pour ${playerName} (${currentScore} pts, ${franchise})`);
+  
+  const newBadges = [];
+  
+  // Vérifier les badges individuels
+  for (const [badgeId, badge] of Object.entries(BADGE_DEFINITIONS.individual)) {
+    if (!hasPlayerBadge(playerName, badgeId)) {
+      if (checkBadgeCondition(playerName, badge, currentScore, franchise)) {
+        awardBadge(playerName, badgeId, badge, 'individual');
+        newBadges.push({ type: 'individual', badgeId, badge });
+      }
+    }
+  }
+  
+  return newBadges;
+}
+
+/**
+ * Vérifier toutes les conditions de badges pour une franchise
+ */
+function checkAllBadgesForFranchise(franchise, players) {
+  console.log(`🏠 Vérification badges collectifs pour ${franchise}`);
+  
+  const newBadges = [];
+  
+  // Vérifier les badges collectifs
+  for (const [badgeId, badge] of Object.entries(BADGE_DEFINITIONS.collective)) {
+    if (!hasFranchiseBadge(franchise, badgeId)) {
+      if (checkFranchiseBadgeCondition(franchise, badge, players)) {
+        awardFranchiseBadge(franchise, badgeId, badge);
+        newBadges.push({ type: 'collective', badgeId, badge });
+      }
+    }
+  }
+  
+  return newBadges;
+}
+
+/**
+ * Vérifier une condition spécifique de badge individuel
+ */
+function checkBadgeCondition(playerName, badge, currentScore, franchise) {
+  const streak = BADGE_STORAGE.streaks[playerName];
+  if (!streak) return false;
+  
+  switch (badge.condition) {
+    case 'consecutive_positive_actions':
+      return streak.currentPositiveStreak >= badge.threshold;
+      
+    case 'consecutive_days_positive':
+      return streak.consecutiveDaysPositive >= badge.threshold;
+      
+    case 'score_recovery':
+      return checkScoreRecovery(playerName, badge.from, badge.to);
+      
+    case 'hardworker_streak':
+      return checkHardworkerStreak(playerName, badge.threshold, badge.timeframe);
+      
+    case 'congratulations_count':
+      return checkCongratulationsCount(playerName, badge.threshold);
+      
+    case 'franchise_leader':
+      return checkFranchiseLeader(playerName, franchise, badge.duration);
+      
+    case 'franchise_top3':
+      return checkFranchiseTop3(playerName, franchise, badge.duration);
+      
+    default:
+      console.warn(`❌ Condition inconnue: ${badge.condition}`);
+      return false;
+  }
+}
+
+/**
+ * Vérifier une condition spécifique de badge collectif
+ */
+function checkFranchiseBadgeCondition(franchise, badge, players) {
+  switch (badge.condition) {
+    case 'franchise_weekly_points':
+      return checkFranchiseWeeklyPoints(franchise, badge.threshold);
+      
+    case 'franchise_monthly_points':
+      return checkFranchiseMonthlyPoints(franchise, badge.threshold);
+      
+    case 'all_members_positive_day':
+      return checkAllMembersPositiveToday(franchise, players);
+      
+    case 'franchise_participation':
+      return checkFranchiseParticipation(franchise, badge.threshold, badge.duration);
+      
+    case 'no_negative_members':
+      return checkNoNegativeMembers(franchise, players, badge.duration);
+      
+    case 'score_range_all':
+      return checkScoreRangeAll(franchise, players, badge.min, badge.max);
+      
+    default:
+      console.warn(`❌ Condition collective inconnue: ${badge.condition}`);
+      return false;
+  }
+}
+
+// ===============================================
+// 5. FONCTIONS DE VÉRIFICATION SPÉCIFIQUES
+// ===============================================
+
+function checkScoreRecovery(playerName, fromScore, toScore) {
+  const history = BADGE_STORAGE.actionHistory[playerName];
+  if (!history || history.length < 2) return false;
+  
+  // Chercher un point où le score était <= fromScore
+  let hadLowScore = false;
+  let runningTotal = 0;
+  
+  for (const action of history) {
+    runningTotal += action.points;
+    if (runningTotal <= fromScore) {
+      hadLowScore = true;
+    }
+    if (hadLowScore && runningTotal >= toScore) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+function checkHardworkerStreak(playerName, count, timeframeDays) {
+  const history = BADGE_STORAGE.actionHistory[playerName];
+  if (!history) return false;
+  
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - (timeframeDays * 24 * 60 * 60 * 1000));
+  
+  const hardworkerActions = history.filter(action => 
+    action.action === 'Hardworker' && 
+    action.points === 6 && 
+    action.timestamp >= cutoff
+  );
+  
+  return hardworkerActions.length >= count;
+}
+
+function checkCongratulationsCount(playerName, count) {
+  const history = BADGE_STORAGE.actionHistory[playerName];
+  if (!history) return false;
+  
+  const congratulations = history.filter(action => 
+    action.action === 'Félicitations' && action.points === 25
+  );
+  
+  return congratulations.length >= count;
+}
+
+function checkFranchiseWeeklyPoints(franchise, threshold) {
+  const weekKey = getWeekKey(new Date());
+  const weekStats = BADGE_STORAGE.weeklyStats[weekKey];
+  if (!weekStats) return false;
+  
+  let franchiseTotal = 0;
+  for (const [playerName, stats] of Object.entries(weekStats)) {
+    // Note: Il faudrait avoir accès à la franchise du joueur ici
+    // Pour l'instant, on simplifie
+    franchiseTotal += stats.totalPoints;
+  }
+  
+  return franchiseTotal >= threshold;
+}
+
+function checkAllMembersPositiveToday(franchise, players) {
+  const today = new Date().toISOString().split('T')[0];
+  const franchisePlayers = players.filter(p => p.franchise === franchise);
+  
+  for (const player of franchisePlayers) {
+    const history = BADGE_STORAGE.actionHistory[player.name];
+    if (!history) return false;
+    
+    const todayActions = history.filter(action => action.dateKey === today);
+    const hasPositiveToday = todayActions.some(action => action.isPositive);
+    
+    if (!hasPositiveToday) return false;
+  }
+  
+  return franchisePlayers.length > 0;
+}
+
+// ===============================================
+// 6. FONCTIONS D'ATTRIBUTION DES BADGES
+// ===============================================
+
+/**
+ * Attribuer un badge individuel
+ */
+function awardBadge(playerName, badgeId, badge, type) {
+  if (!BADGE_STORAGE.individual[playerName]) {
+    BADGE_STORAGE.individual[playerName] = [];
+  }
+  
+  const badgeEntry = {
+    badgeId,
+    name: badge.name,
+    emoji: badge.emoji,
+    description: badge.description,
+    rarity: badge.rarity,
+    pointsBonus: badge.points_bonus || 0,
+    dateEarned: new Date(),
+    type
+  };
+  
+  BADGE_STORAGE.individual[playerName].push(badgeEntry);
+  
+  console.log(`🎉 Badge attribué à ${playerName}: ${badge.emoji} ${badge.name}`);
+  
+  // Retourner les infos pour les notifications
+  return badgeEntry;
+}
+
+/**
+ * Attribuer un badge collectif
+ */
+function awardFranchiseBadge(franchise, badgeId, badge) {
+  if (!BADGE_STORAGE.collective[franchise]) {
+    BADGE_STORAGE.collective[franchise] = [];
+  }
+  
+  const badgeEntry = {
+    badgeId,
+    name: badge.name,
+    emoji: badge.emoji,
+    description: badge.description,
+    rarity: badge.rarity,
+    franchisePoints: badge.franchise_points || 0,
+    dateEarned: new Date(),
+    type: 'collective'
+  };
+  
+  BADGE_STORAGE.collective[franchise].push(badgeEntry);
+  
+  console.log(`🏠 Badge collectif attribué à ${franchise}: ${badge.emoji} ${badge.name}`);
+  
+  return badgeEntry;
+}
+
+// ===============================================
+// 7. FONCTIONS UTILITAIRES
+// ===============================================
+
+/**
+ * Vérifier si un joueur possède déjà un badge
+ */
+function hasPlayerBadge(playerName, badgeId) {
+  const playerBadges = BADGE_STORAGE.individual[playerName] || [];
+  return playerBadges.some(badge => badge.badgeId === badgeId);
+}
+
+/**
+ * Vérifier si une franchise possède déjà un badge
+ */
+function hasFranchiseBadge(franchise, badgeId) {
+  const franchiseBadges = BADGE_STORAGE.collective[franchise] || [];
+  return franchiseBadges.some(badge => badge.badgeId === badgeId);
+}
+
+/**
+ * Obtenir tous les badges d'un joueur
+ */
+function getPlayerBadges(playerName) {
+  return BADGE_STORAGE.individual[playerName] || [];
+}
+
+/**
+ * Obtenir tous les badges d'une franchise
+ */
+function getFranchiseBadges(franchise) {
+  return BADGE_STORAGE.collective[franchise] || [];
+}
+
+/**
+ * Obtenir les statistiques de progression d'un joueur
+ */
+function getPlayerProgress(playerName) {
+  const streak = BADGE_STORAGE.streaks[playerName] || {
+    currentPositiveStreak: 0,
+    consecutiveDaysPositive: 0
+  };
+  
+  return {
+    currentStreak: streak.currentPositiveStreak,
+    consecutiveDays: streak.consecutiveDaysPositive,
+    totalActions: (BADGE_STORAGE.actionHistory[playerName] || []).length,
+    badges: getPlayerBadges(playerName).length
+  };
+}
+
+// ===============================================
+// 8. FONCTION PRINCIPALE D'INTÉGRATION
+// ===============================================
+
+/**
+ * Fonction principale à appeler lors de l'ajout de points
+ * Remplace ou complète votre fonction addPoints existante
+ */
+function processActionWithBadges(playerName, points, action, currentScore, franchise, allPlayers) {
+  console.log(`🎯 Traitement action avec badges: ${playerName} - ${action} (${points} pts)`);
+  
+  // 1. Tracker l'action
+  trackAction(playerName, points, action);
+  
+  // 2. Vérifier les badges individuels
+  const newIndividualBadges = checkAllBadgesForPlayer(playerName, currentScore, franchise);
+  
+  // 3. Vérifier les badges collectifs pour la franchise
+  const franchisePlayers = allPlayers.filter(p => p.franchise === franchise);
+  const newCollectiveBadges = checkAllBadgesForFranchise(franchise, franchisePlayers);
+  
+  // 4. Retourner les notifications de badges
+  return {
+    individualBadges: newIndividualBadges,
+    collectiveBadges: newCollectiveBadges,
+    playerProgress: getPlayerProgress(playerName)
+  };
+}
 
         const App = () => {
           const [currentView, setCurrentView] = useState('home');
@@ -326,22 +1026,50 @@ const getBadge = (score) => {
 
           // Ajouter des points (professeurs uniquement)
           const addPoints = async (playerName, points, action) => {
-            setLoading(true);
-            try {
-              const response = await fetch('/api/add-points', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ playerName, points, action, teacherName })
-              });
-              
-              if (response.ok) {
-                await loadPlayers();
-                setExpandedDropdown(null);
-              }
-            } catch (error) {
-              console.error('Erreur lors de l\'ajout de points:', error);
-            }
-            setLoading(false);
+  setLoading(true);
+  try {
+    const response = await fetch('/api/add-points', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerName, points, action, teacherName })
+    });
+    
+    if (response.ok) {
+      await loadPlayers();
+      
+      // NOUVEAU : Vérifier les badges après ajout de points
+      const player = players.find(p => p.name === playerName);
+      if (player) {
+        const newScore = player.score + points; // Nouveau score calculé
+        const badgeResult = processActionWithBadges(
+          playerName, 
+          points, 
+          action, 
+          newScore, 
+          player.franchise, 
+          players
+        );
+        
+        // Afficher les notifications de nouveaux badges
+        if (badgeResult.individualBadges.length > 0) {
+          badgeResult.individualBadges.forEach(({ badge }) => {
+            alert(`🎉 ${playerName} a débloqué le badge : ${badge.emoji} ${badge.name}!\n${badge.description}\n+${badge.points_bonus} points bonus`);
+          });
+        }
+        
+        if (badgeResult.collectiveBadges.length > 0) {
+          badgeResult.collectiveBadges.forEach(({ badge }) => {
+            alert(`🏠 La franchise ${player.franchise} a débloqué : ${badge.emoji} ${badge.name}!\n${badge.description}\n+${badge.franchise_points} points franchise`);
+          });
+        }
+      }
+      
+      setExpandedDropdown(null);
+    }
+  } catch (error) {
+    console.error('Erreur lors de l\'ajout de points:', error);
+  }
+  setLoading(false);
           };
 
           // Charger l'historique d'un joueur
