@@ -805,6 +805,531 @@ function processActionWithBadges(playerName, points, action, currentScore, franc
   };
 }
 console.log("✅ Système badges opérationnel !");
+// ===============================================
+// PHASE 2 - INTERFACE VISUELLE DES BADGES
+// ===============================================
+
+// ===============================================
+// 1. COMPOSANTS D'AFFICHAGE DES BADGES
+// ===============================================
+
+/**
+ * Composant pour afficher un badge individuel
+ */
+const BadgeDisplay = ({ badge, size = 'normal', showDetails = true }) => {
+  const sizeClasses = {
+    small: 'text-lg p-2',
+    normal: 'text-2xl p-3',
+    large: 'text-4xl p-4'
+  };
+
+  const rarityColors = {
+    bronze: 'border-amber-400 bg-gradient-to-r from-amber-100 to-amber-200',
+    silver: 'border-gray-400 bg-gradient-to-r from-gray-100 to-gray-200',
+    gold: 'border-yellow-400 bg-gradient-to-r from-yellow-100 to-yellow-200',
+    diamond: 'border-blue-400 bg-gradient-to-r from-blue-100 to-blue-200',
+    legendary: 'border-purple-400 bg-gradient-to-r from-purple-100 to-purple-200 animate-pulse'
+  };
+
+  const rarityGlow = {
+    bronze: 'shadow-amber-300',
+    silver: 'shadow-gray-300',
+    gold: 'shadow-yellow-300',
+    diamond: 'shadow-blue-300',
+    legendary: 'shadow-purple-300'
+  };
+
+  return React.createElement('div', {
+    className: `${sizeClasses[size]} rounded-xl border-2 ${rarityColors[badge.rarity]} shadow-lg ${rarityGlow[badge.rarity]} transform hover:scale-105 transition-all duration-300`,
+    title: showDetails ? `${badge.name} - ${badge.description}` : badge.name
+  }, [
+    React.createElement('div', {
+      key: 'emoji',
+      className: 'text-center mb-1'
+    }, badge.emoji),
+    
+    showDetails && React.createElement('div', {
+      key: 'details',
+      className: 'text-center'
+    }, [
+      React.createElement('div', {
+        key: 'name',
+        className: 'font-bold text-gray-800 text-sm'
+      }, badge.name),
+      
+      React.createElement('div', {
+        key: 'rarity',
+        className: 'text-xs text-gray-600 capitalize'
+      }, badge.rarity)
+    ])
+  ]);
+};
+
+/**
+ * Composant pour afficher la collection de badges d'un joueur
+ */
+const PlayerBadgeCollection = ({ playerName, badges, isOpen, onClose }) => {
+  if (!isOpen) return null;
+
+  const groupedBadges = badges.reduce((groups, badge) => {
+    const rarity = badge.rarity;
+    if (!groups[rarity]) groups[rarity] = [];
+    groups[rarity].push(badge);
+    return groups;
+  }, {});
+
+  const rarityOrder = ['legendary', 'diamond', 'gold', 'silver', 'bronze'];
+  const rarityLabels = {
+    legendary: '🌟 Légendaires',
+    diamond: '💎 Diamant',
+    gold: '🥇 Or',
+    silver: '🥈 Argent',
+    bronze: '🥉 Bronze'
+  };
+
+  return React.createElement('div', {
+    className: 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'
+  }, 
+    React.createElement('div', {
+      className: 'bg-white rounded-xl p-6 max-w-4xl w-full max-h-96 overflow-y-auto'
+    }, [
+      // Header
+      React.createElement('div', {
+        key: 'header',
+        className: 'flex justify-between items-center mb-6'
+      }, [
+        React.createElement('h3', {
+          key: 'title',
+          className: 'text-2xl font-bold text-gray-800'
+        }, `🏆 Collection de ${playerName}`),
+        
+        React.createElement('button', {
+          key: 'close',
+          onClick: onClose,
+          className: 'text-gray-500 hover:text-gray-700 text-2xl'
+        }, '×')
+      ]),
+
+      // Statistiques
+      React.createElement('div', {
+        key: 'stats',
+        className: 'bg-gray-100 rounded-lg p-4 mb-6'
+      }, [
+        React.createElement('div', {
+          key: 'total',
+          className: 'text-center'
+        }, [
+          React.createElement('div', {
+            key: 'count',
+            className: 'text-3xl font-bold text-blue-600'
+          }, badges.length),
+          React.createElement('div', {
+            key: 'label',
+            className: 'text-gray-600'
+          }, badges.length === 1 ? 'Badge débloqué' : 'Badges débloqués')
+        ])
+      ]),
+
+      // Badges par rareté
+      React.createElement('div', {
+        key: 'badges',
+        className: 'space-y-6'
+      }, rarityOrder.map(rarity => {
+        const rarityBadges = groupedBadges[rarity] || [];
+        if (rarityBadges.length === 0) return null;
+
+        return React.createElement('div', {
+          key: rarity,
+          className: 'space-y-3'
+        }, [
+          React.createElement('h4', {
+            key: 'rarity-title',
+            className: 'text-lg font-bold text-gray-700'
+          }, rarityLabels[rarity]),
+          
+          React.createElement('div', {
+            key: 'rarity-badges',
+            className: 'grid grid-cols-3 md:grid-cols-6 gap-3'
+          }, rarityBadges.map((badge, index) => 
+            React.createElement(BadgeDisplay, {
+              key: `${rarity}-${index}`,
+              badge: badge,
+              size: 'normal',
+              showDetails: true
+            })
+          ))
+        ]);
+      }))
+    ])
+  );
+};
+
+/**
+ * Composant pour afficher les badges récents dans une notification
+ */
+const BadgeNotification = ({ badge, type, visible, onClose }) => {
+  if (!visible) return null;
+
+  const typeConfig = {
+    individual: {
+      title: '🎉 Nouveau Badge Personnel !',
+      color: 'from-green-500 to-emerald-600'
+    },
+    collective: {
+      title: '🏠 Nouveau Badge de Franchise !',
+      color: 'from-blue-500 to-purple-600'
+    }
+  };
+
+  const config = typeConfig[type] || typeConfig.individual;
+
+  return React.createElement('div', {
+    className: 'fixed top-4 right-4 bg-white rounded-xl shadow-2xl border-2 border-yellow-400 p-6 z-50 max-w-md animate-bounce'
+  }, [
+    React.createElement('div', {
+      key: 'header',
+      className: 'flex justify-between items-center mb-4'
+    }, [
+      React.createElement('h3', {
+        key: 'title',
+        className: 'text-lg font-bold text-gray-800'
+      }, config.title),
+      
+      React.createElement('button', {
+        key: 'close',
+        onClick: onClose,
+        className: 'text-gray-500 hover:text-gray-700 text-xl'
+      }, '×')
+    ]),
+
+    React.createElement('div', {
+      key: 'content',
+      className: 'text-center'
+    }, [
+      React.createElement('div', {
+        key: 'badge-display',
+        className: 'mb-4'
+      }, React.createElement(BadgeDisplay, {
+        badge: badge,
+        size: 'large',
+        showDetails: true
+      })),
+      
+      React.createElement('div', {
+        key: 'description',
+        className: 'text-gray-600 text-sm mb-3'
+      }, badge.description),
+      
+      badge.pointsBonus && React.createElement('div', {
+        key: 'bonus',
+        className: 'text-green-600 font-bold'
+      }, `+${badge.pointsBonus} points bonus !`),
+      
+      badge.franchisePoints && React.createElement('div', {
+        key: 'franchise-bonus',
+        className: 'text-blue-600 font-bold'
+      }, `+${badge.franchisePoints} points franchise !`)
+    ])
+  ]);
+};
+
+/**
+ * Composant pour afficher les badges dans les cartes joueur
+ */
+const PlayerBadgePreview = ({ playerName, onClick }) => {
+  const playerBadges = getPlayerBadges(playerName);
+  const topBadges = playerBadges
+    .sort((a, b) => {
+      const rarityOrder = { legendary: 5, diamond: 4, gold: 3, silver: 2, bronze: 1 };
+      return (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0);
+    })
+    .slice(0, 3);
+
+  if (topBadges.length === 0) {
+    return React.createElement('div', {
+      className: 'text-white/70 text-xs text-center'
+    }, 'Aucun badge');
+  }
+
+  return React.createElement('div', {
+    key: 'badge-preview',
+    className: 'flex justify-center space-x-1 mt-2'
+  }, [
+    React.createElement('div', {
+      key: 'badges',
+      className: 'flex space-x-1'
+    }, topBadges.map((badge, index) => 
+      React.createElement('button', {
+        key: index,
+        onClick: onClick,
+        className: 'text-lg hover:scale-125 transition-transform duration-200',
+        title: badge.name
+      }, badge.emoji)
+    )),
+    
+    playerBadges.length > 3 && React.createElement('span', {
+      key: 'more',
+      className: 'text-white/70 text-xs self-center ml-1'
+    }, `+${playerBadges.length - 3}`)
+  ]);
+};
+
+// ===============================================
+// 2. SYSTÈME DE NOTIFICATIONS EN TEMPS RÉEL
+// ===============================================
+
+/**
+ * Gestionnaire de notifications de badges
+ */
+class BadgeNotificationManager {
+  constructor() {
+    this.notifications = [];
+    this.listeners = [];
+  }
+
+  addNotification(badge, type = 'individual') {
+    const notification = {
+      id: Date.now(),
+      badge,
+      type,
+      visible: true,
+      timestamp: new Date()
+    };
+    
+    this.notifications.push(notification);
+    this.notifyListeners();
+
+    // Auto-remove after 10 seconds
+    setTimeout(() => {
+      this.removeNotification(notification.id);
+    }, 10000);
+
+    return notification.id;
+  }
+
+  removeNotification(id) {
+    this.notifications = this.notifications.filter(n => n.id !== id);
+    this.notifyListeners();
+  }
+
+  addListener(listener) {
+    this.listeners.push(listener);
+  }
+
+  removeListener(listener) {
+    this.listeners = this.listeners.filter(l => l !== listener);
+  }
+
+  notifyListeners() {
+    this.listeners.forEach(listener => listener(this.notifications));
+  }
+
+  getActiveNotifications() {
+    return this.notifications.filter(n => n.visible);
+  }
+}
+
+// Instance globale du gestionnaire
+const badgeNotificationManager = new BadgeNotificationManager();
+
+/**
+ * Hook React pour les notifications de badges
+ */
+const useBadgeNotifications = () => {
+  const [notifications, setNotifications] = React.useState([]);
+
+  React.useEffect(() => {
+    const handleNotificationsChange = (newNotifications) => {
+      setNotifications([...newNotifications]);
+    };
+
+    badgeNotificationManager.addListener(handleNotificationsChange);
+    setNotifications(badgeNotificationManager.getActiveNotifications());
+
+    return () => {
+      badgeNotificationManager.removeListener(handleNotificationsChange);
+    };
+  }, []);
+
+  const showBadgeNotification = (badge, type = 'individual') => {
+    return badgeNotificationManager.addNotification(badge, type);
+  };
+
+  const hideBadgeNotification = (id) => {
+    badgeNotificationManager.removeNotification(id);
+  };
+
+  return {
+    notifications,
+    showBadgeNotification,
+    hideBadgeNotification
+  };
+};
+
+// ===============================================
+// 3. COMPOSANT PRINCIPAL AVEC BADGES
+// ===============================================
+
+/**
+ * Composant pour afficher les notifications actives
+ */
+const BadgeNotificationContainer = () => {
+  const { notifications, hideBadgeNotification } = useBadgeNotifications();
+
+  return React.createElement('div', {
+    className: 'fixed top-0 right-0 z-50 p-4 space-y-4'
+  }, notifications.map(notification => 
+    React.createElement(BadgeNotification, {
+      key: notification.id,
+      badge: notification.badge,
+      type: notification.type,
+      visible: notification.visible,
+      onClose: () => hideBadgeNotification(notification.id)
+    })
+  ));
+};
+
+// ===============================================
+// 4. FONCTIONS D'INTÉGRATION MODIFIÉES
+// ===============================================
+
+/**
+ * Version modifiée de processActionWithBadges avec notifications visuelles
+ */
+function processActionWithBadgesUI(playerName, points, action, currentScore, franchise, allPlayers) {
+  console.log(`🎯 Traitement action avec badges UI: ${playerName} - ${action} (${points} pts)`);
+  
+  // 1. Tracker l'action
+  trackAction(playerName, points, action);
+  
+  // 2. Vérifier les badges individuels
+  const newIndividualBadges = checkAllBadgesForPlayer(playerName, currentScore, franchise);
+  
+  // 3. Vérifier les badges collectifs pour la franchise
+  const franchisePlayers = allPlayers.filter(p => p.franchise === franchise);
+  const newCollectiveBadges = checkAllBadgesForFranchise(franchise, franchisePlayers);
+  
+  // 4. Afficher les notifications visuelles
+  newIndividualBadges.forEach(({ badge }) => {
+    badgeNotificationManager.addNotification(badge, 'individual');
+  });
+  
+  newCollectiveBadges.forEach(({ badge }) => {
+    badgeNotificationManager.addNotification(badge, 'collective');
+  });
+  
+  // 5. Retourner les notifications de badges
+  return {
+    individualBadges: newIndividualBadges,
+    collectiveBadges: newCollectiveBadges,
+    playerProgress: getPlayerProgress(playerName)
+  };
+}
+
+/**
+ * Fonction pour obtenir les badges avec statistiques
+ */
+function getBadgeStats(playerName) {
+  const badges = getPlayerBadges(playerName);
+  const progress = getPlayerProgress(playerName);
+  
+  return {
+    totalBadges: badges.length,
+    badgesByRarity: badges.reduce((acc, badge) => {
+      acc[badge.rarity] = (acc[badge.rarity] || 0) + 1;
+      return acc;
+    }, {}),
+    currentStreak: progress.currentStreak,
+    totalActions: progress.totalActions,
+    latestBadge: badges[badges.length - 1] || null
+  };
+}
+
+// ===============================================
+// 5. STYLES CSS ADDITIONNELS
+// ===============================================
+
+/**
+ * Styles CSS à ajouter au style tag existant
+ */
+const badgeStyles = `
+/* Animations pour les badges */
+@keyframes badgeGlow {
+  0%, 100% { box-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.8); }
+}
+
+@keyframes badgeBounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-10px); }
+  60% { transform: translateY(-5px); }
+}
+
+.badge-legendary {
+  animation: badgeGlow 2s ease-in-out infinite;
+}
+
+.badge-new {
+  animation: badgeBounce 1s ease-in-out;
+}
+
+/* Effet de brillance pour les badges rares */
+.badge-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.badge-shine::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shine 3s ease-in-out infinite;
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Responsive design pour les badges */
+@media (max-width: 768px) {
+  .badge-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .badge-grid {
+    grid-template-columns: 1fr;
+  }
+}
+`;
+
+// ===============================================
+// 6. FONCTIONS D'EXPORT POUR L'INTÉGRATION
+// ===============================================
+
+// Exporter les composants et fonctions pour l'intégration dans l'app principale
+if (typeof window !== 'undefined') {
+  window.BadgeComponents = {
+    BadgeDisplay,
+    PlayerBadgeCollection,
+    PlayerBadgePreview,
+    BadgeNotificationContainer,
+    useBadgeNotifications,
+    processActionWithBadgesUI,
+    getBadgeStats,
+    badgeNotificationManager
+  };
+}
+
+console.log("✅ Phase 2 - Interface badges chargée !");
+console.log("🎨 Composants disponibles: BadgeDisplay, PlayerBadgeCollection, PlayerBadgePreview");
+console.log("🔔 Système de notifications activé !");
         const App = () => {
           const [currentView, setCurrentView] = useState('home');
           const [userType, setUserType] = useState(null);
@@ -825,6 +1350,8 @@ console.log("✅ Système badges opérationnel !");
           const [showEvolutionChart, setShowEvolutionChart] = useState(false);
           const [chartData, setChartData] = useState(null);
           const [chartType, setChartType] = useState('player');
+          const [selectedPlayerBadges, setSelectedPlayerBadges] = useState(null);
+          const [showBadgeCollection, setShowBadgeCollection] = useState(false);
           
           // Fonction pour obtenir le grade basketball selon le score
 const getBadge = (score) => {
@@ -1042,7 +1569,7 @@ const addPoints = async (playerName, points, action) => {
       setTimeout(() => {
         const player = players.find(p => p.name === playerName);
         if (player) {
-          const badgeResult = processActionWithBadges(
+          const badgeResult = processActionWithBadgesUI(
             playerName, 
             points, 
             action, 
@@ -1053,14 +1580,13 @@ const addPoints = async (playerName, points, action) => {
           
           // Afficher les notifications de nouveaux badges
           if (badgeResult.individualBadges.length > 0) {
-            badgeResult.individualBadges.forEach(({ badge }) => {
-              alert(`🎉 ${playerName} a débloqué le badge : ${badge.emoji} ${badge.name}!\n${badge.description}\n+${badge.points_bonus} points bonus`);
+           console.log(`🎉 Badge individuel: ${playerName} → ${badge.emoji} ${badge.name}`);
             });
           }
           
           if (badgeResult.collectiveBadges.length > 0) {
             badgeResult.collectiveBadges.forEach(({ badge }) => {
-              alert(`🏠 La franchise ${player.franchise} a débloqué : ${badge.emoji} ${badge.name}!\n${badge.description}\n+${badge.franchise_points} points franchise`);
+             console.log(`🏠 Badge collectif: ${player.franchise} → ${badge.emoji} ${badge.name}`);oints franchise`);
             });
           }
         }
@@ -1898,6 +2424,7 @@ const addPoints = async (playerName, points, action) => {
 
           return (
             <>
+             <BadgeNotificationContainer />
               {selectedPlayerHistory && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                   <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-96 overflow-y-auto">
