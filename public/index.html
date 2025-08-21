@@ -104,7 +104,116 @@
     
     <script type="text/babel">
         const { useState, useEffect } = React;
+        
+// ==========================================
+// DÉFINITIONS DES BADGES
+// ==========================================
 
+const INDIVIDUAL_BADGES = {
+  // BADGES DE SÉRIE
+  HOT_STREAK: {
+    id: 'hot_streak',
+    name: 'Hot Streak',
+    emoji: '🔥',
+    description: '5 actions positives d\'affilée',
+    condition: { type: 'streak', value: 5 },
+    points: 5,
+    rarity: 'bronze',
+    category: 'series'
+  },
+  TSUNAMI: {
+    id: 'tsunami',
+    name: 'Tsunami',
+    emoji: '🌊',
+    description: '10 actions positives d\'affilée',
+    condition: { type: 'streak', value: 10 },
+    points: 10,
+    rarity: 'silver',
+    category: 'series'
+  },
+  UNSTOPPABLE: {
+    id: 'unstoppable',
+    name: 'Unstoppable',
+    emoji: '🚀',
+    description: '15 actions positives d\'affilée',
+    condition: { type: 'streak', value: 15 },
+    points: 20,
+    rarity: 'gold',
+    category: 'series'
+  }
+  // ... Il y a beaucoup plus de badges, je vous donne la version courte pour tester
+};
+
+const COLLECTIVE_BADGES = {
+  ROCKET_LAUNCH: {
+    id: 'rocket_launch',
+    name: 'Rocket Launch',
+    emoji: '🚀',
+    description: '+80 points en 1 semaine',
+    condition: { type: 'weekly_points', value: 80 },
+    points: 20,
+    rarity: 'bronze'
+  }
+  // ... Version simplifiée aussi
+};
+
+// ==========================================
+// CLASSE BADGE MANAGER
+// ==========================================
+
+class BadgeManager {
+  constructor() {
+    this.playerBadges = new Map();
+    this.franchiseBadges = new Map();
+    this.streakTracker = new Map();
+    this.actionHistory = new Map();
+  }
+
+  // VERSION DE TEST SIMPLE
+  async initialize(players) {
+    console.log('✅ Badge Manager démarré !');
+    console.log('📊 Nombre de joueurs trouvés:', players.length);
+    
+    if (players.length > 0) {
+      const premierJoueur = players[0];
+      console.log('🧪 Test: on donne un badge à', premierJoueur.name);
+      
+      if (!this.playerBadges.has(premierJoueur.name)) {
+        this.playerBadges.set(premierJoueur.name, new Set());
+      }
+      
+      this.playerBadges.get(premierJoueur.name).add('hot_streak');
+      console.log('🏆 Badge Hot Streak ajouté à', premierJoueur.name);
+    }
+  }
+
+  // Obtenir les badges d'un joueur
+  getPlayerBadges(playerName) {
+    const badgeIds = this.playerBadges.get(playerName) || new Set();
+    return Array.from(badgeIds).map(id => {
+      // Chercher le badge dans INDIVIDUAL_BADGES
+      for (let key in INDIVIDUAL_BADGES) {
+        if (INDIVIDUAL_BADGES[key].id === id) {
+          return INDIVIDUAL_BADGES[key];
+        }
+      }
+      return null;
+    }).filter(badge => badge !== null);
+  }
+
+  // Pour l'instant, on simplifie les autres méthodes
+  async checkAndAwardBadges(playerName, action, points, franchise, allPlayers) {
+    // On fera ça plus tard
+    return [];
+  }
+}
+
+// ==========================================
+// MAINTENANT VOTRE CODE APP COMMENCE ICI
+// ==========================================
+
+const App = () => {
+  // Vos useState existants...
         const App = () => {
           const [currentView, setCurrentView] = useState('home');
           const [userType, setUserType] = useState(null);
