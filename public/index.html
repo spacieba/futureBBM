@@ -125,6 +125,9 @@
           const [showEvolutionChart, setShowEvolutionChart] = useState(false);
           const [chartData, setChartData] = useState(null);
           const [chartType, setChartType] = useState('player');
+          const [badgeManager] = useState(new BadgeManager());
+          const [newBadges, setNewBadges] = useState([]);
+          const [showBadgeNotification, setShowBadgeNotification] = useState(false);
           
           // Fonction pour obtenir le grade basketball selon le score
 const getBadge = (score) => {
@@ -257,6 +260,7 @@ const getBadge = (score) => {
             { label: 'Participation le weekend', points: 2 },
             { label: 'Entrainement/atelier facultatif', points: 4 },
             { label: 'Observation positive', points: 5 },
+            { label: 'participation active en cours', points: 3 },
             { label: 'Bonus', points: 2 },
             { label: 'Bonus', points: 3 },
             { label: 'Bonus', points: 5 },
@@ -430,7 +434,16 @@ const getBadge = (score) => {
               return () => clearInterval(interval);
             }
           }, [userType]);
-
+            
+            // NOUVEAU : Initialiser le gestionnaire de badges quand on a des joueurs
+          useEffect(() => {
+            // On vérifie qu'on a des joueurs ET un badge manager
+            if (players.length > 0 && badgeManager) {
+              console.log('🎮 Initialisation des badges pour', players.length, 'joueurs');
+              badgeManager.initialize(players);
+            }
+          }, [players]); // Ce code se lance chaque fois que 'players' change
+            
           // Obtenir les joueurs triés par score pour une franchise
           const getSortedPlayers = (franchise) => {
             return players
