@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Système de Gestion Scolaire</title>
+    <title>GP Basketbal Manager</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -104,116 +104,7 @@
     
     <script type="text/babel">
         const { useState, useEffect } = React;
-        
-// ==========================================
-// DÉFINITIONS DES BADGES
-// ==========================================
 
-const INDIVIDUAL_BADGES = {
-  // BADGES DE SÉRIE
-  HOT_STREAK: {
-    id: 'hot_streak',
-    name: 'Hot Streak',
-    emoji: '🔥',
-    description: '5 actions positives d\'affilée',
-    condition: { type: 'streak', value: 5 },
-    points: 5,
-    rarity: 'bronze',
-    category: 'series'
-  },
-  TSUNAMI: {
-    id: 'tsunami',
-    name: 'Tsunami',
-    emoji: '🌊',
-    description: '10 actions positives d\'affilée',
-    condition: { type: 'streak', value: 10 },
-    points: 10,
-    rarity: 'silver',
-    category: 'series'
-  },
-  UNSTOPPABLE: {
-    id: 'unstoppable',
-    name: 'Unstoppable',
-    emoji: '🚀',
-    description: '15 actions positives d\'affilée',
-    condition: { type: 'streak', value: 15 },
-    points: 20,
-    rarity: 'gold',
-    category: 'series'
-  }
-  // ... Il y a beaucoup plus de badges, je vous donne la version courte pour tester
-};
-
-const COLLECTIVE_BADGES = {
-  ROCKET_LAUNCH: {
-    id: 'rocket_launch',
-    name: 'Rocket Launch',
-    emoji: '🚀',
-    description: '+80 points en 1 semaine',
-    condition: { type: 'weekly_points', value: 80 },
-    points: 20,
-    rarity: 'bronze'
-  }
-  // ... Version simplifiée aussi
-};
-
-// ==========================================
-// CLASSE BADGE MANAGER
-// ==========================================
-
-class BadgeManager {
-  constructor() {
-    this.playerBadges = new Map();
-    this.franchiseBadges = new Map();
-    this.streakTracker = new Map();
-    this.actionHistory = new Map();
-  }
-
-  // VERSION DE TEST SIMPLE
-  async initialize(players) {
-    console.log('✅ Badge Manager démarré !');
-    console.log('📊 Nombre de joueurs trouvés:', players.length);
-    
-    if (players.length > 0) {
-      const premierJoueur = players[0];
-      console.log('🧪 Test: on donne un badge à', premierJoueur.name);
-      
-      if (!this.playerBadges.has(premierJoueur.name)) {
-        this.playerBadges.set(premierJoueur.name, new Set());
-      }
-      
-      this.playerBadges.get(premierJoueur.name).add('hot_streak');
-      console.log('🏆 Badge Hot Streak ajouté à', premierJoueur.name);
-    }
-  }
-
-  // Obtenir les badges d'un joueur
-  getPlayerBadges(playerName) {
-    const badgeIds = this.playerBadges.get(playerName) || new Set();
-    return Array.from(badgeIds).map(id => {
-      // Chercher le badge dans INDIVIDUAL_BADGES
-      for (let key in INDIVIDUAL_BADGES) {
-        if (INDIVIDUAL_BADGES[key].id === id) {
-          return INDIVIDUAL_BADGES[key];
-        }
-      }
-      return null;
-    }).filter(badge => badge !== null);
-  }
-
-  // Pour l'instant, on simplifie les autres méthodes
-  async checkAndAwardBadges(playerName, action, points, franchise, allPlayers) {
-    // On fera ça plus tard
-    return [];
-  }
-}
-
-// ==========================================
-// MAINTENANT VOTRE CODE APP COMMENCE ICI
-// ==========================================
-
-const App = () => {
-  // Vos useState existants...
         const App = () => {
           const [currentView, setCurrentView] = useState('home');
           const [userType, setUserType] = useState(null);
@@ -234,9 +125,6 @@ const App = () => {
           const [showEvolutionChart, setShowEvolutionChart] = useState(false);
           const [chartData, setChartData] = useState(null);
           const [chartType, setChartType] = useState('player');
-          const [badgeManager] = useState(new BadgeManager());
-          const [newBadges, setNewBadges] = useState([]);
-          const [showBadgeNotification, setShowBadgeNotification] = useState(false);
           
           // Fonction pour obtenir le grade basketball selon le score
 const getBadge = (score) => {
@@ -369,7 +257,6 @@ const getBadge = (score) => {
             { label: 'Participation le weekend', points: 2 },
             { label: 'Entrainement/atelier facultatif', points: 4 },
             { label: 'Observation positive', points: 5 },
-            { label: 'participation active en cours', points: 3 },
             { label: 'Bonus', points: 2 },
             { label: 'Bonus', points: 3 },
             { label: 'Bonus', points: 5 },
@@ -543,16 +430,7 @@ const getBadge = (score) => {
               return () => clearInterval(interval);
             }
           }, [userType]);
-            
-            // NOUVEAU : Initialiser le gestionnaire de badges quand on a des joueurs
-          useEffect(() => {
-            // On vérifie qu'on a des joueurs ET un badge manager
-            if (players.length > 0 && badgeManager) {
-              console.log('🎮 Initialisation des badges pour', players.length, 'joueurs');
-              badgeManager.initialize(players);
-            }
-          }, [players]); // Ce code se lance chaque fois que 'players' change
-            
+
           // Obtenir les joueurs triés par score pour une franchise
           const getSortedPlayers = (franchise) => {
             return players
