@@ -8,12 +8,9 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         /* === AVATARS ANIMÉS DES FRANCHISES === */
-
-        /* Minotaurs - Taureau qui charge */
         .minotaur-avatar {
             display: inline-block;
             font-size: 3rem;
@@ -26,7 +23,6 @@
             50% { transform: translateX(-3px) rotate(-2deg); }
         }
 
-        /* Krakens - Tentacules qui ondulent */
         .kraken-avatar {
             display: inline-block;
             font-size: 3rem;
@@ -40,7 +36,6 @@
             66% { transform: rotate(-2deg) scale(0.95); }
         }
 
-        /* Phoenix - Flammes qui dansent */
         .phoenix-avatar {
             display: inline-block;
             font-size: 3rem;
@@ -54,7 +49,6 @@
             75% { transform: translateY(1px) scale(0.9); }
         }
 
-        /* Werewolves - Yeux qui brillent */
         .werewolf-avatar {
             display: inline-block;
             font-size: 3rem;
@@ -67,14 +61,12 @@
             50% { filter: drop-shadow(0 0 20px rgba(0, 255, 0, 0.8)) brightness(1.2); }
         }
 
-        /* Effet de hover pour tous les avatars */
         .franchise-avatar:hover {
             transform: scale(1.2);
             transition: transform 0.3s ease;
             cursor: pointer;
         }
 
-        /* Particules de fond optionnelles */
         .franchise-card {
             position: relative;
             overflow: hidden;
@@ -98,7 +90,7 @@
             100% { transform: translate(-20px, -20px) rotate(360deg); }
         }
 
-        /* Styles pour les badges avec bordures de rareté */
+        /* Styles pour les badges */
         .badge-bronze {
             border-color: #cd7f32;
             background: linear-gradient(135deg, rgba(205, 127, 50, 0.1), rgba(205, 127, 50, 0.2));
@@ -133,6 +125,17 @@
                 rgba(251, 7, 217, 0.1));
             border-image: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, purple) 1;
         }
+
+        /* Animation de notification de badge */
+        @keyframes badgeNotification {
+            0% { transform: translateY(-20px) scale(0.8); opacity: 0; }
+            50% { transform: translateY(0) scale(1.1); }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        .badge-notification {
+            animation: badgeNotification 0.5s ease-out;
+        }
     </style>
 </head>
 <body>
@@ -141,10 +144,13 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // ========== NOUVEAUX BADGES INDIVIDUELS ==========
+        // Configuration de l'API
+        const API_URL = 'http://localhost:3000';
+
+        // ========== DÉFINITION DES BADGES ==========
         const individualBadges = {
           // SÉRIES
-          hotStreak: {
+          hot_streak: {
             id: 'hot_streak',
             name: 'Hot Streak',
             emoji: '🔥',
@@ -171,11 +177,11 @@
             rarity: 'or',
             category: 'series'
           },
-          onFire: {
+          on_fire: {
             id: 'on_fire',
             name: 'On Fire',
             emoji: '🔥',
-            description: '2 "Hardworker" (6pts) en 2 semaines',
+            description: '2 "Hardworker" en 2 semaines',
             points: 10,
             rarity: 'argent',
             category: 'series'
@@ -191,18 +197,18 @@
             rarity: 'or',
             category: 'perseverance'
           },
-          marathonRunner: {
+          marathon_runner: {
             id: 'marathon_runner',
             name: 'Marathon Runner',
             emoji: '🏃',
-            description: 'Actions positives 5 jours d\'école consécutifs',
+            description: 'Actions positives 5 jours consécutifs',
             points: 5,
             rarity: 'bronze',
             category: 'perseverance'
           },
           
           // SOCIAUX/ÉQUIPE
-          teamCaptain: {
+          team_captain: {
             id: 'team_captain',
             name: 'Team Captain',
             emoji: '👑',
@@ -220,7 +226,7 @@
             rarity: 'or',
             category: 'social'
           },
-          teamPlayer: {
+          team_player: {
             id: 'team_player',
             name: 'Team Player',
             emoji: '🤝',
@@ -235,12 +241,12 @@
             id: 'showtime',
             name: 'Showtime',
             emoji: '🎪',
-            description: 'Recevoir "Félicitations" (25pts) 3 fois',
+            description: 'Recevoir "Félicitations" 3 fois',
             points: 35,
             rarity: 'diamant',
             category: 'special'
           },
-          halloweenSpirit: {
+          halloween_spirit: {
             id: 'halloween_spirit',
             name: 'Halloween Spirit',
             emoji: '🎃',
@@ -249,7 +255,7 @@
             rarity: 'legendaire',
             category: 'special'
           },
-          christmasMagic: {
+          christmas_magic: {
             id: 'christmas_magic',
             name: 'Christmas Magic',
             emoji: '🎄',
@@ -258,7 +264,7 @@
             rarity: 'legendaire',
             category: 'special'
           },
-          backToSchool: {
+          back_to_school: {
             id: 'back_to_school',
             name: 'Back to School',
             emoji: '📚',
@@ -269,10 +275,9 @@
           }
         };
 
-        // ========== NOUVEAUX BADGES COLLECTIFS ==========
         const collectiveBadges = {
-          // DOMINATION COLLECTIVE - Suprématie
-          franchiseRoyalty: {
+          // DOMINATION
+          franchise_royalty: {
             id: 'franchise_royalty',
             name: 'Franchise Royalty',
             emoji: '👑',
@@ -290,27 +295,9 @@
             rarity: 'or',
             category: 'domination'
           },
-          empire: {
-            id: 'empire',
-            name: 'Empire',
-            emoji: '🏛️',
-            description: '#1 pendant 6 mois dans l\'année',
-            points: 200,
-            rarity: 'diamant',
-            category: 'domination'
-          },
-          legendaryHouse: {
-            id: 'legendary_house',
-            name: 'Legendary House',
-            emoji: '🐐',
-            description: '#1 à la fin de l\'année scolaire',
-            points: 500,
-            rarity: 'legendaire',
-            category: 'domination'
-          },
           
-          // DOMINATION COLLECTIVE - Performances
-          rocketLaunch: {
+          // PERFORMANCES
+          rocket_launch: {
             id: 'rocket_launch',
             name: 'Rocket Launch',
             emoji: '🚀',
@@ -319,7 +306,7 @@
             rarity: 'bronze',
             category: 'performance'
           },
-          tidalWave: {
+          tidal_wave: {
             id: 'tidal_wave',
             name: 'Tidal Wave',
             emoji: '🌊',
@@ -328,7 +315,7 @@
             rarity: 'or',
             category: 'performance'
           },
-          lightningStrike: {
+          lightning_strike: {
             id: 'lightning_strike',
             name: 'Lightning Strike',
             emoji: '⚡',
@@ -337,18 +324,9 @@
             rarity: 'bronze',
             category: 'performance'
           },
-          houseOnFire: {
-            id: 'house_on_fire',
-            name: 'House on Fire',
-            emoji: '🔥',
-            description: '80% membres actions positives en 1 semaine',
-            points: 50,
-            rarity: 'argent',
-            category: 'performance'
-          },
           
-          // SOLIDARITÉ & ENTRAIDE - Unité
-          unitedWeStand: {
+          // SOLIDARITÉ
+          united_we_stand: {
             id: 'united_we_stand',
             name: 'United We Stand',
             emoji: '🤝',
@@ -357,16 +335,7 @@
             rarity: 'argent',
             category: 'solidarity'
           },
-          brotherhood: {
-            id: 'brotherhood',
-            name: 'Brotherhood/Sisterhood',
-            emoji: '🛡️',
-            description: 'Aider membre à sortir du négatif',
-            points: 100,
-            rarity: 'or',
-            category: 'solidarity'
-          },
-          perfectBalance: {
+          perfect_balance: {
             id: 'perfect_balance',
             name: 'Perfect Balance',
             emoji: '⚖️',
@@ -374,86 +343,10 @@
             points: 100,
             rarity: 'or',
             category: 'solidarity'
-          },
-          harmony: {
-            id: 'harmony',
-            name: 'Harmony',
-            emoji: '🌈',
-            description: 'Écart <50 points entre 1er et dernier',
-            points: 50,
-            rarity: 'argent',
-            category: 'solidarity'
-          },
-          
-          // SOLIDARITÉ & ENTRAIDE - Objectifs communs
-          showstoppers: {
-            id: 'showstoppers',
-            name: 'Showstoppers',
-            emoji: '🎪',
-            description: '3 membres "Félicitations" même trimestre',
-            points: 200,
-            rarity: 'diamant',
-            category: 'objectives'
-          },
-          gemCollection: {
-            id: 'gem_collection',
-            name: 'Gem Collection',
-            emoji: '💎',
-            description: 'Tous atteignent au moins "Starting Five"',
-            points: 100,
-            rarity: 'or',
-            category: 'objectives'
-          },
-          fullSquad: {
-            id: 'full_squad',
-            name: 'Full Squad',
-            emoji: '👥',
-            description: '100% participation activités optionnelles',
-            points: 50,
-            rarity: 'argent',
-            category: 'objectives'
-          },
-          honorGuard: {
-            id: 'honor_guard',
-            name: 'Honor Guard',
-            emoji: '🎖️',
-            description: 'Aucune action négative pendant 1 mois',
-            points: 100,
-            rarity: 'or',
-            category: 'objectives'
-          },
-          
-          // ÉVÉNEMENTS & SAISONS
-          autumnChampions: {
-            id: 'autumn_champions',
-            name: 'Autumn Champions',
-            emoji: '🍂',
-            description: 'Meilleure franchise sept-oct',
-            points: 200,
-            rarity: 'legendaire',
-            category: 'events'
-          },
-          winterWarriors: {
-            id: 'winter_warriors',
-            name: 'Winter Warriors',
-            emoji: '❄️',
-            description: 'Meilleure franchise déc-janv',
-            points: 200,
-            rarity: 'legendaire',
-            category: 'events'
-          },
-          springAwakening: {
-            id: 'spring_awakening',
-            name: 'Spring Awakening',
-            emoji: '🌸',
-            description: 'Meilleure franchise mars-avril',
-            points: 200,
-            rarity: 'legendaire',
-            category: 'events'
           }
         };
 
-        // Fonction pour obtenir la couleur selon la rareté
+        // Fonctions utilitaires
         const getRarityColor = (rarity) => {
           switch(rarity) {
             case 'bronze': return 'badge-bronze';
@@ -465,7 +358,6 @@
           }
         };
 
-        // Fonction pour obtenir le nom de la rareté
         const getRarityName = (rarity) => {
           switch(rarity) {
             case 'bronze': return '🥉 Bronze';
@@ -485,11 +377,11 @@
             <div className="flex flex-wrap gap-1 mt-2">
               {badges.map(badge => (
                 <span 
-                  key={badge.id} 
+                  key={badge.badge_id} 
                   className="text-xl" 
-                  title={`${badge.name} - ${badge.description}`}
+                  title={`${badge.badge_name} - ${getRarityName(badge.rarity)}`}
                 >
-                  {badge.emoji}
+                  {badge.badge_emoji}
                 </span>
               ))}
             </div>
@@ -505,9 +397,12 @@
               {notifications.map((notif, index) => (
                 <div
                   key={index}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg shadow-2xl animate-pulse"
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg shadow-2xl badge-notification"
                 >
-                  {notif}
+                  <div className="flex items-center space-x-2">
+                    <span className="text-2xl">🏅</span>
+                    <span>{notif}</span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -531,18 +426,11 @@
           const [searchName, setSearchName] = useState('');
           const [foundPlayer, setFoundPlayer] = useState(null);
           const [searchHistory, setSearchHistory] = useState([]);
-          const [showEvolutionChart, setShowEvolutionChart] = useState(false);
-          const [chartData, setChartData] = useState(null);
-          const [chartType, setChartType] = useState('player');
-          // États pour les badges
-          const [playerBadges, setPlayerBadges] = useState({});
-          const [franchiseBadges, setFranchiseBadges] = useState({});
+          const [allBadges, setAllBadges] = useState({ playerBadges: [], franchiseBadges: [] });
           const [notifications, setNotifications] = useState([]);
-          const [badgeFilter, setBadgeFilter] = useState('all'); // Pour filtrer les badges
           
           // Fonction pour obtenir le grade basketball selon le score
           const getBadge = (score) => {
-            // Grade Ultime
             if (score >= 250) return { 
               emoji: '🐐', 
               name: 'GOAT', 
@@ -552,7 +440,6 @@
               description: 'Le plus grand de tous les temps'
             };
             
-            // Grades Elite
             if (score >= 200) return { 
               emoji: '🏛️', 
               name: 'Hall of Fame', 
@@ -570,7 +457,6 @@
               description: 'Phénomène basketball'
             };
             
-            // Grades Confirmés
             if (score >= 100) return { 
               emoji: '🌟', 
               name: 'All-Star', 
@@ -588,7 +474,6 @@
               description: 'Pilier de l\'équipe'
             };
             
-            // Grades Développement
             if (score >= 50) return { 
               emoji: '⭐', 
               name: 'Starting Five', 
@@ -606,7 +491,6 @@
               description: 'Premier remplaçant de qualité'
             };
             
-            // Grades Débutants
             if (score >= 10) return { 
               emoji: '🏀', 
               name: 'Rookie', 
@@ -624,7 +508,6 @@
               description: 'Première année, apprend les bases'
             };
             
-            // Grades Négatifs
             if (score >= -25) return { 
               emoji: '📉', 
               name: 'Plot', 
@@ -642,7 +525,6 @@
               description: 'Cloué sur le banc'
             };
             
-            // Pire niveau
             return { 
               emoji: '🗑️', 
               name: 'Scrub', 
@@ -708,7 +590,7 @@
             }
             
             try {
-              const response = await fetch('/api/verify-teacher', {
+              const response = await fetch(`${API_URL}/api/verify-teacher`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ password })
@@ -723,14 +605,14 @@
                 setLoginError('Mot de passe incorrect');
               }
             } catch (error) {
-              setLoginError('Erreur de connexion');
+              setLoginError('Erreur de connexion au serveur');
             }
           };
 
           // Charger les joueurs
           const loadPlayers = async () => {
             try {
-              const response = await fetch('/api/players');
+              const response = await fetch(`${API_URL}/api/players`);
               const data = await response.json();
               setPlayers(data);
             } catch (error) {
@@ -738,22 +620,51 @@
             }
           };
 
+          // Charger tous les badges
+          const loadAllBadges = async () => {
+            try {
+              const response = await fetch(`${API_URL}/api/badges/all`);
+              const data = await response.json();
+              setAllBadges(data);
+            } catch (error) {
+              console.error('Erreur lors du chargement des badges:', error);
+            }
+          };
+
           // Ajouter des points (professeurs uniquement)
           const addPoints = async (playerName, points, action) => {
             setLoading(true);
             try {
-              const response = await fetch('/api/add-points', {
+              const oldPlayer = players.find(p => p.name === playerName);
+              const response = await fetch(`${API_URL}/api/add-points`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ playerName, points, action, teacherName })
               });
               
               if (response.ok) {
-                await loadPlayers();
-                setExpandedDropdown(null);
+                const data = await response.json();
                 
-                // TODO: Vérifier les conditions de badges après ajout de points
-                // Ceci devrait être fait côté serveur idéalement
+                // Vérifier si de nouveaux badges ont été gagnés
+                if (data.badges && oldPlayer) {
+                  const oldBadgeIds = oldPlayer.badges ? oldPlayer.badges.map(b => b.badge_id) : [];
+                  const newBadges = data.badges.filter(b => !oldBadgeIds.includes(b.badge_id));
+                  
+                  // Afficher une notification pour chaque nouveau badge
+                  newBadges.forEach(badge => {
+                    const notifText = `${playerName} a débloqué: ${badge.badge_emoji} ${badge.badge_name}!`;
+                    setNotifications(prev => [...prev, notifText]);
+                    
+                    // Retirer la notification après 5 secondes
+                    setTimeout(() => {
+                      setNotifications(prev => prev.filter(n => n !== notifText));
+                    }, 5000);
+                  });
+                }
+                
+                await loadPlayers();
+                await loadAllBadges();
+                setExpandedDropdown(null);
               }
             } catch (error) {
               console.error('Erreur lors de l\'ajout de points:', error);
@@ -764,7 +675,7 @@
           // Charger l'historique d'un joueur
           const loadPlayerHistory = async (playerName) => {
             try {
-              const response = await fetch(`/api/history/${encodeURIComponent(playerName)}`);
+              const response = await fetch(`${API_URL}/api/history/${encodeURIComponent(playerName)}`);
               const data = await response.json();
               setPlayerHistory(data);
               setSelectedPlayerHistory(playerName);
@@ -777,7 +688,7 @@
           const undoLastAction = async (playerName) => {
             setLoading(true);
             try {
-              const response = await fetch(`/api/undo-last/${encodeURIComponent(playerName)}`, {
+              const response = await fetch(`${API_URL}/api/undo-last/${encodeURIComponent(playerName)}`, {
                 method: 'DELETE',
               });
               
@@ -798,7 +709,7 @@
             }
             
             try {
-              const response = await fetch('/api/add-student', {
+              const response = await fetch(`${API_URL}/api/add-student`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
@@ -827,7 +738,7 @@
             }
             
             try {
-              const response = await fetch(`/api/remove-student/${encodeURIComponent(playerName)}`, {
+              const response = await fetch(`${API_URL}/api/remove-student/${encodeURIComponent(playerName)}`, {
                 method: 'DELETE'
               });
               
@@ -843,7 +754,11 @@
           useEffect(() => {
             if (userType) {
               loadPlayers();
-              const interval = setInterval(loadPlayers, 10000);
+              loadAllBadges();
+              const interval = setInterval(() => {
+                loadPlayers();
+                loadAllBadges();
+              }, 30000); // Rafraîchir toutes les 30 secondes
               return () => clearInterval(interval);
             }
           }, [userType]);
@@ -880,7 +795,7 @@
               <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
                 <div className="max-w-4xl mx-auto">
                   <h1 className="text-6xl font-bold text-center text-white mb-4">
-                    🏆 Système de Gestion GPBM 🏆
+                    🏆 Système GPBM 🏆
                   </h1>
                   <p className="text-xl text-center text-purple-200 mb-12">
                     Grades et Badges Basketball Manager
@@ -932,10 +847,12 @@
                   
                   <div className="space-y-6">
                     <div>
-                      <label className="block text-white text-sm font-bold mb-2">
+                      <label htmlFor="teacherName" className="block text-white text-sm font-bold mb-2">
                         Nom (optionnel)
                       </label>
                       <input
+                        id="teacherName"
+                        name="teacherName"
                         type="text"
                         value={teacherName}
                         onChange={(e) => setTeacherName(e.target.value)}
@@ -945,10 +862,12 @@
                     </div>
                     
                     <div>
-                      <label className="block text-white text-sm font-bold mb-2">
+                      <label htmlFor="password" className="block text-white text-sm font-bold mb-2">
                         Mot de passe *
                       </label>
                       <input
+                        id="password"
+                        name="password"
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -1046,35 +965,14 @@
                   </div>
 
                   <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                    <h3 className="text-2xl font-bold text-white mb-6 text-center">
-                      🏠 Les Quatre Franchises
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
-                        const franchisePlayers = getSortedPlayers(franchise);
-                        const totalPoints = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
-                        const avatar = getFranchiseAvatar(franchise);
-                        return (
-                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg text-center franchise-card`}>
-                            <div className="flex items-center justify-center mb-2">
-                              <span className={`franchise-avatar ${avatar.class}`}>
-                                {avatar.emoji}
-                              </span>
-                            </div>
-                            <h4 className="font-bold text-white text-lg">{franchise}</h4>
-                            <div className="text-2xl font-bold text-white">{totalPoints}</div>
-                            <div className="text-sm text-white/80">{franchisePlayers.length} élèves</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
                     <h3 className="text-2xl font-bold text-white mb-4">📊 Statistiques Rapides</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
                         const franchisePlayers = getSortedPlayers(franchise);
                         const totalPoints = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
                         const avatar = getFranchiseAvatar(franchise);
+                        const franchiseBadges = allBadges.franchiseBadges.filter(b => b.franchise === franchise);
+                        
                         return (
                           <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg text-center franchise-card`}>
                             <div className="flex items-center justify-center mb-2">
@@ -1085,6 +983,22 @@
                             <h4 className="font-bold text-white">{franchise}</h4>
                             <div className="text-2xl font-bold text-white">{totalPoints}</div>
                             <div className="text-sm text-white/80">{franchisePlayers.length} élèves</div>
+                            {franchiseBadges.length > 0 && (
+                              <div className="mt-2 flex justify-center flex-wrap gap-1">
+                                {franchiseBadges.slice(0, 3).map(b => (
+                                  <span key={b.badge_id} className="text-sm" title={b.badge_name}>
+                                    {b.badge_emoji}
+                                  </span>
+                                ))}
+                              </div>
+                            )}-1">
+                                {franchiseBadges.slice(0, 3).map(b => (
+                                  <span key={b.badge_id} className="text-sm" title={b.badge_name}>
+                                    {b.badge_emoji}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -1095,10 +1009,437 @@
             );
           }
 
+          // RECHERCHE ÉLÈVE
+          if (currentView === 'student-search') {
+            const searchPlayer = async () => {
+              if (!searchName.trim()) {
+                alert('Veuillez entrer votre nom');
+                return;
+              }
+
+              try {
+                const response = await fetch(`${API_URL}/api/player/${encodeURIComponent(searchName.trim())}`);
+                if (response.ok) {
+                  const player = await response.json();
+                  setFoundPlayer(player);
+                  
+                  const historyResponse = await fetch(`${API_URL}/api/history/${encodeURIComponent(searchName.trim())}`);
+                  const history = await historyResponse.json();
+                  setSearchHistory(history);
+                } else {
+                  setFoundPlayer(null);
+                  setSearchHistory([]);
+                  alert('Élève non trouvé. Vérifiez l\'orthographe de votre nom.');
+                }
+              } catch (error) {
+                alert('Erreur lors de la recherche');
+              }
+            };
+
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <div className="max-w-4xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">🔍 Rechercher Mon Score</h1>
+                    <button
+                      onClick={() => setCurrentView('student-dashboard')}
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
+                    >
+                      ← Retour
+                    </button>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
+                    <h2 className="text-2xl font-bold text-white mb-6 text-center">
+                      Entrez votre nom complet
+                    </h2>
+                    <div className="flex space-x-4">
+                      <input
+                        id="searchName"
+                        name="searchName"
+                        type="text"
+                        value={searchName}
+                        onChange={(e) => setSearchName(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && searchPlayer()}
+                        className="flex-1 px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white/70 focus:outline-none text-lg"
+                        placeholder="Votre prénom et nom..."
+                      />
+                      <button
+                        onClick={searchPlayer}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg transition-colors font-bold"
+                      >
+                        🔍 Rechercher
+                      </button>
+                    </div>
+                  </div>
+
+                  {foundPlayer && (
+                    <div className="space-y-6">
+                      <div className={`bg-gradient-to-r ${franchiseColors[foundPlayer.franchise]} p-6 rounded-xl franchise-card`}>
+                        <div className="text-center">
+                          <h2 className="text-3xl font-bold text-white mb-2">{foundPlayer.name}</h2>
+                          <div className="text-xl text-white/90 mb-4 flex items-center justify-center space-x-3">
+                            <span>Franchise:</span>
+                            <div className="flex items-center space-x-2">
+                              <span className={`franchise-avatar ${getFranchiseAvatar(foundPlayer.franchise).class}`}>
+                                {getFranchiseAvatar(foundPlayer.franchise).emoji}
+                              </span>
+                              <span className="font-bold">{foundPlayer.franchise}</span>
+                            </div>
+                          </div>
+                          <div className="mb-4">
+                            <div className="inline-flex items-center space-x-2 bg-black/30 px-4 py-2 rounded-full">
+                              <span className="text-3xl">{getBadge(foundPlayer.score).emoji}</span>
+                              <span className={`text-xl font-bold ${getBadge(foundPlayer.score).color}`}>
+                                {getBadge(foundPlayer.score).name}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-5xl font-bold text-white">{foundPlayer.score} points</div>
+                          
+                          {foundPlayer.badges && foundPlayer.badges.length > 0 && (
+                            <div className="mt-4">
+                              <h3 className="text-lg text-white/80 mb-2">Mes Badges:</h3>
+                              <div className="flex justify-center flex-wrap gap-2">
+                                {foundPlayer.badges.map(badge => (
+                                  <div key={badge.badge_id} className={`px-3 py-1 rounded-full border ${getRarityColor(badge.rarity)}`}>
+                                    <span className="text-xl mr-1">{badge.badge_emoji}</span>
+                                    <span className="text-sm text-white">{badge.badge_name}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                        <h3 className="text-2xl font-bold text-white mb-6 text-center">
+                          📋 Mon Historique
+                        </h3>
+                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                          {searchHistory.length > 0 ? (
+                            searchHistory.map((entry, index) => (
+                              <div key={index} className="bg-white/20 p-4 rounded-lg">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <div className="font-semibold text-white">{entry.action}</div>
+                                    <div className="text-sm text-white/80">{entry.timestamp}</div>
+                                    {entry.teacher_name && entry.teacher_name !== 'Anonyme' && (
+                                      <div className="text-xs text-white/60">Par: {entry.teacher_name}</div>
+                                    )}
+                                  </div>
+                                  <div className="text-right">
+                                    <div className={`text-lg font-bold ${entry.points > 0 ? 'text-green-300' : 'text-red-300'}`}>
+                                      {entry.points > 0 ? '+' : ''}{entry.points}
+                                    </div>
+                                    <div className="text-sm text-white/70">Total: {entry.new_total}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-white/70 text-center">Aucun historique disponible</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          }
+
+          // PAGE CLASSEMENTS
+          if (currentView === 'rankings') {
+            const franchiseRankings = getFranchiseRankings();
+            const playerRankings = getGeneralPlayerRankings();
+
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <div className="max-w-6xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">🏆 Classements</h1>
+                    <button
+                      onClick={() => setCurrentView(userType === 'teacher' ? 'teacher-dashboard' : 'student-dashboard')}
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
+                    >
+                      ← Retour
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
+                        🏆 Classement des Franchises
+                      </h2>
+                      <div className="space-y-4">
+                        {franchiseRankings.map(({ franchise, score, rank }) => {
+                          const avatar = getFranchiseAvatar(franchise);
+                          const franchiseBadges = allBadges.franchiseBadges.filter(b => b.franchise === franchise);
+                          
+                          return (
+                            <div
+                              key={franchise}
+                              className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg flex justify-between items-center shadow-lg franchise-card`}
+                            >
+                              <div className="flex items-center space-x-3">
+                                <span className="text-2xl font-bold text-white">#{rank}</span>
+                                <span className={`franchise-avatar ${avatar.class}`}>
+                                  {avatar.emoji}
+                                </span>
+                                <span className="text-xl font-semibold text-white">{franchise}</span>
+                                {franchiseBadges.length > 0 && (
+                                  <div className="flex gap-1">
+                                    {franchiseBadges.slice(0, 3).map(b => (
+                                      <span key={b.badge_id} className="text-sm" title={b.badge_name}>
+                                        {b.badge_emoji}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              <span className="text-2xl font-bold text-white">{score} pts</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
+                        👑 Classement Général
+                      </h2>
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {playerRankings.map((player, index) => {
+                          const badge = getBadge(player.score);
+                          return (
+                            <div
+                              key={player.name}
+                              className={`bg-gradient-to-r ${franchiseColors[player.franchise]} p-3 rounded-lg flex justify-between items-center shadow-md`}
+                            >
+                              <div className="flex items-center space-x-3">
+                                <span className="text-lg font-bold text-white">#{index + 1}</span>
+                                <span className="text-2xl">{badge.emoji}</span>
+                                <div>
+                                  <span className="text-lg font-semibold text-white">{player.name}</span>
+                                  <div className="text-sm text-white/80">{player.franchise}</div>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-lg font-bold text-white">{player.score} pts</span>
+                                {player.badges && player.badges.length > 0 && (
+                                  <div className="flex gap-1">
+                                    {player.badges.slice(0, 2).map(b => (
+                                      <span key={b.badge_id} className="text-sm" title={b.badge_name}>
+                                        {b.badge_emoji}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // PAGE DES BADGES
+          if (currentView === 'badges') {
+            const categories = {
+              individual: {
+                series: "🔥 Séries",
+                perseverance: "💪 Persévérance", 
+                social: "👥 Sociaux/Équipe",
+                special: "🎯 Spéciaux & Rares"
+              },
+              collective: {
+                domination: "🏆 Domination",
+                performance: "⚡ Performances",
+                solidarity: "🤝 Solidarité"
+              }
+            };
+
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <div className="max-w-7xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">🏅 Collection de Badges GPBM</h1>
+                    <button
+                      onClick={() => setCurrentView(userType === 'teacher' ? 'teacher-dashboard' : 'student-dashboard')}
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
+                    >
+                      ← Retour
+                    </button>
+                  </div>
+
+                  {/* Légende des raretés */}
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6">
+                    <h3 className="text-lg font-bold text-white mb-3">📊 Niveaux de Rareté</h3>
+                    <div className="flex flex-wrap gap-4 justify-center">
+                      <span className="badge-bronze border-2 px-3 py-1 rounded text-white">🥉 Bronze (5-20 pts)</span>
+                      <span className="badge-argent border-2 px-3 py-1 rounded text-white">🥈 Argent (10-50 pts)</span>
+                      <span className="badge-or border-2 px-3 py-1 rounded text-white">🥇 Or (20-100 pts)</span>
+                      <span className="badge-diamant border-2 px-3 py-1 rounded text-white">💎 Diamant (35 pts)</span>
+                      <span className="badge-legendaire border-2 px-3 py-1 rounded text-white">🌟 Légendaire (50 pts)</span>
+                    </div>
+                  </div>
+
+                  {/* Badges Individuels */}
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
+                    <h2 className="text-3xl font-bold text-white mb-6 text-center">👤 BADGES INDIVIDUELS</h2>
+                    
+                    {Object.entries(categories.individual).map(([categoryKey, categoryName]) => (
+                      <div key={categoryKey} className="mb-8">
+                        <h3 className="text-xl font-bold text-white mb-4 border-b border-white/30 pb-2">
+                          {categoryName}
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                          {Object.values(individualBadges)
+                            .filter(badge => badge.category === categoryKey)
+                            .map(badge => {
+                              const playersWithBadge = allBadges.playerBadges
+                                .filter(b => b.badge_id === badge.id)
+                                .map(b => b.player_name);
+
+                              return (
+                                <div key={badge.id} className={`rounded-lg p-4 border-2 ${getRarityColor(badge.rarity)} hover:scale-105 transition-transform`}>
+                                  <div className="flex items-center space-x-3 mb-3">
+                                    <span className="text-4xl">{badge.emoji}</span>
+                                    <div className="flex-1">
+                                      <h4 className="text-white font-bold text-base">{badge.name}</h4>
+                                      <p className="text-white/80 text-xs mt-1">{badge.description}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-yellow-300 text-sm font-bold">+{badge.points} pts</span>
+                                    <span className="text-white/60 text-xs">{getRarityName(badge.rarity)}</span>
+                                  </div>
+                                  {playersWithBadge.length > 0 && (
+                                    <div className="text-white/60 text-xs mt-2 pt-2 border-t border-white/20">
+                                      <p>✅ {playersWithBadge.length} joueur(s)</p>
+                                      <p className="truncate">{playersWithBadge.slice(0, 3).join(', ')}{playersWithBadge.length > 3 ? '...' : ''}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Badges Collectifs */}
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                    <h2 className="text-3xl font-bold text-white mb-6 text-center">🏠 BADGES COLLECTIFS</h2>
+                    
+                    {Object.entries(categories.collective).map(([categoryKey, categoryName]) => (
+                      <div key={categoryKey} className="mb-8">
+                        <h3 className="text-xl font-bold text-white mb-4 border-b border-white/30 pb-2">
+                          {categoryName}
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                          {Object.values(collectiveBadges)
+                            .filter(badge => badge.category === categoryKey)
+                            .map(badge => {
+                              const franchisesWithBadge = allBadges.franchiseBadges
+                                .filter(b => b.badge_id === badge.id)
+                                .map(b => b.franchise);
+
+                              return (
+                                <div key={badge.id} className={`rounded-lg p-4 border-2 ${getRarityColor(badge.rarity)} hover:scale-105 transition-transform`}>
+                                  <div className="flex items-center space-x-3 mb-3">
+                                    <span className="text-4xl">{badge.emoji}</span>
+                                    <div className="flex-1">
+                                      <h4 className="text-white font-bold text-base">{badge.name}</h4>
+                                      <p className="text-white/80 text-xs mt-1">{badge.description}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-yellow-300 text-sm font-bold">+{badge.points} pts</span>
+                                    <span className="text-white/60 text-xs">{getRarityName(badge.rarity)}</span>
+                                  </div>
+                                  {franchisesWithBadge.length > 0 && (
+                                    <div className="text-white/60 text-xs mt-2 pt-2 border-t border-white/20">
+                                      <p>✅ {franchisesWithBadge.join(', ')}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Informations supplémentaires */}
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mt-6">
+                    <p className="text-white/80 text-center text-sm">
+                      💡 Les badges sont débloqués automatiquement selon vos performances et celles de votre franchise !
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // Return principal avec le modal d'historique
+          return (
+            <>
+              {selectedPlayerHistory && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-96 overflow-y-auto">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-bold">Historique de {selectedPlayerHistory}</h3>
+                      <button
+                        onClick={() => setSelectedPlayerHistory(null)}
+                        className="text-gray-500 hover:text-gray-700 text-xl"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {playerHistory.length > 0 ? (
+                        playerHistory.map((entry, index) => (
+                          <div key={index} className="border-l-4 border-blue-500 pl-3 py-2">
+                            <div className="font-semibold">{entry.action}</div>
+                            <div className="text-sm text-gray-600">
+                              {entry.points > 0 ? '+' : ''}{entry.points} points
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {entry.timestamp} • Total: {entry.new_total} pts
+                              {entry.teacher_name && entry.teacher_name !== 'Anonyme' && (
+                                <span> • Par: {entry.teacher_name}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-gray-500 text-center">Aucun historique disponible</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
+
           // GESTION DES POINTS PROFESSEUR
           if (currentView === 'teacher-players') {
             return (
               <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <NotificationSystem notifications={notifications} />
                 <div className="max-w-7xl mx-auto">
                   <div className="flex justify-between items-center mb-8">
                     <h1 className="text-4xl font-bold text-white">👥 Gestion des Points</h1>
@@ -1154,7 +1495,7 @@
                                   </div>
                                 </div>
                                 {/* Affichage des badges */}
-                                <BadgeDisplay badges={playerBadges[player.name] || []} />
+                                <BadgeDisplay badges={player.badges || []} />
                                 <div className="relative">
                                   <button
                                     onClick={() => setExpandedDropdown(expandedDropdown === player.name ? null : player.name)}
@@ -1231,10 +1572,12 @@
                       </h2>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-white text-sm font-bold mb-2">
+                          <label htmlFor="newStudentName" className="block text-white text-sm font-bold mb-2">
                             Nom de l'élève
                           </label>
                           <input
+                            id="newStudentName"
+                            name="newStudentName"
                             type="text"
                             value={newStudentName}
                             onChange={(e) => setNewStudentName(e.target.value)}
@@ -1244,10 +1587,12 @@
                         </div>
                         
                         <div>
-                          <label className="block text-white text-sm font-bold mb-2">
+                          <label htmlFor="newStudentFranchise" className="block text-white text-sm font-bold mb-2">
                             Franchise
                           </label>
                           <select
+                            id="newStudentFranchise"
+                            name="newStudentFranchise"
                             value={newStudentFranchise}
                             onChange={(e) => setNewStudentFranchise(e.target.value)}
                             className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
@@ -1274,10 +1619,12 @@
                       </h2>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-white text-sm font-bold mb-2">
+                          <label htmlFor="selectedStudent" className="block text-white text-sm font-bold mb-2">
                             Sélectionner un élève
                           </label>
                           <select
+                            id="selectedStudent"
+                            name="selectedStudent"
                             value={selectedStudent}
                             onChange={(e) => setSelectedStudent(e.target.value)}
                             className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
@@ -1394,3 +1741,820 @@
                   </div>
 
                   <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                    <h3 className="text-2xl font-bold text-white mb-6 text-center">
+                      🏠 Les Quatre Franchises
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                        const franchisePlayers = getSortedPlayers(franchise);
+                        const totalPoints = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
+                        const avatar = getFranchiseAvatar(franchise);
+                        const franchiseBadges = allBadges.franchiseBadges.filter(b => b.franchise === franchise);
+                        
+                        return (
+                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg text-center franchise-card`}>
+                            <div className="flex items-center justify-center mb-2">
+                              <span className={`franchise-avatar ${avatar.class}`}>
+                                {avatar.emoji}
+                              </span>
+                            </div>
+                            <h4 className="font-bold text-white text-lg">{franchise}</h4>
+                            <div className="text-2xl font-bold text-white">{totalPoints}</div>
+                            <div className="text-sm text-white/80">{franchisePlayers.length} élèves</div>
+                            {franchiseBadges.length > 0 && (
+                              <div className="mt-2 flex justify-center flex-wrap gap
+                                  {franchiseBadges.length > 0 && (
+                              <div className="mt-2 flex justify-center flex-wrap gap-1">
+                                {franchiseBadges.slice(0, 3).map(b => (
+                                  <span key={b.badge_id} className="text-sm" title={b.badge_name}>
+                                    {b.badge_emoji}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+// GESTION DES POINTS PROFESSEUR
+          if (currentView === 'teacher-players') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <NotificationSystem notifications={notifications} />
+                <div className="max-w-7xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">👥 Gestion des Points</h1>
+                    <div className="flex space-x-4">
+                      {loading && <div className="text-white">⏳ Chargement...</div>}
+                      <button
+                        onClick={() => setCurrentView('teacher-dashboard')}
+                        className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
+                      >
+                        ← Retour Tableau de Bord
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+                    {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                      const avatar = getFranchiseAvatar(franchise);
+                      return (
+                        <div key={franchise} className="bg-white/10 backdrop-blur-sm rounded-xl p-6 franchise-card">
+                          <h2 className={`text-2xl font-bold text-white mb-4 text-center bg-gradient-to-r ${franchiseColors[franchise]} p-3 rounded-lg flex items-center justify-center space-x-2`}>
+                            <span className={`franchise-avatar ${avatar.class}`}>
+                              {avatar.emoji}
+                            </span>
+                            <span>{franchise}</span>
+                          </h2>
+                          <div className="space-y-3">
+                            {getSortedPlayers(franchise).map(player => (
+                              <div key={player.name} className="bg-white/20 rounded-lg p-3">
+                                <div className="flex justify-between items-center mb-2">
+                                  <button
+                                    onClick={() => loadPlayerHistory(player.name)}
+                                    className="text-white font-semibold hover:text-yellow-300 transition-colors flex items-center space-x-1"
+                                  >
+                                    <span>{player.name}</span>
+                                    <span>📋</span>
+                                  </button>
+                                  <div className="flex items-center space-x-2">
+                                    <div className="flex items-center space-x-1">
+                                      <span className="text-2xl">
+                                        {getBadge(player.score).emoji}
+                                      </span>
+                                      <span className="text-white font-bold">
+                                        {player.score} pts
+                                      </span>
+                                    </div>
+                                    <button
+                                      onClick={() => undoLastAction(player.name)}
+                                      className="bg-red-500 hover:bg-red-400 text-white px-2 py-1 rounded text-xs"
+                                      title="Annuler dernière action"
+                                    >
+                                      ↺
+                                    </button>
+                                  </div>
+                                </div>
+                                <BadgeDisplay badges={player.badges || []} />
+                                <div className="relative">
+                                  <button
+                                    onClick={() => setExpandedDropdown(expandedDropdown === player.name ? null : player.name)}
+                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded flex justify-between items-center transition-colors"
+                                    disabled={loading}
+                                  >
+                                    <span>Actions</span>
+                                    <span>{expandedDropdown === player.name ? '⌃' : '⌄'}</span>
+                                  </button>
+                                  
+                                  {expandedDropdown === player.name && (
+                                    <div className="absolute top-full left-0 right-0 bg-white rounded-lg shadow-xl z-10 mt-1 max-h-64 overflow-y-auto">
+                                      <div className="p-2">
+                                        <div className="text-green-700 font-semibold mb-2">Points positifs:</div>
+                                        {positiveActions.map((action, index) => (
+                                          <button
+                                            key={`pos-${index}`}
+                                            onClick={() => addPoints(player.name, action.points, action.label)}
+                                            className="w-full text-left px-3 py-2 hover:bg-green-100 rounded text-sm flex justify-between"
+                                            disabled={loading}
+                                          >
+                                            <span>{action.label}</span>
+                                            <span className="text-green-600 font-bold">+{action.points}</span>
+                                          </button>
+                                        ))}
+                                        
+                                        <div className="text-red-700 font-semibold mb-2 mt-3">Points négatifs:</div>
+                                        {negativeActions.map((action, index) => (
+                                          <button
+                                            key={`neg-${index}`}
+                                            onClick={() => addPoints(player.name, action.points, action.label)}
+                                            className="w-full text-left px-3 py-2 hover:bg-red-100 rounded text-sm flex justify-between"
+                                            disabled={loading}
+                                          >
+                                            <span>{action.label}</span>
+                                            <span className="text-red-600 font-bold">{action.points}</span>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // ADMINISTRATION PROFESSEUR
+          if (currentView === 'teacher-admin') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <div className="max-w-6xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">⚙️ Administration des Élèves</h1>
+                    <button
+                      onClick={() => setCurrentView('teacher-dashboard')}
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
+                    >
+                      ← Retour Tableau de Bord
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
+                        ➕ Ajouter un Élève
+                      </h2>
+                      <div className="space-y-4">
+                        <div>
+                          <label htmlFor="newStudentName" className="block text-white text-sm font-bold mb-2">
+                            Nom de l'élève
+                          </label>
+                          <input
+                            id="newStudentName"
+                            name="newStudentName"
+                            type="text"
+                            value={newStudentName}
+                            onChange={(e) => setNewStudentName(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white/70 focus:outline-none"
+                            placeholder="Prénom Nom..."
+                          />
+                        </div>
+                        
+                        <div>
+                          <label htmlFor="newStudentFranchise" className="block text-white text-sm font-bold mb-2">
+                            Franchise
+                          </label>
+                          <select
+                            id="newStudentFranchise"
+                            name="newStudentFranchise"
+                            value={newStudentFranchise}
+                            onChange={(e) => setNewStudentFranchise(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
+                          >
+                            <option value="Minotaurs" className="text-black">Minotaurs</option>
+                            <option value="Krakens" className="text-black">Krakens</option>
+                            <option value="Phoenix" className="text-black">Phoenix</option>
+                            <option value="Werewolves" className="text-black">Werewolves</option>
+                          </select>
+                        </div>
+                        
+                        <button
+                          onClick={addStudent}
+                          className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg transition-colors font-bold"
+                        >
+                          ➕ Ajouter l'Élève
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
+                        🗑️ Supprimer un Élève
+                      </h2>
+                      <div className="space-y-4">
+                        <div>
+                          <label htmlFor="selectedStudent" className="block text-white text-sm font-bold mb-2">
+                            Sélectionner un élève
+                          </label>
+                          <select
+                            id="selectedStudent"
+                            name="selectedStudent"
+                            value={selectedStudent}
+                            onChange={(e) => setSelectedStudent(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
+                          >
+                            <option value="" className="text-black">-- Choisir un élève --</option>
+                            {players
+                              .sort((a, b) => a.name.localeCompare(b.name))
+                              .map(player => (
+                                <option key={player.name} value={player.name} className="text-black">
+                                  {player.name} ({player.franchise})
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                        
+                        <button
+                          onClick={() => selectedStudent && removeStudent(selectedStudent)}
+                          disabled={!selectedStudent}
+                          className="w-full bg-red-600 hover:bg-red-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-lg transition-colors font-bold"
+                        >
+                          🗑️ Supprimer l'Élève
+                        </button>
+                        
+                        <p className="text-red-300 text-sm text-center">
+                          ⚠️ Cette action est irréversible !
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                    <h2 className="text-2xl font-bold text-white mb-6 text-center">
+                      📋 Liste Actuelle des Élèves
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                        const avatar = getFranchiseAvatar(franchise);
+                        return (
+                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg franchise-card`}>
+                            <div className="flex items-center justify-center mb-3">
+                              <span className={`franchise-avatar ${avatar.class}`}>
+                                {avatar.emoji}
+                              </span>
+                              <h3 className="text-xl font-bold text-white ml-2">{franchise}</h3>
+                            </div>
+                            <div className="space-y-2">
+                              {getSortedPlayers(franchise).map(player => (
+                                <div key={player.name} className="bg-white/20 p-2 rounded text-white text-sm">
+                                  <div className="flex justify-between items-center">
+                                    <span>{player.name}</span>
+                                    <span className="font-bold">{player.score} pts</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="text-center mt-3 text-white/80 text-sm">
+                              {getSortedPlayers(franchise).length} élève(s)
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // TABLEAU DE BORD ÉLÈVE
+          if (currentView === 'student-dashboard') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <div className="max-w-4xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">👨‍🎓 Espace Élève</h1>
+                    <button
+                      onClick={() => {
+                        setCurrentView('home');
+                        setUserType(null);
+                      }}
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
+                    >
+                      ← Retour Accueil
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <button
+                      onClick={() => setCurrentView('student-search')}
+                      className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                    >
+                      <div className="text-4xl mb-2">🔍</div>
+                      <h3 className="text-xl font-bold">Mon Score</h3>
+                      <p className="text-blue-100 text-sm">Voir mon historique personnel</p>
+                    </button>
+
+                    <button
+                      onClick={() => setCurrentView('badges')}
+                      className="bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                    >
+                      <div className="text-4xl mb-2">🏅</div>
+                      <h3 className="text-xl font-bold">Badges</h3>
+                      <p className="text-purple-100 text-sm">Découvrir les badges</p>
+                    </button>
+                    
+                    <button
+                      onClick={() => setCurrentView('rankings')}
+                      className="bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                    >
+                      <div className="text-4xl mb-2">🏆</div>
+                      <h3 className="text-xl font-bold">Classements</h3>
+                      <p className="text-amber-100 text-sm">Voir tous les classements</p>
+                    </button>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                    <h3 className="text-2xl font-bold text-white mb-6 text-center">
+                      🏠 Les Quatre Franchises
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                        const franchisePlayers = getSortedPlayers(franchise);
+                        const totalPoints = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
+                        const avatar = getFranchiseAvatar(franchise);
+                        const franchiseBadges = allBadges.franchiseBadges.filter(b => b.franchise === franchise);
+                        
+                        return (
+                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg text-center franchise-card`}>
+                            <div className="flex items-center justify-center mb-2">
+                              <span className={`franchise-avatar ${avatar.class}`}>
+                                {avatar.emoji}
+                              </span>
+                            </div>
+                            <h4 className="font-bold text-white text-lg">{franchise}</h4>
+                            <div className="text-2xl font-bold text-white">{totalPoints}</div>
+                            <div className="text-sm text-white/80">{franchisePlayers.length} élèves</div>
+                            {franchiseBadges.length > 0 && (
+                              <div className="mt-2 flex justify-center flex-wrap gap-1">
+                                {franchiseBadges.slice(0, 3).map(b => (
+                                  <span key={b.badge_id} className="text-sm" title={b.badge_name}>
+                                    {b.badge_emoji}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // MODAL D'HISTORIQUE (flottant par-dessus toutes les vues)
+          return (
+            <>
+              {selectedPlayerHistory && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-96 overflow-y-auto">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-bold">Historique de {selectedPlayerHistory}</h3>
+                      <button
+                        onClick={() => setSelectedPlayerHistory(null)}
+                        className="text-gray-500 hover:text-gray-700 text-xl font-bold"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {playerHistory.length > 0 ? (
+                        playerHistory.map((entry, index) => (
+                          <div key={index} className="border-l-4 border-blue-500 pl-3 py-2">
+                            <div className="font-semibold">{entry.action}</div>
+                            <div className="text-sm text-gray-600">
+                              {entry.points > 0 ? '+' : ''}{entry.points} points
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {entry.timestamp} • Total: {entry.new_total} pts
+                              {entry.teacher_name && entry.teacher_name !== 'Anonyme' && (
+                                <span> • Par: {entry.teacher_name}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-gray-500 text-center">Aucun historique disponible</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        };
+
+       // GESTION DES POINTS PROFESSEUR
+          if (currentView === 'teacher-players') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <NotificationSystem notifications={notifications} />
+                <div className="max-w-7xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">👥 Gestion des Points</h1>
+                    <div className="flex space-x-4">
+                      {loading && <div className="text-white">⏳ Chargement...</div>}
+                      <button
+                        onClick={() => setCurrentView('teacher-dashboard')}
+                        className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
+                      >
+                        ← Retour Tableau de Bord
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+                    {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                      const avatar = getFranchiseAvatar(franchise);
+                      return (
+                        <div key={franchise} className="bg-white/10 backdrop-blur-sm rounded-xl p-6 franchise-card">
+                          <h2 className={`text-2xl font-bold text-white mb-4 text-center bg-gradient-to-r ${franchiseColors[franchise]} p-3 rounded-lg flex items-center justify-center space-x-2`}>
+                            <span className={`franchise-avatar ${avatar.class}`}>
+                              {avatar.emoji}
+                            </span>
+                            <span>{franchise}</span>
+                          </h2>
+                          <div className="space-y-3">
+                            {getSortedPlayers(franchise).map(player => (
+                              <div key={player.name} className="bg-white/20 rounded-lg p-3">
+                                <div className="flex justify-between items-center mb-2">
+                                  <button
+                                    onClick={() => loadPlayerHistory(player.name)}
+                                    className="text-white font-semibold hover:text-yellow-300 transition-colors flex items-center space-x-1"
+                                  >
+                                    <span>{player.name}</span>
+                                    <span>📋</span>
+                                  </button>
+                                  <div className="flex items-center space-x-2">
+                                    <div className="flex items-center space-x-1">
+                                      <span className="text-2xl">
+                                        {getBadge(player.score).emoji}
+                                      </span>
+                                      <span className="text-white font-bold">
+                                        {player.score} pts
+                                      </span>
+                                    </div>
+                                    <button
+                                      onClick={() => undoLastAction(player.name)}
+                                      className="bg-red-500 hover:bg-red-400 text-white px-2 py-1 rounded text-xs"
+                                      title="Annuler dernière action"
+                                    >
+                                      ↺
+                                    </button>
+                                  </div>
+                                </div>
+                                <BadgeDisplay badges={player.badges || []} />
+                                <div className="relative">
+                                  <button
+                                    onClick={() => setExpandedDropdown(expandedDropdown === player.name ? null : player.name)}
+                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded flex justify-between items-center transition-colors"
+                                    disabled={loading}
+                                  >
+                                    <span>Actions</span>
+                                    <span>{expandedDropdown === player.name ? '⌃' : '⌄'}</span>
+                                  </button>
+                                  
+                                  {expandedDropdown === player.name && (
+                                    <div className="absolute top-full left-0 right-0 bg-white rounded-lg shadow-xl z-10 mt-1 max-h-64 overflow-y-auto">
+                                      <div className="p-2">
+                                        <div className="text-green-700 font-semibold mb-2">Points positifs:</div>
+                                        {positiveActions.map((action, index) => (
+                                          <button
+                                            key={`pos-${index}`}
+                                            onClick={() => addPoints(player.name, action.points, action.label)}
+                                            className="w-full text-left px-3 py-2 hover:bg-green-100 rounded text-sm flex justify-between"
+                                            disabled={loading}
+                                          >
+                                            <span>{action.label}</span>
+                                            <span className="text-green-600 font-bold">+{action.points}</span>
+                                          </button>
+                                        ))}
+                                        
+                                        <div className="text-red-700 font-semibold mb-2 mt-3">Points négatifs:</div>
+                                        {negativeActions.map((action, index) => (
+                                          <button
+                                            key={`neg-${index}`}
+                                            onClick={() => addPoints(player.name, action.points, action.label)}
+                                            className="w-full text-left px-3 py-2 hover:bg-red-100 rounded text-sm flex justify-between"
+                                            disabled={loading}
+                                          >
+                                            <span>{action.label}</span>
+                                            <span className="text-red-600 font-bold">{action.points}</span>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // ADMINISTRATION PROFESSEUR
+          if (currentView === 'teacher-admin') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <div className="max-w-6xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">⚙️ Administration des Élèves</h1>
+                    <button
+                      onClick={() => setCurrentView('teacher-dashboard')}
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
+                    >
+                      ← Retour Tableau de Bord
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
+                        ➕ Ajouter un Élève
+                      </h2>
+                      <div className="space-y-4">
+                        <div>
+                          <label htmlFor="newStudentName" className="block text-white text-sm font-bold mb-2">
+                            Nom de l'élève
+                          </label>
+                          <input
+                            id="newStudentName"
+                            name="newStudentName"
+                            type="text"
+                            value={newStudentName}
+                            onChange={(e) => setNewStudentName(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white/70 focus:outline-none"
+                            placeholder="Prénom Nom..."
+                          />
+                        </div>
+                        
+                        <div>
+                          <label htmlFor="newStudentFranchise" className="block text-white text-sm font-bold mb-2">
+                            Franchise
+                          </label>
+                          <select
+                            id="newStudentFranchise"
+                            name="newStudentFranchise"
+                            value={newStudentFranchise}
+                            onChange={(e) => setNewStudentFranchise(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
+                          >
+                            <option value="Minotaurs" className="text-black">Minotaurs</option>
+                            <option value="Krakens" className="text-black">Krakens</option>
+                            <option value="Phoenix" className="text-black">Phoenix</option>
+                            <option value="Werewolves" className="text-black">Werewolves</option>
+                          </select>
+                        </div>
+                        
+                        <button
+                          onClick={addStudent}
+                          className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg transition-colors font-bold"
+                        >
+                          ➕ Ajouter l'Élève
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
+                        🗑️ Supprimer un Élève
+                      </h2>
+                      <div className="space-y-4">
+                        <div>
+                          <label htmlFor="selectedStudent" className="block text-white text-sm font-bold mb-2">
+                            Sélectionner un élève
+                          </label>
+                          <select
+                            id="selectedStudent"
+                            name="selectedStudent"
+                            value={selectedStudent}
+                            onChange={(e) => setSelectedStudent(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
+                          >
+                            <option value="" className="text-black">-- Choisir un élève --</option>
+                            {players
+                              .sort((a, b) => a.name.localeCompare(b.name))
+                              .map(player => (
+                                <option key={player.name} value={player.name} className="text-black">
+                                  {player.name} ({player.franchise})
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                        
+                        <button
+                          onClick={() => selectedStudent && removeStudent(selectedStudent)}
+                          disabled={!selectedStudent}
+                          className="w-full bg-red-600 hover:bg-red-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-lg transition-colors font-bold"
+                        >
+                          🗑️ Supprimer l'Élève
+                        </button>
+                        
+                        <p className="text-red-300 text-sm text-center">
+                          ⚠️ Cette action est irréversible !
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                    <h2 className="text-2xl font-bold text-white mb-6 text-center">
+                      📋 Liste Actuelle des Élèves
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                        const avatar = getFranchiseAvatar(franchise);
+                        return (
+                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg franchise-card`}>
+                            <div className="flex items-center justify-center mb-3">
+                              <span className={`franchise-avatar ${avatar.class}`}>
+                                {avatar.emoji}
+                              </span>
+                              <h3 className="text-xl font-bold text-white ml-2">{franchise}</h3>
+                            </div>
+                            <div className="space-y-2">
+                              {getSortedPlayers(franchise).map(player => (
+                                <div key={player.name} className="bg-white/20 p-2 rounded text-white text-sm">
+                                  <div className="flex justify-between items-center">
+                                    <span>{player.name}</span>
+                                    <span className="font-bold">{player.score} pts</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="text-center mt-3 text-white/80 text-sm">
+                              {getSortedPlayers(franchise).length} élève(s)
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // TABLEAU DE BORD ÉLÈVE
+          if (currentView === 'student-dashboard') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <div className="max-w-4xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">👨‍🎓 Espace Élève</h1>
+                    <button
+                      onClick={() => {
+                        setCurrentView('home');
+                        setUserType(null);
+                      }}
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
+                    >
+                      ← Retour Accueil
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <button
+                      onClick={() => setCurrentView('student-search')}
+                      className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                    >
+                      <div className="text-4xl mb-2">🔍</div>
+                      <h3 className="text-xl font-bold">Mon Score</h3>
+                      <p className="text-blue-100 text-sm">Voir mon historique personnel</p>
+                    </button>
+
+                    <button
+                      onClick={() => setCurrentView('badges')}
+                      className="bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                    >
+                      <div className="text-4xl mb-2">🏅</div>
+                      <h3 className="text-xl font-bold">Badges</h3>
+                      <p className="text-purple-100 text-sm">Découvrir les badges</p>
+                    </button>
+                    
+                    <button
+                      onClick={() => setCurrentView('rankings')}
+                      className="bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                    >
+                      <div className="text-4xl mb-2">🏆</div>
+                      <h3 className="text-xl font-bold">Classements</h3>
+                      <p className="text-amber-100 text-sm">Voir tous les classements</p>
+                    </button>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                    <h3 className="text-2xl font-bold text-white mb-6 text-center">
+                      🏠 Les Quatre Franchises
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                        const franchisePlayers = getSortedPlayers(franchise);
+                        const totalPoints = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
+                        const avatar = getFranchiseAvatar(franchise);
+                        const franchiseBadges = allBadges.franchiseBadges.filter(b => b.franchise === franchise);
+                        
+                        return (
+                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg text-center franchise-card`}>
+                            <div className="flex items-center justify-center mb-2">
+                              <span className={`franchise-avatar ${avatar.class}`}>
+                                {avatar.emoji}
+                              </span>
+                            </div>
+                            <h4 className="font-bold text-white text-lg">{franchise}</h4>
+                            <div className="text-2xl font-bold text-white">{totalPoints}</div>
+                            <div className="text-sm text-white/80">{franchisePlayers.length} élèves</div>
+                            {franchiseBadges.length > 0 && (
+                              <div className="mt-2 flex justify-center flex-wrap gap-1">
+                                {franchiseBadges.slice(0, 3).map(b => (
+                                  <span key={b.badge_id} className="text-sm" title={b.badge_name}>
+                                    {b.badge_emoji}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // MODAL D'HISTORIQUE (flottant par-dessus toutes les vues)
+          return (
+            <>
+              {selectedPlayerHistory && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-96 overflow-y-auto">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-bold">Historique de {selectedPlayerHistory}</h3>
+                      <button
+                        onClick={() => setSelectedPlayerHistory(null)}
+                        className="text-gray-500 hover:text-gray-700 text-xl font-bold"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {playerHistory.length > 0 ? (
+                        playerHistory.map((entry, index) => (
+                          <div key={index} className="border-l-4 border-blue-500 pl-3 py-2">
+                            <div className="font-semibold">{entry.action}</div>
+                            <div className="text-sm text-gray-600">
+                              {entry.points > 0 ? '+' : ''}{entry.points} points
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {entry.timestamp} • Total: {entry.new_total} pts
+                              {entry.teacher_name && entry.teacher_name !== 'Anonyme' && (
+                                <span> • Par: {entry.teacher_name}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-gray-500 text-center">Aucun historique disponible</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        };
+
+        // Rendu de l'application React dans le DOM
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
