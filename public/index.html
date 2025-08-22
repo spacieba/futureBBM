@@ -97,6 +97,42 @@
             0% { transform: translate(0, 0) rotate(0deg); }
             100% { transform: translate(-20px, -20px) rotate(360deg); }
         }
+
+        /* Styles pour les badges avec bordures de rareté */
+        .badge-bronze {
+            border-color: #cd7f32;
+            background: linear-gradient(135deg, rgba(205, 127, 50, 0.1), rgba(205, 127, 50, 0.2));
+        }
+        
+        .badge-argent {
+            border-color: #c0c0c0;
+            background: linear-gradient(135deg, rgba(192, 192, 192, 0.1), rgba(192, 192, 192, 0.2));
+        }
+        
+        .badge-or {
+            border-color: #ffd700;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.2));
+        }
+        
+        .badge-diamant {
+            border-color: #b9f2ff;
+            background: linear-gradient(135deg, rgba(185, 242, 255, 0.1), rgba(185, 242, 255, 0.3));
+        }
+        
+        .badge-legendaire {
+            background: linear-gradient(135deg, 
+                rgba(255, 0, 0, 0.1),
+                rgba(255, 154, 0, 0.1),
+                rgba(208, 222, 33, 0.1),
+                rgba(79, 220, 74, 0.1),
+                rgba(63, 218, 216, 0.1),
+                rgba(47, 201, 226, 0.1),
+                rgba(28, 127, 238, 0.1),
+                rgba(95, 21, 242, 0.1),
+                rgba(186, 12, 248, 0.1),
+                rgba(251, 7, 217, 0.1));
+            border-image: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, purple) 1;
+        }
     </style>
 </head>
 <body>
@@ -105,86 +141,339 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // Définition des badges individuels
+        // ========== NOUVEAUX BADGES INDIVIDUELS ==========
         const individualBadges = {
-          firstBlood: {
-            id: 'first_blood',
-            name: 'Premier Sang',
-            emoji: '🩸',
-            description: 'Premier point de la saison',
+          // SÉRIES
+          hotStreak: {
+            id: 'hot_streak',
+            name: 'Hot Streak',
+            emoji: '🔥',
+            description: '5 actions positives d\'affilée',
             points: 5,
-            rarity: 'common'
+            rarity: 'bronze',
+            category: 'series'
           },
-          perfectWeek: {
-            id: 'perfect_week',
-            name: 'Semaine Parfaite',
-            emoji: '✨',
-            description: 'Aucun point négatif sur une semaine',
+          tsunami: {
+            id: 'tsunami',
+            name: 'Tsunami',
+            emoji: '🌊',
+            description: '10 actions positives d\'affilée',
             points: 10,
-            rarity: 'rare'
+            rarity: 'argent',
+            category: 'series'
           },
-          comeback: {
-            id: 'comeback',
-            name: 'Comeback Kid',
-            emoji: '🔄',
-            description: 'Revenir de -10 points à positif',
-            points: 15,
-            rarity: 'epic'
-          },
-          champion: {
-            id: 'champion',
-            name: 'Champion',
-            emoji: '👑',
-            description: 'Finir 1er du classement général',
-            points: 25,
-            rarity: 'legendary'
-          },
-          hardworker: {
-            id: 'hardworker_badge',
-            name: 'Travailleur Acharné',
-            emoji: '💪',
-            description: '5 Hardworker obtenus',
+          unstoppable: {
+            id: 'unstoppable',
+            name: 'Unstoppable',
+            emoji: '🚀',
+            description: '15 actions positives d\'affilée',
             points: 20,
-            rarity: 'epic'
+            rarity: 'or',
+            category: 'series'
+          },
+          onFire: {
+            id: 'on_fire',
+            name: 'On Fire',
+            emoji: '🔥',
+            description: '2 "Hardworker" (6pts) en 2 semaines',
+            points: 10,
+            rarity: 'argent',
+            category: 'series'
+          },
+          
+          // PERSÉVÉRANCE
+          phoenix: {
+            id: 'phoenix',
+            name: 'Phoenix',
+            emoji: '🦅',
+            description: 'Remonter de -50 à +50 points',
+            points: 20,
+            rarity: 'or',
+            category: 'perseverance'
+          },
+          marathonRunner: {
+            id: 'marathon_runner',
+            name: 'Marathon Runner',
+            emoji: '🏃',
+            description: 'Actions positives 5 jours d\'école consécutifs',
+            points: 5,
+            rarity: 'bronze',
+            category: 'perseverance'
+          },
+          
+          // SOCIAUX/ÉQUIPE
+          teamCaptain: {
+            id: 'team_captain',
+            name: 'Team Captain',
+            emoji: '👑',
+            description: 'Meilleur de sa franchise pendant 1 semaine',
+            points: 10,
+            rarity: 'argent',
+            category: 'social'
+          },
+          veteran: {
+            id: 'veteran',
+            name: 'Veteran',
+            emoji: '🎖️',
+            description: 'Top 3 de sa franchise pendant 2 mois',
+            points: 20,
+            rarity: 'or',
+            category: 'social'
+          },
+          teamPlayer: {
+            id: 'team_player',
+            name: 'Team Player',
+            emoji: '🤝',
+            description: 'Sa franchise gagne le + de points en 1 semaine',
+            points: 5,
+            rarity: 'bronze',
+            category: 'social'
+          },
+          
+          // SPÉCIAUX & RARES
+          showtime: {
+            id: 'showtime',
+            name: 'Showtime',
+            emoji: '🎪',
+            description: 'Recevoir "Félicitations" (25pts) 3 fois',
+            points: 35,
+            rarity: 'diamant',
+            category: 'special'
+          },
+          halloweenSpirit: {
+            id: 'halloween_spirit',
+            name: 'Halloween Spirit',
+            emoji: '🎃',
+            description: 'Actions positives semaine Halloween',
+            points: 50,
+            rarity: 'legendaire',
+            category: 'special'
+          },
+          christmasMagic: {
+            id: 'christmas_magic',
+            name: 'Christmas Magic',
+            emoji: '🎄',
+            description: 'Actions positives pendant les fêtes',
+            points: 50,
+            rarity: 'legendaire',
+            category: 'special'
+          },
+          backToSchool: {
+            id: 'back_to_school',
+            name: 'Back to School',
+            emoji: '📚',
+            description: '10 actions positives premier mois rentrée',
+            points: 50,
+            rarity: 'legendaire',
+            category: 'special'
           }
         };
 
-        // Définition des badges collectifs
+        // ========== NOUVEAUX BADGES COLLECTIFS ==========
         const collectiveBadges = {
-          teamSpirit: {
-            id: 'team_spirit',
-            name: 'Esprit d\'équipe',
-            emoji: '🤝',
-            description: 'Tous les joueurs au-dessus de 0 points',
+          // DOMINATION COLLECTIVE - Suprématie
+          franchiseRoyalty: {
+            id: 'franchise_royalty',
+            name: 'Franchise Royalty',
+            emoji: '👑',
+            description: '#1 pendant 1 mois complet',
             points: 50,
-            rarity: 'rare'
+            rarity: 'argent',
+            category: 'domination'
           },
-          domination: {
-            id: 'domination',
-            name: 'Domination',
-            emoji: '🏆',
-            description: '100 points d\'avance sur la 2e franchise',
+          dynasty: {
+            id: 'dynasty',
+            name: 'Dynasty',
+            emoji: '🌟',
+            description: '#1 pendant 3 mois consécutifs',
             points: 100,
-            rarity: 'legendary'
+            rarity: 'or',
+            category: 'domination'
           },
-          unity: {
-            id: 'unity',
-            name: 'Unité',
-            emoji: '🔗',
-            description: 'Aucun joueur avec des points négatifs',
-            points: 30,
-            rarity: 'epic'
+          empire: {
+            id: 'empire',
+            name: 'Empire',
+            emoji: '🏛️',
+            description: '#1 pendant 6 mois dans l\'année',
+            points: 200,
+            rarity: 'diamant',
+            category: 'domination'
+          },
+          legendaryHouse: {
+            id: 'legendary_house',
+            name: 'Legendary House',
+            emoji: '🐐',
+            description: '#1 à la fin de l\'année scolaire',
+            points: 500,
+            rarity: 'legendaire',
+            category: 'domination'
+          },
+          
+          // DOMINATION COLLECTIVE - Performances
+          rocketLaunch: {
+            id: 'rocket_launch',
+            name: 'Rocket Launch',
+            emoji: '🚀',
+            description: '+80 points collectifs en 1 semaine',
+            points: 20,
+            rarity: 'bronze',
+            category: 'performance'
+          },
+          tidalWave: {
+            id: 'tidal_wave',
+            name: 'Tidal Wave',
+            emoji: '🌊',
+            description: '+200 points collectifs en 1 mois',
+            points: 100,
+            rarity: 'or',
+            category: 'performance'
+          },
+          lightningStrike: {
+            id: 'lightning_strike',
+            name: 'Lightning Strike',
+            emoji: '⚡',
+            description: 'Tous les membres gagnent points même jour',
+            points: 20,
+            rarity: 'bronze',
+            category: 'performance'
+          },
+          houseOnFire: {
+            id: 'house_on_fire',
+            name: 'House on Fire',
+            emoji: '🔥',
+            description: '80% membres actions positives en 1 semaine',
+            points: 50,
+            rarity: 'argent',
+            category: 'performance'
+          },
+          
+          // SOLIDARITÉ & ENTRAIDE - Unité
+          unitedWeStand: {
+            id: 'united_we_stand',
+            name: 'United We Stand',
+            emoji: '🤝',
+            description: 'Aucun membre négatif pendant 2 semaines',
+            points: 50,
+            rarity: 'argent',
+            category: 'solidarity'
+          },
+          brotherhood: {
+            id: 'brotherhood',
+            name: 'Brotherhood/Sisterhood',
+            emoji: '🛡️',
+            description: 'Aider membre à sortir du négatif',
+            points: 100,
+            rarity: 'or',
+            category: 'solidarity'
+          },
+          perfectBalance: {
+            id: 'perfect_balance',
+            name: 'Perfect Balance',
+            emoji: '⚖️',
+            description: 'Tous membres entre 25-75 points',
+            points: 100,
+            rarity: 'or',
+            category: 'solidarity'
+          },
+          harmony: {
+            id: 'harmony',
+            name: 'Harmony',
+            emoji: '🌈',
+            description: 'Écart <50 points entre 1er et dernier',
+            points: 50,
+            rarity: 'argent',
+            category: 'solidarity'
+          },
+          
+          // SOLIDARITÉ & ENTRAIDE - Objectifs communs
+          showstoppers: {
+            id: 'showstoppers',
+            name: 'Showstoppers',
+            emoji: '🎪',
+            description: '3 membres "Félicitations" même trimestre',
+            points: 200,
+            rarity: 'diamant',
+            category: 'objectives'
+          },
+          gemCollection: {
+            id: 'gem_collection',
+            name: 'Gem Collection',
+            emoji: '💎',
+            description: 'Tous atteignent au moins "Starting Five"',
+            points: 100,
+            rarity: 'or',
+            category: 'objectives'
+          },
+          fullSquad: {
+            id: 'full_squad',
+            name: 'Full Squad',
+            emoji: '👥',
+            description: '100% participation activités optionnelles',
+            points: 50,
+            rarity: 'argent',
+            category: 'objectives'
+          },
+          honorGuard: {
+            id: 'honor_guard',
+            name: 'Honor Guard',
+            emoji: '🎖️',
+            description: 'Aucune action négative pendant 1 mois',
+            points: 100,
+            rarity: 'or',
+            category: 'objectives'
+          },
+          
+          // ÉVÉNEMENTS & SAISONS
+          autumnChampions: {
+            id: 'autumn_champions',
+            name: 'Autumn Champions',
+            emoji: '🍂',
+            description: 'Meilleure franchise sept-oct',
+            points: 200,
+            rarity: 'legendaire',
+            category: 'events'
+          },
+          winterWarriors: {
+            id: 'winter_warriors',
+            name: 'Winter Warriors',
+            emoji: '❄️',
+            description: 'Meilleure franchise déc-janv',
+            points: 200,
+            rarity: 'legendaire',
+            category: 'events'
+          },
+          springAwakening: {
+            id: 'spring_awakening',
+            name: 'Spring Awakening',
+            emoji: '🌸',
+            description: 'Meilleure franchise mars-avril',
+            points: 200,
+            rarity: 'legendaire',
+            category: 'events'
           }
         };
 
         // Fonction pour obtenir la couleur selon la rareté
         const getRarityColor = (rarity) => {
           switch(rarity) {
-            case 'common': return 'border-gray-400';
-            case 'rare': return 'border-blue-400';
-            case 'epic': return 'border-purple-400';
-            case 'legendary': return 'border-yellow-400';
-            default: return 'border-gray-400';
+            case 'bronze': return 'badge-bronze';
+            case 'argent': return 'badge-argent';
+            case 'or': return 'badge-or';
+            case 'diamant': return 'badge-diamant';
+            case 'legendaire': return 'badge-legendaire';
+            default: return 'badge-bronze';
+          }
+        };
+
+        // Fonction pour obtenir le nom de la rareté
+        const getRarityName = (rarity) => {
+          switch(rarity) {
+            case 'bronze': return '🥉 Bronze';
+            case 'argent': return '🥈 Argent';
+            case 'or': return '🥇 Or';
+            case 'diamant': return '💎 Diamant';
+            case 'legendaire': return '🌟 Légendaire';
+            default: return '🥉 Bronze';
           }
         };
 
@@ -249,6 +538,7 @@
           const [playerBadges, setPlayerBadges] = useState({});
           const [franchiseBadges, setFranchiseBadges] = useState({});
           const [notifications, setNotifications] = useState([]);
+          const [badgeFilter, setBadgeFilter] = useState('all'); // Pour filtrer les badges
           
           // Fonction pour obtenir le grade basketball selon le score
           const getBadge = (score) => {
@@ -461,6 +751,9 @@
               if (response.ok) {
                 await loadPlayers();
                 setExpandedDropdown(null);
+                
+                // TODO: Vérifier les conditions de badges après ajout de points
+                // Ceci devrait être fait côté serveur idéalement
               }
             } catch (error) {
               console.error('Erreur lors de l\'ajout de points:', error);
@@ -587,10 +880,10 @@
               <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
                 <div className="max-w-4xl mx-auto">
                   <h1 className="text-6xl font-bold text-center text-white mb-4">
-                    🏆 Système de Gestion Scolaire 🏆
+                    🏆 Système de Gestion GPBM 🏆
                   </h1>
                   <p className="text-xl text-center text-purple-200 mb-12">
-                    Choisissez votre type d'accès
+                    Grades et Badges Basketball Manager
                   </p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -753,6 +1046,29 @@
                   </div>
 
                   <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                    <h3 className="text-2xl font-bold text-white mb-6 text-center">
+                      🏠 Les Quatre Franchises
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                        const franchisePlayers = getSortedPlayers(franchise);
+                        const totalPoints = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
+                        const avatar = getFranchiseAvatar(franchise);
+                        return (
+                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg text-center franchise-card`}>
+                            <div className="flex items-center justify-center mb-2">
+                              <span className={`franchise-avatar ${avatar.class}`}>
+                                {avatar.emoji}
+                              </span>
+                            </div>
+                            <h4 className="font-bold text-white text-lg">{franchise}</h4>
+                            <div className="text-2xl font-bold text-white">{totalPoints}</div>
+                            <div className="text-sm text-white/80">{franchisePlayers.length} élèves</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                     <h3 className="text-2xl font-bold text-white mb-4">📊 Statistiques Rapides</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
@@ -1078,365 +1394,3 @@
                   </div>
 
                   <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                    <h3 className="text-2xl font-bold text-white mb-6 text-center">
-                      🏠 Les Quatre Franchises
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
-                        const franchisePlayers = getSortedPlayers(franchise);
-                        const totalPoints = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
-                        const avatar = getFranchiseAvatar(franchise);
-                        return (
-                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg text-center franchise-card`}>
-                            <div className="flex items-center justify-center mb-2">
-                              <span className={`franchise-avatar ${avatar.class}`}>
-                                {avatar.emoji}
-                              </span>
-                            </div>
-                            <h4 className="font-bold text-white text-lg">{franchise}</h4>
-                            <div className="text-2xl font-bold text-white">{totalPoints}</div>
-                            <div className="text-sm text-white/80">{franchisePlayers.length} élèves</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // RECHERCHE ÉLÈVE
-          if (currentView === 'student-search') {
-            
-            const searchPlayer = async () => {
-              if (!searchName.trim()) {
-                alert('Veuillez entrer votre nom');
-                return;
-              }
-
-              try {
-                const response = await fetch(`/api/player/${encodeURIComponent(searchName.trim())}`);
-                if (response.ok) {
-                  const player = await response.json();
-                  setFoundPlayer(player);
-                  
-                  const historyResponse = await fetch(`/api/history/${encodeURIComponent(searchName.trim())}`);
-                  const history = await historyResponse.json();
-                  setSearchHistory(history);
-                } else {
-                  setFoundPlayer(null);
-                  setSearchHistory([]);
-                  alert('Élève non trouvé. Vérifiez l\'orthographe de votre nom.');
-                }
-              } catch (error) {
-                alert('Erreur lors de la recherche');
-              }
-            };
-
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-                <div className="max-w-4xl mx-auto">
-                  <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-white">🔍 Rechercher Mon Score</h1>
-                    <button
-                      onClick={() => setCurrentView('student-dashboard')}
-                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
-                    >
-                      ← Retour
-                    </button>
-                  </div>
-
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
-                    <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                      Entrez votre nom complet
-                    </h2>
-                    <div className="flex space-x-4">
-                      <input
-                        type="text"
-                        value={searchName}
-                        onChange={(e) => setSearchName(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && searchPlayer()}
-                        className="flex-1 px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white/70 focus:outline-none text-lg"
-                        placeholder="Votre prénom et nom..."
-                      />
-                      <button
-                        onClick={searchPlayer}
-                        className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg transition-colors font-bold"
-                      >
-                        🔍 Rechercher
-                      </button>
-                    </div>
-                  </div>
-
-                  {foundPlayer && (
-                    <div className="space-y-6">
-                      <div className={`bg-gradient-to-r ${franchiseColors[foundPlayer.franchise]} p-6 rounded-xl franchise-card`}>
-                        <div className="text-center">
-                          <h2 className="text-3xl font-bold text-white mb-2">{foundPlayer.name}</h2>
-                          <div className="text-xl text-white/90 mb-4 flex items-center justify-center space-x-3">
-                            <span>Franchise:</span>
-                            <div className="flex items-center space-x-2">
-                              <span className={`franchise-avatar ${getFranchiseAvatar(foundPlayer.franchise).class}`}>
-                                {getFranchiseAvatar(foundPlayer.franchise).emoji}
-                              </span>
-                              <span className="font-bold">{foundPlayer.franchise}</span>
-                            </div>
-                          </div>
-                          <div className="mb-4">
-                            <div className="inline-flex items-center space-x-2 bg-black/30 px-4 py-2 rounded-full">
-                              <span className="text-3xl">{getBadge(foundPlayer.score).emoji}</span>
-                              <span className={`text-xl font-bold ${getBadge(foundPlayer.score).color}`}>
-                                {getBadge(foundPlayer.score).name}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="text-5xl font-bold text-white">{foundPlayer.score} points</div>
-                        </div>
-                      </div>
-
-                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                        <h3 className="text-2xl font-bold text-white mb-6 text-center">
-                          📋 Mon Historique
-                        </h3>
-                        <div className="space-y-3 max-h-96 overflow-y-auto">
-                          {searchHistory.length > 0 ? (
-                            searchHistory.map((entry, index) => (
-                              <div key={index} className="bg-white/20 p-4 rounded-lg">
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <div className="font-semibold text-white">{entry.action}</div>
-                                    <div className="text-sm text-white/80">{entry.timestamp}</div>
-                                    {entry.teacher_name && entry.teacher_name !== 'Anonyme' && (
-                                      <div className="text-xs text-white/60">Par: {entry.teacher_name}</div>
-                                    )}
-                                  </div>
-                                  <div className="text-right">
-                                    <div className={`text-lg font-bold ${entry.points > 0 ? 'text-green-300' : 'text-red-300'}`}>
-                                      {entry.points > 0 ? '+' : ''}{entry.points}
-                                    </div>
-                                    <div className="text-sm text-white/70">Total: {entry.new_total}</div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-white/70 text-center">Aucun historique disponible</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          }
-
-          // PAGE CLASSEMENTS
-          if (currentView === 'rankings') {
-            const franchiseRankings = getFranchiseRankings();
-            const playerRankings = getGeneralPlayerRankings();
-
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-                <div className="max-w-6xl mx-auto">
-                  <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-white">🏆 Classements</h1>
-                    <button
-                      onClick={() => setCurrentView(userType === 'teacher' ? 'teacher-dashboard' : 'student-dashboard')}
-                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
-                    >
-                      ← Retour
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                        🏆 Classement des Franchises
-                      </h2>
-                      <div className="space-y-4">
-                        {franchiseRankings.map(({ franchise, score, rank }) => {
-                          const avatar = getFranchiseAvatar(franchise);
-                          return (
-                            <div
-                              key={franchise}
-                              className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg flex justify-between items-center shadow-lg franchise-card`}
-                            >
-                              <div className="flex items-center space-x-3">
-                                <span className="text-2xl font-bold text-white">#{rank}</span>
-                                <span className={`franchise-avatar ${avatar.class}`}>
-                                  {avatar.emoji}
-                                </span>
-                                <span className="text-xl font-semibold text-white">{franchise}</span>
-                              </div>
-                              <span className="text-2xl font-bold text-white">{score} pts</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                        👑 Classement Général
-                      </h2>
-                      <div className="space-y-2 max-h-96 overflow-y-auto">
-                        {playerRankings.map((player, index) => {
-                          const badge = getBadge(player.score);
-                          return (
-                            <div
-                              key={player.name}
-                              className={`bg-gradient-to-r ${franchiseColors[player.franchise]} p-3 rounded-lg flex justify-between items-center shadow-md`}
-                            >
-                              <div className="flex items-center space-x-3">
-                                <span className="text-lg font-bold text-white">#{index + 1}</span>
-                                <span className="text-2xl">{badge.emoji}</span>
-                                <div>
-                                  <span className="text-lg font-semibold text-white">{player.name}</span>
-                                  <div className="text-sm text-white/80">{player.franchise}</div>
-                                </div>
-                              </div>
-                              <span className="text-lg font-bold text-white">{player.score} pts</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // PAGE DES BADGES
-          if (currentView === 'badges') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-                <div className="max-w-7xl mx-auto">
-                  <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-white">🏅 Collection de Badges</h1>
-                    <button
-                      onClick={() => setCurrentView(userType === 'teacher' ? 'teacher-dashboard' : 'student-dashboard')}
-                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
-                    >
-                      ← Retour
-                    </button>
-                  </div>
-
-                  {/* Badges Individuels */}
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
-                    <h2 className="text-2xl font-bold text-white mb-6 text-center">👤 Badges Individuels</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {Object.values(individualBadges).map(badge => {
-                        // Compter combien de joueurs ont ce badge
-                        const playersWithBadge = Object.entries(playerBadges).filter(([player, badges]) =>
-                          badges?.some(b => b.id === badge.id)
-                        ).map(([player]) => player);
-
-                        return (
-                          <div key={badge.id} className={`rounded-lg p-4 border-2 ${getRarityColor(badge.rarity)}`}>
-                            <div className="flex items-center space-x-3 mb-3">
-                              <span className="text-4xl">{badge.emoji}</span>
-                              <div className="flex-1">
-                                <h3 className="text-white font-bold text-lg">{badge.name}</h3>
-                                <p className="text-white/70 text-sm">{badge.description}</p>
-                                <p className="text-yellow-300 text-xs mt-1">+{badge.points} pts</p>
-                              </div>
-                            </div>
-                            {playersWithBadge.length > 0 && (
-                              <div className="text-white/60 text-xs mt-2 pt-2 border-t border-white/20">
-                                <p>Obtenu par: {playersWithBadge.length} joueur(s)</p>
-                                <p className="truncate">{playersWithBadge.slice(0, 3).join(', ')}{playersWithBadge.length > 3 ? '...' : ''}</p>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Badges Collectifs */}
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                    <h2 className="text-2xl font-bold text-white mb-6 text-center">🏠 Badges Collectifs</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {Object.values(collectiveBadges).map(badge => {
-                        // Compter combien de franchises ont ce badge
-                        const franchisesWithBadge = Object.entries(franchiseBadges).filter(([franchise, badges]) =>
-                          badges?.some(b => b.id === badge.id)
-                        ).map(([franchise]) => franchise);
-
-                        return (
-                          <div key={badge.id} className={`rounded-lg p-4 border-2 ${getRarityColor(badge.rarity)}`}>
-                            <div className="flex items-center space-x-3 mb-3">
-                              <span className="text-4xl">{badge.emoji}</span>
-                              <div className="flex-1">
-                                <h3 className="text-white font-bold text-lg">{badge.name}</h3>
-                                <p className="text-white/70 text-sm">{badge.description}</p>
-                                <p className="text-yellow-300 text-xs mt-1">+{badge.points} pts franchise</p>
-                              </div>
-                            </div>
-                            {franchisesWithBadge.length > 0 && (
-                              <div className="text-white/60 text-xs mt-2 pt-2 border-t border-white/20">
-                                <p>Obtenu par: {franchisesWithBadge.join(', ')}</p>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // Return principal avec le modal d'historique et notifications
-          return (
-            <>
-              {/* Système de notifications */}
-              <NotificationSystem notifications={notifications} />
-              
-              {selectedPlayerHistory && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                  <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-96 overflow-y-auto">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-xl font-bold">Historique de {selectedPlayerHistory}</h3>
-                      <button
-                        onClick={() => setSelectedPlayerHistory(null)}
-                        className="text-gray-500 hover:text-gray-700 text-xl"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      {playerHistory.length > 0 ? (
-                        playerHistory.map((entry, index) => (
-                          <div key={index} className="border-l-4 border-blue-500 pl-3 py-2">
-                            <div className="font-semibold">{entry.action}</div>
-                            <div className="text-sm text-gray-600">
-                              {entry.points > 0 ? '+' : ''}{entry.points} points
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {entry.timestamp} • Total: {entry.new_total} pts
-                              {entry.teacher_name && entry.teacher_name !== 'Anonyme' && (
-                                <span> • Par: {entry.teacher_name}</span>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-gray-500 text-center">Aucun historique disponible</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          );
-        };
-
-        ReactDOM.render(<App />, document.getElementById('root'));
-    </script>
-</body>
-</html>
