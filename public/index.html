@@ -8,9 +8,12 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         /* === AVATARS ANIMÉS DES FRANCHISES === */
+
+        /* Minotaurs - Taureau qui charge */
         .minotaur-avatar {
             display: inline-block;
             font-size: 3rem;
@@ -23,6 +26,7 @@
             50% { transform: translateX(-3px) rotate(-2deg); }
         }
 
+        /* Krakens - Tentacules qui ondulent */
         .kraken-avatar {
             display: inline-block;
             font-size: 3rem;
@@ -36,6 +40,7 @@
             66% { transform: rotate(-2deg) scale(0.95); }
         }
 
+        /* Phoenix - Flammes qui dansent */
         .phoenix-avatar {
             display: inline-block;
             font-size: 3rem;
@@ -49,6 +54,7 @@
             75% { transform: translateY(1px) scale(0.9); }
         }
 
+        /* Werewolves - Yeux qui brillent */
         .werewolf-avatar {
             display: inline-block;
             font-size: 3rem;
@@ -61,12 +67,14 @@
             50% { filter: drop-shadow(0 0 20px rgba(0, 255, 0, 0.8)) brightness(1.2); }
         }
 
+        /* Effet de hover pour tous les avatars */
         .franchise-avatar:hover {
             transform: scale(1.2);
             transition: transform 0.3s ease;
             cursor: pointer;
         }
 
+        /* Particules de fond optionnelles */
         .franchise-card {
             position: relative;
             overflow: hidden;
@@ -89,53 +97,6 @@
             0% { transform: translate(0, 0) rotate(0deg); }
             100% { transform: translate(-20px, -20px) rotate(360deg); }
         }
-
-        /* Styles pour les badges */
-        .badge-bronze {
-            border-color: #cd7f32;
-            background: linear-gradient(135deg, rgba(205, 127, 50, 0.1), rgba(205, 127, 50, 0.2));
-        }
-        
-        .badge-argent {
-            border-color: #c0c0c0;
-            background: linear-gradient(135deg, rgba(192, 192, 192, 0.1), rgba(192, 192, 192, 0.2));
-        }
-        
-        .badge-or {
-            border-color: #ffd700;
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.2));
-        }
-        
-        .badge-diamant {
-            border-color: #b9f2ff;
-            background: linear-gradient(135deg, rgba(185, 242, 255, 0.1), rgba(185, 242, 255, 0.3));
-        }
-        
-        .badge-legendaire {
-            background: linear-gradient(135deg, 
-                rgba(255, 0, 0, 0.1),
-                rgba(255, 154, 0, 0.1),
-                rgba(208, 222, 33, 0.1),
-                rgba(79, 220, 74, 0.1),
-                rgba(63, 218, 216, 0.1),
-                rgba(47, 201, 226, 0.1),
-                rgba(28, 127, 238, 0.1),
-                rgba(95, 21, 242, 0.1),
-                rgba(186, 12, 248, 0.1),
-                rgba(251, 7, 217, 0.1));
-            border-image: linear-gradient(45deg, red, orange, yellow, green, cyan, blue, violet, purple) 1;
-        }
-
-        /* Animation de notification de badge */
-        @keyframes badgeNotification {
-            0% { transform: translateY(-20px) scale(0.8); opacity: 0; }
-            50% { transform: translateY(0) scale(1.1); }
-            100% { transform: translateY(0) scale(1); opacity: 1; }
-        }
-
-        .badge-notification {
-            animation: badgeNotification 0.5s ease-out;
-        }
     </style>
 </head>
 <body>
@@ -144,228 +105,86 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // Configuration de l'API
-        const API_URL = 'http://localhost:3000';
-
-        // ========== DÉFINITION DES BADGES ==========
+        // Définition des badges individuels
         const individualBadges = {
-          // SÉRIES
-          hot_streak: {
-            id: 'hot_streak',
-            name: 'Hot Streak',
-            emoji: '🔥',
-            description: '5 actions positives d\'affilée',
+          firstBlood: {
+            id: 'first_blood',
+            name: 'Premier Sang',
+            emoji: '🩸',
+            description: 'Premier point de la saison',
             points: 5,
-            rarity: 'bronze',
-            category: 'series'
+            rarity: 'common'
           },
-          tsunami: {
-            id: 'tsunami',
-            name: 'Tsunami',
-            emoji: '🌊',
-            description: '10 actions positives d\'affilée',
+          perfectWeek: {
+            id: 'perfect_week',
+            name: 'Semaine Parfaite',
+            emoji: '✨',
+            description: 'Aucun point négatif sur une semaine',
             points: 10,
-            rarity: 'argent',
-            category: 'series'
+            rarity: 'rare'
           },
-          unstoppable: {
-            id: 'unstoppable',
-            name: 'Unstoppable',
-            emoji: '🚀',
-            description: '15 actions positives d\'affilée',
-            points: 20,
-            rarity: 'or',
-            category: 'series'
+          comeback: {
+            id: 'comeback',
+            name: 'Comeback Kid',
+            emoji: '🔄',
+            description: 'Revenir de -10 points à positif',
+            points: 15,
+            rarity: 'epic'
           },
-          on_fire: {
-            id: 'on_fire',
-            name: 'On Fire',
-            emoji: '🔥',
-            description: '2 "Hardworker" en 2 semaines',
-            points: 10,
-            rarity: 'argent',
-            category: 'series'
-          },
-          
-          // PERSÉVÉRANCE
-          phoenix: {
-            id: 'phoenix',
-            name: 'Phoenix',
-            emoji: '🦅',
-            description: 'Remonter de -50 à +50 points',
-            points: 20,
-            rarity: 'or',
-            category: 'perseverance'
-          },
-          marathon_runner: {
-            id: 'marathon_runner',
-            name: 'Marathon Runner',
-            emoji: '🏃',
-            description: 'Actions positives 5 jours consécutifs',
-            points: 5,
-            rarity: 'bronze',
-            category: 'perseverance'
-          },
-          
-          // SOCIAUX/ÉQUIPE
-          team_captain: {
-            id: 'team_captain',
-            name: 'Team Captain',
+          champion: {
+            id: 'champion',
+            name: 'Champion',
             emoji: '👑',
-            description: 'Meilleur de sa franchise pendant 1 semaine',
-            points: 10,
-            rarity: 'argent',
-            category: 'social'
+            description: 'Finir 1er du classement général',
+            points: 25,
+            rarity: 'legendary'
           },
-          veteran: {
-            id: 'veteran',
-            name: 'Veteran',
-            emoji: '🎖️',
-            description: 'Top 3 de sa franchise pendant 2 mois',
+          hardworker: {
+            id: 'hardworker_badge',
+            name: 'Travailleur Acharné',
+            emoji: '💪',
+            description: '5 Hardworker obtenus',
             points: 20,
-            rarity: 'or',
-            category: 'social'
-          },
-          team_player: {
-            id: 'team_player',
-            name: 'Team Player',
-            emoji: '🤝',
-            description: 'Sa franchise gagne le + de points en 1 semaine',
-            points: 5,
-            rarity: 'bronze',
-            category: 'social'
-          },
-          
-          // SPÉCIAUX & RARES
-          showtime: {
-            id: 'showtime',
-            name: 'Showtime',
-            emoji: '🎪',
-            description: 'Recevoir "Félicitations" 3 fois',
-            points: 35,
-            rarity: 'diamant',
-            category: 'special'
-          },
-          halloween_spirit: {
-            id: 'halloween_spirit',
-            name: 'Halloween Spirit',
-            emoji: '🎃',
-            description: 'Actions positives semaine Halloween',
-            points: 50,
-            rarity: 'legendaire',
-            category: 'special'
-          },
-          christmas_magic: {
-            id: 'christmas_magic',
-            name: 'Christmas Magic',
-            emoji: '🎄',
-            description: 'Actions positives pendant les fêtes',
-            points: 50,
-            rarity: 'legendaire',
-            category: 'special'
-          },
-          back_to_school: {
-            id: 'back_to_school',
-            name: 'Back to School',
-            emoji: '📚',
-            description: '10 actions positives premier mois rentrée',
-            points: 50,
-            rarity: 'legendaire',
-            category: 'special'
+            rarity: 'epic'
           }
         };
 
+        // Définition des badges collectifs
         const collectiveBadges = {
-          // DOMINATION
-          franchise_royalty: {
-            id: 'franchise_royalty',
-            name: 'Franchise Royalty',
-            emoji: '👑',
-            description: '#1 pendant 1 mois complet',
-            points: 50,
-            rarity: 'argent',
-            category: 'domination'
-          },
-          dynasty: {
-            id: 'dynasty',
-            name: 'Dynasty',
-            emoji: '🌟',
-            description: '#1 pendant 3 mois consécutifs',
-            points: 100,
-            rarity: 'or',
-            category: 'domination'
-          },
-          
-          // PERFORMANCES
-          rocket_launch: {
-            id: 'rocket_launch',
-            name: 'Rocket Launch',
-            emoji: '🚀',
-            description: '+80 points collectifs en 1 semaine',
-            points: 20,
-            rarity: 'bronze',
-            category: 'performance'
-          },
-          tidal_wave: {
-            id: 'tidal_wave',
-            name: 'Tidal Wave',
-            emoji: '🌊',
-            description: '+200 points collectifs en 1 mois',
-            points: 100,
-            rarity: 'or',
-            category: 'performance'
-          },
-          lightning_strike: {
-            id: 'lightning_strike',
-            name: 'Lightning Strike',
-            emoji: '⚡',
-            description: 'Tous les membres gagnent points même jour',
-            points: 20,
-            rarity: 'bronze',
-            category: 'performance'
-          },
-          
-          // SOLIDARITÉ
-          united_we_stand: {
-            id: 'united_we_stand',
-            name: 'United We Stand',
+          teamSpirit: {
+            id: 'team_spirit',
+            name: 'Esprit d\'équipe',
             emoji: '🤝',
-            description: 'Aucun membre négatif pendant 2 semaines',
+            description: 'Tous les joueurs au-dessus de 0 points',
             points: 50,
-            rarity: 'argent',
-            category: 'solidarity'
+            rarity: 'rare'
           },
-          perfect_balance: {
-            id: 'perfect_balance',
-            name: 'Perfect Balance',
-            emoji: '⚖️',
-            description: 'Tous membres entre 25-75 points',
+          domination: {
+            id: 'domination',
+            name: 'Domination',
+            emoji: '🏆',
+            description: '100 points d\'avance sur la 2e franchise',
             points: 100,
-            rarity: 'or',
-            category: 'solidarity'
+            rarity: 'legendary'
+          },
+          unity: {
+            id: 'unity',
+            name: 'Unité',
+            emoji: '🔗',
+            description: 'Aucun joueur avec des points négatifs',
+            points: 30,
+            rarity: 'epic'
           }
         };
 
-        // Fonctions utilitaires
+        // Fonction pour obtenir la couleur selon la rareté
         const getRarityColor = (rarity) => {
           switch(rarity) {
-            case 'bronze': return 'badge-bronze';
-            case 'argent': return 'badge-argent';
-            case 'or': return 'badge-or';
-            case 'diamant': return 'badge-diamant';
-            case 'legendaire': return 'badge-legendaire';
-            default: return 'badge-bronze';
-          }
-        };
-
-        const getRarityName = (rarity) => {
-          switch(rarity) {
-            case 'bronze': return '🥉 Bronze';
-            case 'argent': return '🥈 Argent';
-            case 'or': return '🥇 Or';
-            case 'diamant': return '💎 Diamant';
-            case 'legendaire': return '🌟 Légendaire';
-            default: return '🥉 Bronze';
+            case 'common': return 'border-gray-400';
+            case 'rare': return 'border-blue-400';
+            case 'epic': return 'border-purple-400';
+            case 'legendary': return 'border-yellow-400';
+            default: return 'border-gray-400';
           }
         };
 
@@ -377,11 +196,11 @@
             <div className="flex flex-wrap gap-1 mt-2">
               {badges.map(badge => (
                 <span 
-                  key={badge.badge_id} 
+                  key={badge.id} 
                   className="text-xl" 
-                  title={`${badge.badge_name} - ${getRarityName(badge.rarity)}`}
+                  title={`${badge.name} - ${badge.description}`}
                 >
-                  {badge.badge_emoji}
+                  {badge.emoji}
                 </span>
               ))}
             </div>
@@ -397,12 +216,9 @@
               {notifications.map((notif, index) => (
                 <div
                   key={index}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg shadow-2xl badge-notification"
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg shadow-2xl animate-pulse"
                 >
-                  <div className="flex items-center space-x-2">
-                    <span className="text-2xl">🏅</span>
-                    <span>{notif}</span>
-                  </div>
+                  {notif}
                 </div>
               ))}
             </div>
@@ -426,11 +242,17 @@
           const [searchName, setSearchName] = useState('');
           const [foundPlayer, setFoundPlayer] = useState(null);
           const [searchHistory, setSearchHistory] = useState([]);
-          const [allBadges, setAllBadges] = useState({ playerBadges: [], franchiseBadges: [] });
+          const [showEvolutionChart, setShowEvolutionChart] = useState(false);
+          const [chartData, setChartData] = useState(null);
+          const [chartType, setChartType] = useState('player');
+          // États pour les badges
+          const [playerBadges, setPlayerBadges] = useState({});
+          const [franchiseBadges, setFranchiseBadges] = useState({});
           const [notifications, setNotifications] = useState([]);
           
           // Fonction pour obtenir le grade basketball selon le score
           const getBadge = (score) => {
+            // Grade Ultime
             if (score >= 250) return { 
               emoji: '🐐', 
               name: 'GOAT', 
@@ -440,6 +262,7 @@
               description: 'Le plus grand de tous les temps'
             };
             
+            // Grades Elite
             if (score >= 200) return { 
               emoji: '🏛️', 
               name: 'Hall of Fame', 
@@ -457,6 +280,7 @@
               description: 'Phénomène basketball'
             };
             
+            // Grades Confirmés
             if (score >= 100) return { 
               emoji: '🌟', 
               name: 'All-Star', 
@@ -474,6 +298,7 @@
               description: 'Pilier de l\'équipe'
             };
             
+            // Grades Développement
             if (score >= 50) return { 
               emoji: '⭐', 
               name: 'Starting Five', 
@@ -491,6 +316,7 @@
               description: 'Premier remplaçant de qualité'
             };
             
+            // Grades Débutants
             if (score >= 10) return { 
               emoji: '🏀', 
               name: 'Rookie', 
@@ -508,6 +334,7 @@
               description: 'Première année, apprend les bases'
             };
             
+            // Grades Négatifs
             if (score >= -25) return { 
               emoji: '📉', 
               name: 'Plot', 
@@ -525,6 +352,7 @@
               description: 'Cloué sur le banc'
             };
             
+            // Pire niveau
             return { 
               emoji: '🗑️', 
               name: 'Scrub', 
@@ -590,7 +418,7 @@
             }
             
             try {
-              const response = await fetch(`${API_URL}/api/verify-teacher`, {
+              const response = await fetch('/api/verify-teacher', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ password })
@@ -605,14 +433,14 @@
                 setLoginError('Mot de passe incorrect');
               }
             } catch (error) {
-              setLoginError('Erreur de connexion au serveur');
+              setLoginError('Erreur de connexion');
             }
           };
 
           // Charger les joueurs
           const loadPlayers = async () => {
             try {
-              const response = await fetch(`${API_URL}/api/players`);
+              const response = await fetch('/api/players');
               const data = await response.json();
               setPlayers(data);
             } catch (error) {
@@ -620,50 +448,18 @@
             }
           };
 
-          // Charger tous les badges
-          const loadAllBadges = async () => {
-            try {
-              const response = await fetch(`${API_URL}/api/badges/all`);
-              const data = await response.json();
-              setAllBadges(data);
-            } catch (error) {
-              console.error('Erreur lors du chargement des badges:', error);
-            }
-          };
-
           // Ajouter des points (professeurs uniquement)
           const addPoints = async (playerName, points, action) => {
             setLoading(true);
             try {
-              const oldPlayer = players.find(p => p.name === playerName);
-              const response = await fetch(`${API_URL}/api/add-points`, {
+              const response = await fetch('/api/add-points', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ playerName, points, action, teacherName })
               });
               
               if (response.ok) {
-                const data = await response.json();
-                
-                // Vérifier si de nouveaux badges ont été gagnés
-                if (data.badges && oldPlayer) {
-                  const oldBadgeIds = oldPlayer.badges ? oldPlayer.badges.map(b => b.badge_id) : [];
-                  const newBadges = data.badges.filter(b => !oldBadgeIds.includes(b.badge_id));
-                  
-                  // Afficher une notification pour chaque nouveau badge
-                  newBadges.forEach(badge => {
-                    const notifText = `${playerName} a débloqué: ${badge.badge_emoji} ${badge.badge_name}!`;
-                    setNotifications(prev => [...prev, notifText]);
-                    
-                    // Retirer la notification après 5 secondes
-                    setTimeout(() => {
-                      setNotifications(prev => prev.filter(n => n !== notifText));
-                    }, 5000);
-                  });
-                }
-                
                 await loadPlayers();
-                await loadAllBadges();
                 setExpandedDropdown(null);
               }
             } catch (error) {
@@ -675,7 +471,7 @@
           // Charger l'historique d'un joueur
           const loadPlayerHistory = async (playerName) => {
             try {
-              const response = await fetch(`${API_URL}/api/history/${encodeURIComponent(playerName)}`);
+              const response = await fetch(`/api/history/${encodeURIComponent(playerName)}`);
               const data = await response.json();
               setPlayerHistory(data);
               setSelectedPlayerHistory(playerName);
@@ -688,7 +484,7 @@
           const undoLastAction = async (playerName) => {
             setLoading(true);
             try {
-              const response = await fetch(`${API_URL}/api/undo-last/${encodeURIComponent(playerName)}`, {
+              const response = await fetch(`/api/undo-last/${encodeURIComponent(playerName)}`, {
                 method: 'DELETE',
               });
               
@@ -709,7 +505,7 @@
             }
             
             try {
-              const response = await fetch(`${API_URL}/api/add-student`, {
+              const response = await fetch('/api/add-student', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
@@ -738,7 +534,7 @@
             }
             
             try {
-              const response = await fetch(`${API_URL}/api/remove-student/${encodeURIComponent(playerName)}`, {
+              const response = await fetch(`/api/remove-student/${encodeURIComponent(playerName)}`, {
                 method: 'DELETE'
               });
               
@@ -754,11 +550,7 @@
           useEffect(() => {
             if (userType) {
               loadPlayers();
-              loadAllBadges();
-              const interval = setInterval(() => {
-                loadPlayers();
-                loadAllBadges();
-              }, 30000); // Rafraîchir toutes les 30 secondes
+              const interval = setInterval(loadPlayers, 10000);
               return () => clearInterval(interval);
             }
           }, [userType]);
@@ -795,10 +587,10 @@
               <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
                 <div className="max-w-4xl mx-auto">
                   <h1 className="text-6xl font-bold text-center text-white mb-4">
-                    🏆 Système GPBM 🏆
+                    🏆 Système de Gestion Scolaire 🏆
                   </h1>
                   <p className="text-xl text-center text-purple-200 mb-12">
-                    Grades et Badges Basketball Manager
+                    Choisissez votre type d'accès
                   </p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -847,12 +639,10 @@
                   
                   <div className="space-y-6">
                     <div>
-                      <label htmlFor="teacherName" className="block text-white text-sm font-bold mb-2">
+                      <label className="block text-white text-sm font-bold mb-2">
                         Nom (optionnel)
                       </label>
                       <input
-                        id="teacherName"
-                        name="teacherName"
                         type="text"
                         value={teacherName}
                         onChange={(e) => setTeacherName(e.target.value)}
@@ -862,12 +652,10 @@
                     </div>
                     
                     <div>
-                      <label htmlFor="password" className="block text-white text-sm font-bold mb-2">
+                      <label className="block text-white text-sm font-bold mb-2">
                         Mot de passe *
                       </label>
                       <input
-                        id="password"
-                        name="password"
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -971,8 +759,6 @@
                         const franchisePlayers = getSortedPlayers(franchise);
                         const totalPoints = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
                         const avatar = getFranchiseAvatar(franchise);
-                        const franchiseBadges = allBadges.franchiseBadges.filter(b => b.franchise === franchise);
-                        
                         return (
                           <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg text-center franchise-card`}>
                             <div className="flex items-center justify-center mb-2">
@@ -983,22 +769,333 @@
                             <h4 className="font-bold text-white">{franchise}</h4>
                             <div className="text-2xl font-bold text-white">{totalPoints}</div>
                             <div className="text-sm text-white/80">{franchisePlayers.length} élèves</div>
-                            {franchiseBadges.length > 0 && (
-                              <div className="mt-2 flex justify-center flex-wrap gap-1">
-                                {franchiseBadges.slice(0, 3).map(b => (
-                                  <span key={b.badge_id} className="text-sm" title={b.badge_name}>
-                                    {b.badge_emoji}
-                                  </span>
-                                ))}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // GESTION DES POINTS PROFESSEUR
+          if (currentView === 'teacher-players') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <div className="max-w-7xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">👥 Gestion des Points</h1>
+                    <div className="flex space-x-4">
+                      {loading && <div className="text-white">⏳ Chargement...</div>}
+                      <button
+                        onClick={() => setCurrentView('teacher-dashboard')}
+                        className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
+                      >
+                        ← Retour Tableau de Bord
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+                    {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                      const avatar = getFranchiseAvatar(franchise);
+                      return (
+                        <div key={franchise} className="bg-white/10 backdrop-blur-sm rounded-xl p-6 franchise-card">
+                          <h2 className={`text-2xl font-bold text-white mb-4 text-center bg-gradient-to-r ${franchiseColors[franchise]} p-3 rounded-lg flex items-center justify-center space-x-2`}>
+                            <span className={`franchise-avatar ${avatar.class}`}>
+                              {avatar.emoji}
+                            </span>
+                            <span>{franchise}</span>
+                          </h2>
+                          <div className="space-y-3">
+                            {getSortedPlayers(franchise).map(player => (
+                              <div key={player.name} className="bg-white/20 rounded-lg p-3">
+                                <div className="flex justify-between items-center mb-2">
+                                  <button
+                                    onClick={() => loadPlayerHistory(player.name)}
+                                    className="text-white font-semibold hover:text-yellow-300 transition-colors flex items-center space-x-1"
+                                  >
+                                    <span>{player.name}</span>
+                                    <span>📋</span>
+                                  </button>
+                                  <div className="flex items-center space-x-2">
+                                    <div className="flex items-center space-x-1">
+                                      <span className={`text-2xl ${getBadge(player.score).emoji}`}>
+                                        {getBadge(player.score).emoji}
+                                      </span>
+                                      <span className="text-white font-bold">
+                                        {player.score} pts
+                                      </span>
+                                    </div>
+                                    <button
+                                      onClick={() => undoLastAction(player.name)}
+                                      className="bg-red-500 hover:bg-red-400 text-white px-2 py-1 rounded text-xs"
+                                      title="Annuler dernière action"
+                                    >
+                                      ↺
+                                    </button>
+                                  </div>
+                                </div>
+                                {/* Affichage des badges */}
+                                <BadgeDisplay badges={playerBadges[player.name] || []} />
+                                <div className="relative">
+                                  <button
+                                    onClick={() => setExpandedDropdown(expandedDropdown === player.name ? null : player.name)}
+                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded flex justify-between items-center transition-colors"
+                                    disabled={loading}
+                                  >
+                                    <span>Actions</span>
+                                    <span>{expandedDropdown === player.name ? '⌃' : '⌄'}</span>
+                                  </button>
+                                  
+                                  {expandedDropdown === player.name && (
+                                    <div className="absolute top-full left-0 right-0 bg-white rounded-lg shadow-xl z-10 mt-1 max-h-64 overflow-y-auto">
+                                      <div className="p-2">
+                                        <div className="text-green-700 font-semibold mb-2">Points positifs:</div>
+                                        {positiveActions.map((action, index) => (
+                                          <button
+                                            key={`pos-${index}`}
+                                            onClick={() => addPoints(player.name, action.points, action.label)}
+                                            className="w-full text-left px-3 py-2 hover:bg-green-100 rounded text-sm flex justify-between"
+                                            disabled={loading}
+                                          >
+                                            <span>{action.label}</span>
+                                            <span className="text-green-600 font-bold">+{action.points}</span>
+                                          </button>
+                                        ))}
+                                        
+                                        <div className="text-red-700 font-semibold mb-2 mt-3">Points négatifs:</div>
+                                        {negativeActions.map((action, index) => (
+                                          <button
+                                            key={`neg-${index}`}
+                                            onClick={() => addPoints(player.name, action.points, action.label)}
+                                            className="w-full text-left px-3 py-2 hover:bg-red-100 rounded text-sm flex justify-between"
+                                            disabled={loading}
+                                          >
+                                            <span>{action.label}</span>
+                                            <span className="text-red-600 font-bold">{action.points}</span>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            )}-1">
-                                {franchiseBadges.slice(0, 3).map(b => (
-                                  <span key={b.badge_id} className="text-sm" title={b.badge_name}>
-                                    {b.badge_emoji}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // ADMINISTRATION PROFESSEUR
+          if (currentView === 'teacher-admin') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <div className="max-w-6xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">⚙️ Administration des Élèves</h1>
+                    <button
+                      onClick={() => setCurrentView('teacher-dashboard')}
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
+                    >
+                      ← Retour Tableau de Bord
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
+                        ➕ Ajouter un Élève
+                      </h2>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-white text-sm font-bold mb-2">
+                            Nom de l'élève
+                          </label>
+                          <input
+                            type="text"
+                            value={newStudentName}
+                            onChange={(e) => setNewStudentName(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white/70 focus:outline-none"
+                            placeholder="Prénom Nom..."
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-white text-sm font-bold mb-2">
+                            Franchise
+                          </label>
+                          <select
+                            value={newStudentFranchise}
+                            onChange={(e) => setNewStudentFranchise(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
+                          >
+                            <option value="Minotaurs" className="text-black">Minotaurs</option>
+                            <option value="Krakens" className="text-black">Krakens</option>
+                            <option value="Phoenix" className="text-black">Phoenix</option>
+                            <option value="Werewolves" className="text-black">Werewolves</option>
+                          </select>
+                        </div>
+                        
+                        <button
+                          onClick={addStudent}
+                          className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg transition-colors font-bold"
+                        >
+                          ➕ Ajouter l'Élève
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
+                        🗑️ Supprimer un Élève
+                      </h2>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-white text-sm font-bold mb-2">
+                            Sélectionner un élève
+                          </label>
+                          <select
+                            value={selectedStudent}
+                            onChange={(e) => setSelectedStudent(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
+                          >
+                            <option value="" className="text-black">-- Choisir un élève --</option>
+                            {players
+                              .sort((a, b) => a.name.localeCompare(b.name))
+                              .map(player => (
+                                <option key={player.name} value={player.name} className="text-black">
+                                  {player.name} ({player.franchise})
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                        
+                        <button
+                          onClick={() => selectedStudent && removeStudent(selectedStudent)}
+                          disabled={!selectedStudent}
+                          className="w-full bg-red-600 hover:bg-red-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-lg transition-colors font-bold"
+                        >
+                          🗑️ Supprimer l'Élève
+                        </button>
+                        
+                        <p className="text-red-300 text-sm text-center">
+                          ⚠️ Cette action est irréversible !
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                    <h2 className="text-2xl font-bold text-white mb-6 text-center">
+                      📋 Liste Actuelle des Élèves
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                        const avatar = getFranchiseAvatar(franchise);
+                        return (
+                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg franchise-card`}>
+                            <div className="flex items-center justify-center mb-3">
+                              <span className={`franchise-avatar ${avatar.class}`}>
+                                {avatar.emoji}
+                              </span>
+                              <h3 className="text-xl font-bold text-white ml-2">{franchise}</h3>
+                            </div>
+                            <div className="space-y-2">
+                              {getSortedPlayers(franchise).map(player => (
+                                <div key={player.name} className="bg-white/20 p-2 rounded text-white text-sm">
+                                  <div className="flex justify-between items-center">
+                                    <span>{player.name}</span>
+                                    <span className="font-bold">{player.score} pts</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="text-center mt-3 text-white/80 text-sm">
+                              {getSortedPlayers(franchise).length} élève(s)
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          // TABLEAU DE BORD ÉLÈVE
+          if (currentView === 'student-dashboard') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <div className="max-w-4xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">👨‍🎓 Espace Élève</h1>
+                    <button
+                      onClick={() => {
+                        setCurrentView('home');
+                        setUserType(null);
+                      }}
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
+                    >
+                      ← Retour Accueil
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <button
+                      onClick={() => setCurrentView('student-search')}
+                      className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                    >
+                      <div className="text-4xl mb-2">🔍</div>
+                      <h3 className="text-xl font-bold">Mon Score</h3>
+                      <p className="text-blue-100 text-sm">Voir mon historique personnel</p>
+                    </button>
+
+                    <button
+                      onClick={() => setCurrentView('badges')}
+                      className="bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                    >
+                      <div className="text-4xl mb-2">🏅</div>
+                      <h3 className="text-xl font-bold">Badges</h3>
+                      <p className="text-purple-100 text-sm">Découvrir les badges</p>
+                    </button>
+                    
+                    <button
+                      onClick={() => setCurrentView('rankings')}
+                      className="bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                    >
+                      <div className="text-4xl mb-2">🏆</div>
+                      <h3 className="text-xl font-bold">Classements</h3>
+                      <p className="text-amber-100 text-sm">Voir tous les classements</p>
+                    </button>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                    <h3 className="text-2xl font-bold text-white mb-6 text-center">
+                      🏠 Les Quatre Franchises
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                        const franchisePlayers = getSortedPlayers(franchise);
+                        const totalPoints = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
+                        const avatar = getFranchiseAvatar(franchise);
+                        return (
+                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg text-center franchise-card`}>
+                            <div className="flex items-center justify-center mb-2">
+                              <span className={`franchise-avatar ${avatar.class}`}>
+                                {avatar.emoji}
+                              </span>
+                            </div>
+                            <h4 className="font-bold text-white text-lg">{franchise}</h4>
+                            <div className="text-2xl font-bold text-white">{totalPoints}</div>
+                            <div className="text-sm text-white/80">{franchisePlayers.length} élèves</div>
                           </div>
                         );
                       })}
@@ -1011,6 +1108,7 @@
 
           // RECHERCHE ÉLÈVE
           if (currentView === 'student-search') {
+            
             const searchPlayer = async () => {
               if (!searchName.trim()) {
                 alert('Veuillez entrer votre nom');
@@ -1018,12 +1116,12 @@
               }
 
               try {
-                const response = await fetch(`${API_URL}/api/player/${encodeURIComponent(searchName.trim())}`);
+                const response = await fetch(`/api/player/${encodeURIComponent(searchName.trim())}`);
                 if (response.ok) {
                   const player = await response.json();
                   setFoundPlayer(player);
                   
-                  const historyResponse = await fetch(`${API_URL}/api/history/${encodeURIComponent(searchName.trim())}`);
+                  const historyResponse = await fetch(`/api/history/${encodeURIComponent(searchName.trim())}`);
                   const history = await historyResponse.json();
                   setSearchHistory(history);
                 } else {
@@ -1055,8 +1153,6 @@
                     </h2>
                     <div className="flex space-x-4">
                       <input
-                        id="searchName"
-                        name="searchName"
                         type="text"
                         value={searchName}
                         onChange={(e) => setSearchName(e.target.value)}
@@ -1096,20 +1192,6 @@
                             </div>
                           </div>
                           <div className="text-5xl font-bold text-white">{foundPlayer.score} points</div>
-                          
-                          {foundPlayer.badges && foundPlayer.badges.length > 0 && (
-                            <div className="mt-4">
-                              <h3 className="text-lg text-white/80 mb-2">Mes Badges:</h3>
-                              <div className="flex justify-center flex-wrap gap-2">
-                                {foundPlayer.badges.map(badge => (
-                                  <div key={badge.badge_id} className={`px-3 py-1 rounded-full border ${getRarityColor(badge.rarity)}`}>
-                                    <span className="text-xl mr-1">{badge.badge_emoji}</span>
-                                    <span className="text-sm text-white">{badge.badge_name}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
                         </div>
                       </div>
 
@@ -1176,8 +1258,6 @@
                       <div className="space-y-4">
                         {franchiseRankings.map(({ franchise, score, rank }) => {
                           const avatar = getFranchiseAvatar(franchise);
-                          const franchiseBadges = allBadges.franchiseBadges.filter(b => b.franchise === franchise);
-                          
                           return (
                             <div
                               key={franchise}
@@ -1189,15 +1269,6 @@
                                   {avatar.emoji}
                                 </span>
                                 <span className="text-xl font-semibold text-white">{franchise}</span>
-                                {franchiseBadges.length > 0 && (
-                                  <div className="flex gap-1">
-                                    {franchiseBadges.slice(0, 3).map(b => (
-                                      <span key={b.badge_id} className="text-sm" title={b.badge_name}>
-                                        {b.badge_emoji}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
                               </div>
                               <span className="text-2xl font-bold text-white">{score} pts</span>
                             </div>
@@ -1226,18 +1297,7 @@
                                   <div className="text-sm text-white/80">{player.franchise}</div>
                                 </div>
                               </div>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-lg font-bold text-white">{player.score} pts</span>
-                                {player.badges && player.badges.length > 0 && (
-                                  <div className="flex gap-1">
-                                    {player.badges.slice(0, 2).map(b => (
-                                      <span key={b.badge_id} className="text-sm" title={b.badge_name}>
-                                        {b.badge_emoji}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
+                              <span className="text-lg font-bold text-white">{player.score} pts</span>
                             </div>
                           );
                         })}
@@ -1251,25 +1311,11 @@
 
           // PAGE DES BADGES
           if (currentView === 'badges') {
-            const categories = {
-              individual: {
-                series: "🔥 Séries",
-                perseverance: "💪 Persévérance", 
-                social: "👥 Sociaux/Équipe",
-                special: "🎯 Spéciaux & Rares"
-              },
-              collective: {
-                domination: "🏆 Domination",
-                performance: "⚡ Performances",
-                solidarity: "🤝 Solidarité"
-              }
-            };
-
             return (
               <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
                 <div className="max-w-7xl mx-auto">
                   <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-white">🏅 Collection de Badges GPBM</h1>
+                    <h1 className="text-4xl font-bold text-white">🏅 Collection de Badges</h1>
                     <button
                       onClick={() => setCurrentView(userType === 'teacher' ? 'teacher-dashboard' : 'student-dashboard')}
                       className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
@@ -1278,119 +1324,79 @@
                     </button>
                   </div>
 
-                  {/* Légende des raretés */}
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6">
-                    <h3 className="text-lg font-bold text-white mb-3">📊 Niveaux de Rareté</h3>
-                    <div className="flex flex-wrap gap-4 justify-center">
-                      <span className="badge-bronze border-2 px-3 py-1 rounded text-white">🥉 Bronze (5-20 pts)</span>
-                      <span className="badge-argent border-2 px-3 py-1 rounded text-white">🥈 Argent (10-50 pts)</span>
-                      <span className="badge-or border-2 px-3 py-1 rounded text-white">🥇 Or (20-100 pts)</span>
-                      <span className="badge-diamant border-2 px-3 py-1 rounded text-white">💎 Diamant (35 pts)</span>
-                      <span className="badge-legendaire border-2 px-3 py-1 rounded text-white">🌟 Légendaire (50 pts)</span>
-                    </div>
-                  </div>
-
                   {/* Badges Individuels */}
                   <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
-                    <h2 className="text-3xl font-bold text-white mb-6 text-center">👤 BADGES INDIVIDUELS</h2>
-                    
-                    {Object.entries(categories.individual).map(([categoryKey, categoryName]) => (
-                      <div key={categoryKey} className="mb-8">
-                        <h3 className="text-xl font-bold text-white mb-4 border-b border-white/30 pb-2">
-                          {categoryName}
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                          {Object.values(individualBadges)
-                            .filter(badge => badge.category === categoryKey)
-                            .map(badge => {
-                              const playersWithBadge = allBadges.playerBadges
-                                .filter(b => b.badge_id === badge.id)
-                                .map(b => b.player_name);
+                    <h2 className="text-2xl font-bold text-white mb-6 text-center">👤 Badges Individuels</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {Object.values(individualBadges).map(badge => {
+                        // Compter combien de joueurs ont ce badge
+                        const playersWithBadge = Object.entries(playerBadges).filter(([player, badges]) =>
+                          badges?.some(b => b.id === badge.id)
+                        ).map(([player]) => player);
 
-                              return (
-                                <div key={badge.id} className={`rounded-lg p-4 border-2 ${getRarityColor(badge.rarity)} hover:scale-105 transition-transform`}>
-                                  <div className="flex items-center space-x-3 mb-3">
-                                    <span className="text-4xl">{badge.emoji}</span>
-                                    <div className="flex-1">
-                                      <h4 className="text-white font-bold text-base">{badge.name}</h4>
-                                      <p className="text-white/80 text-xs mt-1">{badge.description}</p>
-                                    </div>
-                                  </div>
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-yellow-300 text-sm font-bold">+{badge.points} pts</span>
-                                    <span className="text-white/60 text-xs">{getRarityName(badge.rarity)}</span>
-                                  </div>
-                                  {playersWithBadge.length > 0 && (
-                                    <div className="text-white/60 text-xs mt-2 pt-2 border-t border-white/20">
-                                      <p>✅ {playersWithBadge.length} joueur(s)</p>
-                                      <p className="truncate">{playersWithBadge.slice(0, 3).join(', ')}{playersWithBadge.length > 3 ? '...' : ''}</p>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                        </div>
-                      </div>
-                    ))}
+                        return (
+                          <div key={badge.id} className={`rounded-lg p-4 border-2 ${getRarityColor(badge.rarity)}`}>
+                            <div className="flex items-center space-x-3 mb-3">
+                              <span className="text-4xl">{badge.emoji}</span>
+                              <div className="flex-1">
+                                <h3 className="text-white font-bold text-lg">{badge.name}</h3>
+                                <p className="text-white/70 text-sm">{badge.description}</p>
+                                <p className="text-yellow-300 text-xs mt-1">+{badge.points} pts</p>
+                              </div>
+                            </div>
+                            {playersWithBadge.length > 0 && (
+                              <div className="text-white/60 text-xs mt-2 pt-2 border-t border-white/20">
+                                <p>Obtenu par: {playersWithBadge.length} joueur(s)</p>
+                                <p className="truncate">{playersWithBadge.slice(0, 3).join(', ')}{playersWithBadge.length > 3 ? '...' : ''}</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   {/* Badges Collectifs */}
                   <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                    <h2 className="text-3xl font-bold text-white mb-6 text-center">🏠 BADGES COLLECTIFS</h2>
-                    
-                    {Object.entries(categories.collective).map(([categoryKey, categoryName]) => (
-                      <div key={categoryKey} className="mb-8">
-                        <h3 className="text-xl font-bold text-white mb-4 border-b border-white/30 pb-2">
-                          {categoryName}
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                          {Object.values(collectiveBadges)
-                            .filter(badge => badge.category === categoryKey)
-                            .map(badge => {
-                              const franchisesWithBadge = allBadges.franchiseBadges
-                                .filter(b => b.badge_id === badge.id)
-                                .map(b => b.franchise);
+                    <h2 className="text-2xl font-bold text-white mb-6 text-center">🏠 Badges Collectifs</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {Object.values(collectiveBadges).map(badge => {
+                        // Compter combien de franchises ont ce badge
+                        const franchisesWithBadge = Object.entries(franchiseBadges).filter(([franchise, badges]) =>
+                          badges?.some(b => b.id === badge.id)
+                        ).map(([franchise]) => franchise);
 
-                              return (
-                                <div key={badge.id} className={`rounded-lg p-4 border-2 ${getRarityColor(badge.rarity)} hover:scale-105 transition-transform`}>
-                                  <div className="flex items-center space-x-3 mb-3">
-                                    <span className="text-4xl">{badge.emoji}</span>
-                                    <div className="flex-1">
-                                      <h4 className="text-white font-bold text-base">{badge.name}</h4>
-                                      <p className="text-white/80 text-xs mt-1">{badge.description}</p>
-                                    </div>
-                                  </div>
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-yellow-300 text-sm font-bold">+{badge.points} pts</span>
-                                    <span className="text-white/60 text-xs">{getRarityName(badge.rarity)}</span>
-                                  </div>
-                                  {franchisesWithBadge.length > 0 && (
-                                    <div className="text-white/60 text-xs mt-2 pt-2 border-t border-white/20">
-                                      <p>✅ {franchisesWithBadge.join(', ')}</p>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Informations supplémentaires */}
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mt-6">
-                    <p className="text-white/80 text-center text-sm">
-                      💡 Les badges sont débloqués automatiquement selon vos performances et celles de votre franchise !
-                    </p>
+                        return (
+                          <div key={badge.id} className={`rounded-lg p-4 border-2 ${getRarityColor(badge.rarity)}`}>
+                            <div className="flex items-center space-x-3 mb-3">
+                              <span className="text-4xl">{badge.emoji}</span>
+                              <div className="flex-1">
+                                <h3 className="text-white font-bold text-lg">{badge.name}</h3>
+                                <p className="text-white/70 text-sm">{badge.description}</p>
+                                <p className="text-yellow-300 text-xs mt-1">+{badge.points} pts franchise</p>
+                              </div>
+                            </div>
+                            {franchisesWithBadge.length > 0 && (
+                              <div className="text-white/60 text-xs mt-2 pt-2 border-t border-white/20">
+                                <p>Obtenu par: {franchisesWithBadge.join(', ')}</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
             );
           }
 
-          // Return principal avec le modal d'historique
+          // Return principal avec le modal d'historique et notifications
           return (
             <>
+              {/* Système de notifications */}
+              <NotificationSystem notifications={notifications} />
+              
               {selectedPlayerHistory && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                   <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-96 overflow-y-auto">
@@ -1430,1130 +1436,6 @@
           );
         };
 
-        ReactDOM.render(<App />, document.getElementById('root'));
-    </script>
-</body>
-</html>
-
-          // GESTION DES POINTS PROFESSEUR
-          if (currentView === 'teacher-players') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-                <NotificationSystem notifications={notifications} />
-                <div className="max-w-7xl mx-auto">
-                  <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-white">👥 Gestion des Points</h1>
-                    <div className="flex space-x-4">
-                      {loading && <div className="text-white">⏳ Chargement...</div>}
-                      <button
-                        onClick={() => setCurrentView('teacher-dashboard')}
-                        className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
-                      >
-                        ← Retour Tableau de Bord
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-                    {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
-                      const avatar = getFranchiseAvatar(franchise);
-                      return (
-                        <div key={franchise} className="bg-white/10 backdrop-blur-sm rounded-xl p-6 franchise-card">
-                          <h2 className={`text-2xl font-bold text-white mb-4 text-center bg-gradient-to-r ${franchiseColors[franchise]} p-3 rounded-lg flex items-center justify-center space-x-2`}>
-                            <span className={`franchise-avatar ${avatar.class}`}>
-                              {avatar.emoji}
-                            </span>
-                            <span>{franchise}</span>
-                          </h2>
-                          <div className="space-y-3">
-                            {getSortedPlayers(franchise).map(player => (
-                              <div key={player.name} className="bg-white/20 rounded-lg p-3">
-                                <div className="flex justify-between items-center mb-2">
-                                  <button
-                                    onClick={() => loadPlayerHistory(player.name)}
-                                    className="text-white font-semibold hover:text-yellow-300 transition-colors flex items-center space-x-1"
-                                  >
-                                    <span>{player.name}</span>
-                                    <span>📋</span>
-                                  </button>
-                                  <div className="flex items-center space-x-2">
-                                    <div className="flex items-center space-x-1">
-                                      <span className={`text-2xl ${getBadge(player.score).emoji}`}>
-                                        {getBadge(player.score).emoji}
-                                      </span>
-                                      <span className="text-white font-bold">
-                                        {player.score} pts
-                                      </span>
-                                    </div>
-                                    <button
-                                      onClick={() => undoLastAction(player.name)}
-                                      className="bg-red-500 hover:bg-red-400 text-white px-2 py-1 rounded text-xs"
-                                      title="Annuler dernière action"
-                                    >
-                                      ↺
-                                    </button>
-                                  </div>
-                                </div>
-                                {/* Affichage des badges */}
-                                <BadgeDisplay badges={player.badges || []} />
-                                <div className="relative">
-                                  <button
-                                    onClick={() => setExpandedDropdown(expandedDropdown === player.name ? null : player.name)}
-                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded flex justify-between items-center transition-colors"
-                                    disabled={loading}
-                                  >
-                                    <span>Actions</span>
-                                    <span>{expandedDropdown === player.name ? '⌃' : '⌄'}</span>
-                                  </button>
-                                  
-                                  {expandedDropdown === player.name && (
-                                    <div className="absolute top-full left-0 right-0 bg-white rounded-lg shadow-xl z-10 mt-1 max-h-64 overflow-y-auto">
-                                      <div className="p-2">
-                                        <div className="text-green-700 font-semibold mb-2">Points positifs:</div>
-                                        {positiveActions.map((action, index) => (
-                                          <button
-                                            key={`pos-${index}`}
-                                            onClick={() => addPoints(player.name, action.points, action.label)}
-                                            className="w-full text-left px-3 py-2 hover:bg-green-100 rounded text-sm flex justify-between"
-                                            disabled={loading}
-                                          >
-                                            <span>{action.label}</span>
-                                            <span className="text-green-600 font-bold">+{action.points}</span>
-                                          </button>
-                                        ))}
-                                        
-                                        <div className="text-red-700 font-semibold mb-2 mt-3">Points négatifs:</div>
-                                        {negativeActions.map((action, index) => (
-                                          <button
-                                            key={`neg-${index}`}
-                                            onClick={() => addPoints(player.name, action.points, action.label)}
-                                            className="w-full text-left px-3 py-2 hover:bg-red-100 rounded text-sm flex justify-between"
-                                            disabled={loading}
-                                          >
-                                            <span>{action.label}</span>
-                                            <span className="text-red-600 font-bold">{action.points}</span>
-                                          </button>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // ADMINISTRATION PROFESSEUR
-          if (currentView === 'teacher-admin') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-                <div className="max-w-6xl mx-auto">
-                  <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-white">⚙️ Administration des Élèves</h1>
-                    <button
-                      onClick={() => setCurrentView('teacher-dashboard')}
-                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
-                    >
-                      ← Retour Tableau de Bord
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                        ➕ Ajouter un Élève
-                      </h2>
-                      <div className="space-y-4">
-                        <div>
-                          <label htmlFor="newStudentName" className="block text-white text-sm font-bold mb-2">
-                            Nom de l'élève
-                          </label>
-                          <input
-                            id="newStudentName"
-                            name="newStudentName"
-                            type="text"
-                            value={newStudentName}
-                            onChange={(e) => setNewStudentName(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white/70 focus:outline-none"
-                            placeholder="Prénom Nom..."
-                          />
-                        </div>
-                        
-                        <div>
-                          <label htmlFor="newStudentFranchise" className="block text-white text-sm font-bold mb-2">
-                            Franchise
-                          </label>
-                          <select
-                            id="newStudentFranchise"
-                            name="newStudentFranchise"
-                            value={newStudentFranchise}
-                            onChange={(e) => setNewStudentFranchise(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
-                          >
-                            <option value="Minotaurs" className="text-black">Minotaurs</option>
-                            <option value="Krakens" className="text-black">Krakens</option>
-                            <option value="Phoenix" className="text-black">Phoenix</option>
-                            <option value="Werewolves" className="text-black">Werewolves</option>
-                          </select>
-                        </div>
-                        
-                        <button
-                          onClick={addStudent}
-                          className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg transition-colors font-bold"
-                        >
-                          ➕ Ajouter l'Élève
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                        🗑️ Supprimer un Élève
-                      </h2>
-                      <div className="space-y-4">
-                        <div>
-                          <label htmlFor="selectedStudent" className="block text-white text-sm font-bold mb-2">
-                            Sélectionner un élève
-                          </label>
-                          <select
-                            id="selectedStudent"
-                            name="selectedStudent"
-                            value={selectedStudent}
-                            onChange={(e) => setSelectedStudent(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
-                          >
-                            <option value="" className="text-black">-- Choisir un élève --</option>
-                            {players
-                              .sort((a, b) => a.name.localeCompare(b.name))
-                              .map(player => (
-                                <option key={player.name} value={player.name} className="text-black">
-                                  {player.name} ({player.franchise})
-                                </option>
-                              ))}
-                          </select>
-                        </div>
-                        
-                        <button
-                          onClick={() => selectedStudent && removeStudent(selectedStudent)}
-                          disabled={!selectedStudent}
-                          className="w-full bg-red-600 hover:bg-red-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-lg transition-colors font-bold"
-                        >
-                          🗑️ Supprimer l'Élève
-                        </button>
-                        
-                        <p className="text-red-300 text-sm text-center">
-                          ⚠️ Cette action est irréversible !
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                    <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                      📋 Liste Actuelle des Élèves
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
-                        const avatar = getFranchiseAvatar(franchise);
-                        return (
-                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg franchise-card`}>
-                            <div className="flex items-center justify-center mb-3">
-                              <span className={`franchise-avatar ${avatar.class}`}>
-                                {avatar.emoji}
-                              </span>
-                              <h3 className="text-xl font-bold text-white ml-2">{franchise}</h3>
-                            </div>
-                            <div className="space-y-2">
-                              {getSortedPlayers(franchise).map(player => (
-                                <div key={player.name} className="bg-white/20 p-2 rounded text-white text-sm">
-                                  <div className="flex justify-between items-center">
-                                    <span>{player.name}</span>
-                                    <span className="font-bold">{player.score} pts</span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="text-center mt-3 text-white/80 text-sm">
-                              {getSortedPlayers(franchise).length} élève(s)
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // TABLEAU DE BORD ÉLÈVE
-          if (currentView === 'student-dashboard') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-                <div className="max-w-4xl mx-auto">
-                  <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-white">👨‍🎓 Espace Élève</h1>
-                    <button
-                      onClick={() => {
-                        setCurrentView('home');
-                        setUserType(null);
-                      }}
-                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
-                    >
-                      ← Retour Accueil
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <button
-                      onClick={() => setCurrentView('student-search')}
-                      className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                    >
-                      <div className="text-4xl mb-2">🔍</div>
-                      <h3 className="text-xl font-bold">Mon Score</h3>
-                      <p className="text-blue-100 text-sm">Voir mon historique personnel</p>
-                    </button>
-
-                    <button
-                      onClick={() => setCurrentView('badges')}
-                      className="bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                    >
-                      <div className="text-4xl mb-2">🏅</div>
-                      <h3 className="text-xl font-bold">Badges</h3>
-                      <p className="text-purple-100 text-sm">Découvrir les badges</p>
-                    </button>
-                    
-                    <button
-                      onClick={() => setCurrentView('rankings')}
-                      className="bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                    >
-                      <div className="text-4xl mb-2">🏆</div>
-                      <h3 className="text-xl font-bold">Classements</h3>
-                      <p className="text-amber-100 text-sm">Voir tous les classements</p>
-                    </button>
-                  </div>
-
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                    <h3 className="text-2xl font-bold text-white mb-6 text-center">
-                      🏠 Les Quatre Franchises
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
-                        const franchisePlayers = getSortedPlayers(franchise);
-                        const totalPoints = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
-                        const avatar = getFranchiseAvatar(franchise);
-                        const franchiseBadges = allBadges.franchiseBadges.filter(b => b.franchise === franchise);
-                        
-                        return (
-                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg text-center franchise-card`}>
-                            <div className="flex items-center justify-center mb-2">
-                              <span className={`franchise-avatar ${avatar.class}`}>
-                                {avatar.emoji}
-                              </span>
-                            </div>
-                            <h4 className="font-bold text-white text-lg">{franchise}</h4>
-                            <div className="text-2xl font-bold text-white">{totalPoints}</div>
-                            <div className="text-sm text-white/80">{franchisePlayers.length} élèves</div>
-                            {franchiseBadges.length > 0 && (
-                              <div className="mt-2 flex justify-center flex-wrap gap
-                                  {franchiseBadges.length > 0 && (
-                              <div className="mt-2 flex justify-center flex-wrap gap-1">
-                                {franchiseBadges.slice(0, 3).map(b => (
-                                  <span key={b.badge_id} className="text-sm" title={b.badge_name}>
-                                    {b.badge_emoji}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-// GESTION DES POINTS PROFESSEUR
-          if (currentView === 'teacher-players') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-                <NotificationSystem notifications={notifications} />
-                <div className="max-w-7xl mx-auto">
-                  <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-white">👥 Gestion des Points</h1>
-                    <div className="flex space-x-4">
-                      {loading && <div className="text-white">⏳ Chargement...</div>}
-                      <button
-                        onClick={() => setCurrentView('teacher-dashboard')}
-                        className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
-                      >
-                        ← Retour Tableau de Bord
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-                    {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
-                      const avatar = getFranchiseAvatar(franchise);
-                      return (
-                        <div key={franchise} className="bg-white/10 backdrop-blur-sm rounded-xl p-6 franchise-card">
-                          <h2 className={`text-2xl font-bold text-white mb-4 text-center bg-gradient-to-r ${franchiseColors[franchise]} p-3 rounded-lg flex items-center justify-center space-x-2`}>
-                            <span className={`franchise-avatar ${avatar.class}`}>
-                              {avatar.emoji}
-                            </span>
-                            <span>{franchise}</span>
-                          </h2>
-                          <div className="space-y-3">
-                            {getSortedPlayers(franchise).map(player => (
-                              <div key={player.name} className="bg-white/20 rounded-lg p-3">
-                                <div className="flex justify-between items-center mb-2">
-                                  <button
-                                    onClick={() => loadPlayerHistory(player.name)}
-                                    className="text-white font-semibold hover:text-yellow-300 transition-colors flex items-center space-x-1"
-                                  >
-                                    <span>{player.name}</span>
-                                    <span>📋</span>
-                                  </button>
-                                  <div className="flex items-center space-x-2">
-                                    <div className="flex items-center space-x-1">
-                                      <span className="text-2xl">
-                                        {getBadge(player.score).emoji}
-                                      </span>
-                                      <span className="text-white font-bold">
-                                        {player.score} pts
-                                      </span>
-                                    </div>
-                                    <button
-                                      onClick={() => undoLastAction(player.name)}
-                                      className="bg-red-500 hover:bg-red-400 text-white px-2 py-1 rounded text-xs"
-                                      title="Annuler dernière action"
-                                    >
-                                      ↺
-                                    </button>
-                                  </div>
-                                </div>
-                                <BadgeDisplay badges={player.badges || []} />
-                                <div className="relative">
-                                  <button
-                                    onClick={() => setExpandedDropdown(expandedDropdown === player.name ? null : player.name)}
-                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded flex justify-between items-center transition-colors"
-                                    disabled={loading}
-                                  >
-                                    <span>Actions</span>
-                                    <span>{expandedDropdown === player.name ? '⌃' : '⌄'}</span>
-                                  </button>
-                                  
-                                  {expandedDropdown === player.name && (
-                                    <div className="absolute top-full left-0 right-0 bg-white rounded-lg shadow-xl z-10 mt-1 max-h-64 overflow-y-auto">
-                                      <div className="p-2">
-                                        <div className="text-green-700 font-semibold mb-2">Points positifs:</div>
-                                        {positiveActions.map((action, index) => (
-                                          <button
-                                            key={`pos-${index}`}
-                                            onClick={() => addPoints(player.name, action.points, action.label)}
-                                            className="w-full text-left px-3 py-2 hover:bg-green-100 rounded text-sm flex justify-between"
-                                            disabled={loading}
-                                          >
-                                            <span>{action.label}</span>
-                                            <span className="text-green-600 font-bold">+{action.points}</span>
-                                          </button>
-                                        ))}
-                                        
-                                        <div className="text-red-700 font-semibold mb-2 mt-3">Points négatifs:</div>
-                                        {negativeActions.map((action, index) => (
-                                          <button
-                                            key={`neg-${index}`}
-                                            onClick={() => addPoints(player.name, action.points, action.label)}
-                                            className="w-full text-left px-3 py-2 hover:bg-red-100 rounded text-sm flex justify-between"
-                                            disabled={loading}
-                                          >
-                                            <span>{action.label}</span>
-                                            <span className="text-red-600 font-bold">{action.points}</span>
-                                          </button>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // ADMINISTRATION PROFESSEUR
-          if (currentView === 'teacher-admin') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-                <div className="max-w-6xl mx-auto">
-                  <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-white">⚙️ Administration des Élèves</h1>
-                    <button
-                      onClick={() => setCurrentView('teacher-dashboard')}
-                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
-                    >
-                      ← Retour Tableau de Bord
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                        ➕ Ajouter un Élève
-                      </h2>
-                      <div className="space-y-4">
-                        <div>
-                          <label htmlFor="newStudentName" className="block text-white text-sm font-bold mb-2">
-                            Nom de l'élève
-                          </label>
-                          <input
-                            id="newStudentName"
-                            name="newStudentName"
-                            type="text"
-                            value={newStudentName}
-                            onChange={(e) => setNewStudentName(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white/70 focus:outline-none"
-                            placeholder="Prénom Nom..."
-                          />
-                        </div>
-                        
-                        <div>
-                          <label htmlFor="newStudentFranchise" className="block text-white text-sm font-bold mb-2">
-                            Franchise
-                          </label>
-                          <select
-                            id="newStudentFranchise"
-                            name="newStudentFranchise"
-                            value={newStudentFranchise}
-                            onChange={(e) => setNewStudentFranchise(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
-                          >
-                            <option value="Minotaurs" className="text-black">Minotaurs</option>
-                            <option value="Krakens" className="text-black">Krakens</option>
-                            <option value="Phoenix" className="text-black">Phoenix</option>
-                            <option value="Werewolves" className="text-black">Werewolves</option>
-                          </select>
-                        </div>
-                        
-                        <button
-                          onClick={addStudent}
-                          className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg transition-colors font-bold"
-                        >
-                          ➕ Ajouter l'Élève
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                        🗑️ Supprimer un Élève
-                      </h2>
-                      <div className="space-y-4">
-                        <div>
-                          <label htmlFor="selectedStudent" className="block text-white text-sm font-bold mb-2">
-                            Sélectionner un élève
-                          </label>
-                          <select
-                            id="selectedStudent"
-                            name="selectedStudent"
-                            value={selectedStudent}
-                            onChange={(e) => setSelectedStudent(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
-                          >
-                            <option value="" className="text-black">-- Choisir un élève --</option>
-                            {players
-                              .sort((a, b) => a.name.localeCompare(b.name))
-                              .map(player => (
-                                <option key={player.name} value={player.name} className="text-black">
-                                  {player.name} ({player.franchise})
-                                </option>
-                              ))}
-                          </select>
-                        </div>
-                        
-                        <button
-                          onClick={() => selectedStudent && removeStudent(selectedStudent)}
-                          disabled={!selectedStudent}
-                          className="w-full bg-red-600 hover:bg-red-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-lg transition-colors font-bold"
-                        >
-                          🗑️ Supprimer l'Élève
-                        </button>
-                        
-                        <p className="text-red-300 text-sm text-center">
-                          ⚠️ Cette action est irréversible !
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                    <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                      📋 Liste Actuelle des Élèves
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
-                        const avatar = getFranchiseAvatar(franchise);
-                        return (
-                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg franchise-card`}>
-                            <div className="flex items-center justify-center mb-3">
-                              <span className={`franchise-avatar ${avatar.class}`}>
-                                {avatar.emoji}
-                              </span>
-                              <h3 className="text-xl font-bold text-white ml-2">{franchise}</h3>
-                            </div>
-                            <div className="space-y-2">
-                              {getSortedPlayers(franchise).map(player => (
-                                <div key={player.name} className="bg-white/20 p-2 rounded text-white text-sm">
-                                  <div className="flex justify-between items-center">
-                                    <span>{player.name}</span>
-                                    <span className="font-bold">{player.score} pts</span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="text-center mt-3 text-white/80 text-sm">
-                              {getSortedPlayers(franchise).length} élève(s)
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // TABLEAU DE BORD ÉLÈVE
-          if (currentView === 'student-dashboard') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-                <div className="max-w-4xl mx-auto">
-                  <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-white">👨‍🎓 Espace Élève</h1>
-                    <button
-                      onClick={() => {
-                        setCurrentView('home');
-                        setUserType(null);
-                      }}
-                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
-                    >
-                      ← Retour Accueil
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <button
-                      onClick={() => setCurrentView('student-search')}
-                      className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                    >
-                      <div className="text-4xl mb-2">🔍</div>
-                      <h3 className="text-xl font-bold">Mon Score</h3>
-                      <p className="text-blue-100 text-sm">Voir mon historique personnel</p>
-                    </button>
-
-                    <button
-                      onClick={() => setCurrentView('badges')}
-                      className="bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                    >
-                      <div className="text-4xl mb-2">🏅</div>
-                      <h3 className="text-xl font-bold">Badges</h3>
-                      <p className="text-purple-100 text-sm">Découvrir les badges</p>
-                    </button>
-                    
-                    <button
-                      onClick={() => setCurrentView('rankings')}
-                      className="bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                    >
-                      <div className="text-4xl mb-2">🏆</div>
-                      <h3 className="text-xl font-bold">Classements</h3>
-                      <p className="text-amber-100 text-sm">Voir tous les classements</p>
-                    </button>
-                  </div>
-
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                    <h3 className="text-2xl font-bold text-white mb-6 text-center">
-                      🏠 Les Quatre Franchises
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
-                        const franchisePlayers = getSortedPlayers(franchise);
-                        const totalPoints = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
-                        const avatar = getFranchiseAvatar(franchise);
-                        const franchiseBadges = allBadges.franchiseBadges.filter(b => b.franchise === franchise);
-                        
-                        return (
-                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg text-center franchise-card`}>
-                            <div className="flex items-center justify-center mb-2">
-                              <span className={`franchise-avatar ${avatar.class}`}>
-                                {avatar.emoji}
-                              </span>
-                            </div>
-                            <h4 className="font-bold text-white text-lg">{franchise}</h4>
-                            <div className="text-2xl font-bold text-white">{totalPoints}</div>
-                            <div className="text-sm text-white/80">{franchisePlayers.length} élèves</div>
-                            {franchiseBadges.length > 0 && (
-                              <div className="mt-2 flex justify-center flex-wrap gap-1">
-                                {franchiseBadges.slice(0, 3).map(b => (
-                                  <span key={b.badge_id} className="text-sm" title={b.badge_name}>
-                                    {b.badge_emoji}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // MODAL D'HISTORIQUE (flottant par-dessus toutes les vues)
-          return (
-            <>
-              {selectedPlayerHistory && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                  <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-96 overflow-y-auto">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-xl font-bold">Historique de {selectedPlayerHistory}</h3>
-                      <button
-                        onClick={() => setSelectedPlayerHistory(null)}
-                        className="text-gray-500 hover:text-gray-700 text-xl font-bold"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      {playerHistory.length > 0 ? (
-                        playerHistory.map((entry, index) => (
-                          <div key={index} className="border-l-4 border-blue-500 pl-3 py-2">
-                            <div className="font-semibold">{entry.action}</div>
-                            <div className="text-sm text-gray-600">
-                              {entry.points > 0 ? '+' : ''}{entry.points} points
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {entry.timestamp} • Total: {entry.new_total} pts
-                              {entry.teacher_name && entry.teacher_name !== 'Anonyme' && (
-                                <span> • Par: {entry.teacher_name}</span>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-gray-500 text-center">Aucun historique disponible</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          );
-        };
-
-       // GESTION DES POINTS PROFESSEUR
-          if (currentView === 'teacher-players') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-                <NotificationSystem notifications={notifications} />
-                <div className="max-w-7xl mx-auto">
-                  <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-white">👥 Gestion des Points</h1>
-                    <div className="flex space-x-4">
-                      {loading && <div className="text-white">⏳ Chargement...</div>}
-                      <button
-                        onClick={() => setCurrentView('teacher-dashboard')}
-                        className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
-                      >
-                        ← Retour Tableau de Bord
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-                    {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
-                      const avatar = getFranchiseAvatar(franchise);
-                      return (
-                        <div key={franchise} className="bg-white/10 backdrop-blur-sm rounded-xl p-6 franchise-card">
-                          <h2 className={`text-2xl font-bold text-white mb-4 text-center bg-gradient-to-r ${franchiseColors[franchise]} p-3 rounded-lg flex items-center justify-center space-x-2`}>
-                            <span className={`franchise-avatar ${avatar.class}`}>
-                              {avatar.emoji}
-                            </span>
-                            <span>{franchise}</span>
-                          </h2>
-                          <div className="space-y-3">
-                            {getSortedPlayers(franchise).map(player => (
-                              <div key={player.name} className="bg-white/20 rounded-lg p-3">
-                                <div className="flex justify-between items-center mb-2">
-                                  <button
-                                    onClick={() => loadPlayerHistory(player.name)}
-                                    className="text-white font-semibold hover:text-yellow-300 transition-colors flex items-center space-x-1"
-                                  >
-                                    <span>{player.name}</span>
-                                    <span>📋</span>
-                                  </button>
-                                  <div className="flex items-center space-x-2">
-                                    <div className="flex items-center space-x-1">
-                                      <span className="text-2xl">
-                                        {getBadge(player.score).emoji}
-                                      </span>
-                                      <span className="text-white font-bold">
-                                        {player.score} pts
-                                      </span>
-                                    </div>
-                                    <button
-                                      onClick={() => undoLastAction(player.name)}
-                                      className="bg-red-500 hover:bg-red-400 text-white px-2 py-1 rounded text-xs"
-                                      title="Annuler dernière action"
-                                    >
-                                      ↺
-                                    </button>
-                                  </div>
-                                </div>
-                                <BadgeDisplay badges={player.badges || []} />
-                                <div className="relative">
-                                  <button
-                                    onClick={() => setExpandedDropdown(expandedDropdown === player.name ? null : player.name)}
-                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded flex justify-between items-center transition-colors"
-                                    disabled={loading}
-                                  >
-                                    <span>Actions</span>
-                                    <span>{expandedDropdown === player.name ? '⌃' : '⌄'}</span>
-                                  </button>
-                                  
-                                  {expandedDropdown === player.name && (
-                                    <div className="absolute top-full left-0 right-0 bg-white rounded-lg shadow-xl z-10 mt-1 max-h-64 overflow-y-auto">
-                                      <div className="p-2">
-                                        <div className="text-green-700 font-semibold mb-2">Points positifs:</div>
-                                        {positiveActions.map((action, index) => (
-                                          <button
-                                            key={`pos-${index}`}
-                                            onClick={() => addPoints(player.name, action.points, action.label)}
-                                            className="w-full text-left px-3 py-2 hover:bg-green-100 rounded text-sm flex justify-between"
-                                            disabled={loading}
-                                          >
-                                            <span>{action.label}</span>
-                                            <span className="text-green-600 font-bold">+{action.points}</span>
-                                          </button>
-                                        ))}
-                                        
-                                        <div className="text-red-700 font-semibold mb-2 mt-3">Points négatifs:</div>
-                                        {negativeActions.map((action, index) => (
-                                          <button
-                                            key={`neg-${index}`}
-                                            onClick={() => addPoints(player.name, action.points, action.label)}
-                                            className="w-full text-left px-3 py-2 hover:bg-red-100 rounded text-sm flex justify-between"
-                                            disabled={loading}
-                                          >
-                                            <span>{action.label}</span>
-                                            <span className="text-red-600 font-bold">{action.points}</span>
-                                          </button>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // ADMINISTRATION PROFESSEUR
-          if (currentView === 'teacher-admin') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-                <div className="max-w-6xl mx-auto">
-                  <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-white">⚙️ Administration des Élèves</h1>
-                    <button
-                      onClick={() => setCurrentView('teacher-dashboard')}
-                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
-                    >
-                      ← Retour Tableau de Bord
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                        ➕ Ajouter un Élève
-                      </h2>
-                      <div className="space-y-4">
-                        <div>
-                          <label htmlFor="newStudentName" className="block text-white text-sm font-bold mb-2">
-                            Nom de l'élève
-                          </label>
-                          <input
-                            id="newStudentName"
-                            name="newStudentName"
-                            type="text"
-                            value={newStudentName}
-                            onChange={(e) => setNewStudentName(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white/70 focus:outline-none"
-                            placeholder="Prénom Nom..."
-                          />
-                        </div>
-                        
-                        <div>
-                          <label htmlFor="newStudentFranchise" className="block text-white text-sm font-bold mb-2">
-                            Franchise
-                          </label>
-                          <select
-                            id="newStudentFranchise"
-                            name="newStudentFranchise"
-                            value={newStudentFranchise}
-                            onChange={(e) => setNewStudentFranchise(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
-                          >
-                            <option value="Minotaurs" className="text-black">Minotaurs</option>
-                            <option value="Krakens" className="text-black">Krakens</option>
-                            <option value="Phoenix" className="text-black">Phoenix</option>
-                            <option value="Werewolves" className="text-black">Werewolves</option>
-                          </select>
-                        </div>
-                        
-                        <button
-                          onClick={addStudent}
-                          className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg transition-colors font-bold"
-                        >
-                          ➕ Ajouter l'Élève
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                        🗑️ Supprimer un Élève
-                      </h2>
-                      <div className="space-y-4">
-                        <div>
-                          <label htmlFor="selectedStudent" className="block text-white text-sm font-bold mb-2">
-                            Sélectionner un élève
-                          </label>
-                          <select
-                            id="selectedStudent"
-                            name="selectedStudent"
-                            value={selectedStudent}
-                            onChange={(e) => setSelectedStudent(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
-                          >
-                            <option value="" className="text-black">-- Choisir un élève --</option>
-                            {players
-                              .sort((a, b) => a.name.localeCompare(b.name))
-                              .map(player => (
-                                <option key={player.name} value={player.name} className="text-black">
-                                  {player.name} ({player.franchise})
-                                </option>
-                              ))}
-                          </select>
-                        </div>
-                        
-                        <button
-                          onClick={() => selectedStudent && removeStudent(selectedStudent)}
-                          disabled={!selectedStudent}
-                          className="w-full bg-red-600 hover:bg-red-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-lg transition-colors font-bold"
-                        >
-                          🗑️ Supprimer l'Élève
-                        </button>
-                        
-                        <p className="text-red-300 text-sm text-center">
-                          ⚠️ Cette action est irréversible !
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                    <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                      📋 Liste Actuelle des Élèves
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
-                        const avatar = getFranchiseAvatar(franchise);
-                        return (
-                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg franchise-card`}>
-                            <div className="flex items-center justify-center mb-3">
-                              <span className={`franchise-avatar ${avatar.class}`}>
-                                {avatar.emoji}
-                              </span>
-                              <h3 className="text-xl font-bold text-white ml-2">{franchise}</h3>
-                            </div>
-                            <div className="space-y-2">
-                              {getSortedPlayers(franchise).map(player => (
-                                <div key={player.name} className="bg-white/20 p-2 rounded text-white text-sm">
-                                  <div className="flex justify-between items-center">
-                                    <span>{player.name}</span>
-                                    <span className="font-bold">{player.score} pts</span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="text-center mt-3 text-white/80 text-sm">
-                              {getSortedPlayers(franchise).length} élève(s)
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // TABLEAU DE BORD ÉLÈVE
-          if (currentView === 'student-dashboard') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-                <div className="max-w-4xl mx-auto">
-                  <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-white">👨‍🎓 Espace Élève</h1>
-                    <button
-                      onClick={() => {
-                        setCurrentView('home');
-                        setUserType(null);
-                      }}
-                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
-                    >
-                      ← Retour Accueil
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <button
-                      onClick={() => setCurrentView('student-search')}
-                      className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                    >
-                      <div className="text-4xl mb-2">🔍</div>
-                      <h3 className="text-xl font-bold">Mon Score</h3>
-                      <p className="text-blue-100 text-sm">Voir mon historique personnel</p>
-                    </button>
-
-                    <button
-                      onClick={() => setCurrentView('badges')}
-                      className="bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                    >
-                      <div className="text-4xl mb-2">🏅</div>
-                      <h3 className="text-xl font-bold">Badges</h3>
-                      <p className="text-purple-100 text-sm">Découvrir les badges</p>
-                    </button>
-                    
-                    <button
-                      onClick={() => setCurrentView('rankings')}
-                      className="bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                    >
-                      <div className="text-4xl mb-2">🏆</div>
-                      <h3 className="text-xl font-bold">Classements</h3>
-                      <p className="text-amber-100 text-sm">Voir tous les classements</p>
-                    </button>
-                  </div>
-
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                    <h3 className="text-2xl font-bold text-white mb-6 text-center">
-                      🏠 Les Quatre Franchises
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
-                        const franchisePlayers = getSortedPlayers(franchise);
-                        const totalPoints = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
-                        const avatar = getFranchiseAvatar(franchise);
-                        const franchiseBadges = allBadges.franchiseBadges.filter(b => b.franchise === franchise);
-                        
-                        return (
-                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg text-center franchise-card`}>
-                            <div className="flex items-center justify-center mb-2">
-                              <span className={`franchise-avatar ${avatar.class}`}>
-                                {avatar.emoji}
-                              </span>
-                            </div>
-                            <h4 className="font-bold text-white text-lg">{franchise}</h4>
-                            <div className="text-2xl font-bold text-white">{totalPoints}</div>
-                            <div className="text-sm text-white/80">{franchisePlayers.length} élèves</div>
-                            {franchiseBadges.length > 0 && (
-                              <div className="mt-2 flex justify-center flex-wrap gap-1">
-                                {franchiseBadges.slice(0, 3).map(b => (
-                                  <span key={b.badge_id} className="text-sm" title={b.badge_name}>
-                                    {b.badge_emoji}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // MODAL D'HISTORIQUE (flottant par-dessus toutes les vues)
-          return (
-            <>
-              {selectedPlayerHistory && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                  <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-96 overflow-y-auto">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-xl font-bold">Historique de {selectedPlayerHistory}</h3>
-                      <button
-                        onClick={() => setSelectedPlayerHistory(null)}
-                        className="text-gray-500 hover:text-gray-700 text-xl font-bold"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      {playerHistory.length > 0 ? (
-                        playerHistory.map((entry, index) => (
-                          <div key={index} className="border-l-4 border-blue-500 pl-3 py-2">
-                            <div className="font-semibold">{entry.action}</div>
-                            <div className="text-sm text-gray-600">
-                              {entry.points > 0 ? '+' : ''}{entry.points} points
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {entry.timestamp} • Total: {entry.new_total} pts
-                              {entry.teacher_name && entry.teacher_name !== 'Anonyme' && (
-                                <span> • Par: {entry.teacher_name}</span>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-gray-500 text-center">Aucun historique disponible</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          );
-        };
-
-        // Rendu de l'application React dans le DOM
         ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
