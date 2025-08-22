@@ -456,7 +456,23 @@ const getBadge = (score) => {
           const getGeneralPlayerRankings = () => {
             return [...players].sort((a, b) => b.score - a.score);
           };
-
+// Composant de système de notifications
+const NotificationSystem = () => {
+  if (notifications.length === 0) return null;
+  
+  return (
+    <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
+      {notifications.map((notif, index) => (
+        <div
+          key={index}
+          className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg shadow-2xl animate-pulse"
+        >
+          {notif}
+        </div>
+      ))}
+    </div>
+  );
+};
           // PAGE D'ACCUEIL - CHOIX DU TYPE D'UTILISATEUR
           if (currentView === 'home') {
             return (
@@ -617,6 +633,14 @@ const getBadge = (score) => {
                       <h3 className="text-xl font-bold">Classements</h3>
                       <p className="text-amber-100 text-sm">Voir les résultats</p>
                     </button>
+                      <button
+  onClick={() => setCurrentView('badges')}
+  className="bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+>
+  <div className="text-4xl mb-2">🏅</div>
+  <h3 className="text-xl font-bold">Badges</h3>
+  <p className="text-purple-100 text-sm">Voir tous les badges</p>
+</button>
                   </div>
 
                   <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
@@ -704,7 +728,8 @@ const getBadge = (score) => {
                                     </button>
                                   </div>
                                 </div>
-                                
+                                {/* NOUVEAU: Affichage des badges */}
+<BadgeDisplay badges={playerBadges[player.name]} />
                                 <div className="relative">
                                   <button
                                     onClick={() => setExpandedDropdown(expandedDropdown === player.name ? null : player.name)}
@@ -923,6 +948,15 @@ const getBadge = (score) => {
                       <h3 className="text-xl font-bold">Mon Score</h3>
                       <p className="text-blue-100 text-sm">Voir mon historique personnel</p>
                     </button>
+
+                      <button
+  onClick={() => setCurrentView('badges')}
+  className="bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+>
+  <div className="text-4xl mb-2">🏅</div>
+  <h3 className="text-xl font-bold">Badges</h3>
+  <p className="text-purple-100 text-sm">Découvrir les badges</p>
+</button>
                     
                     <button
                       onClick={() => setCurrentView('rankings')}
@@ -1207,6 +1241,132 @@ const getBadge = (score) => {
           );
         };
 
+        // PAGE DES BADGES
+if (currentView === 'badges') {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold text-white">🏅 Collection de Badges</h1>
+          <button
+            onClick={() => setCurrentView(userType === 'teacher' ? 'teacher-dashboard' : 'student-dashboard')}
+            className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
+          >
+            ← Retour
+          </button>
+        </div>
+
+        {/* Badges Individuels */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
+          <h2 className="text-2xl font-bold text-white mb-6 text-center">👤 Badges Individuels</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Object.values(individualBadges).map(badge => {
+              // Compter combien de joueurs ont ce badge
+              const playersWithBadge = Object.entries(playerBadges).filter(([player, badges]) =>
+                badges?.some(b => b.id === badge.id)
+              ).map(([player]) => player);
+
+              return (
+                <div key={badge.id} className={`rounded-lg p-4 border-2 ${getRarityColor(badge.rarity)}`}>
+                  <div className="flex items-center space-x-3 mb-3">
+                    <span className="text-4xl">{badge.emoji}</span>
+                    <div className="flex-1">
+                      <h3 className="text-white font-bold text-lg">{badge.name}</h3>
+                      <p className="text-white/70 text-sm">{badge.description}</p>
+                      <p className="text-yellow-300 text-xs mt-1">+{badge.points} pts</p>
+                    </div>
+                  </div>
+                  {playersWithBadge.length > 0 && (
+                    <div className="text-white/60 text-xs mt-2 pt-2 border-t border-white/20">
+                      <p>Obtenu par: {playersWithBadge.length} joueur(s)</p>
+                      <p className="truncate">{playersWithBadge.slice(0, 3).join(', ')}{playersWithBadge.length > 3 ? '...' : ''}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Badges Collectifs */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+          <h2 className="text-2xl font-bold text-white mb-6 text-center">🏠 Badges Collectifs</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Object.values(collectiveBadges).map(badge => {
+              // Compter combien de franchises ont ce badge
+              const franchisesWithBadge = Object.entries(franchiseBadges).filter(([franchise, badges]) =>
+                badges?.some(b => b.id === badge.id)
+              ).map(([franchise]) => franchise);
+
+              return (
+                <div key={badge.id} className={`rounded-lg p-4 border-2 ${getRarityColor(badge.rarity)}`}>
+                  <div className="flex items-center space-x-3 mb-3">
+                    <span className="text-4xl">{badge.emoji}</span>
+                    <div className="flex-1">
+                      <h3 className="text-white font-bold text-lg">{badge.name}</h3>
+                      <p className="text-white/70 text-sm">{badge.description}</p>
+                      <p className="text-yellow-300 text-xs mt-1">+{badge.points} pts franchise</p>
+                    </div>
+                  </div>
+                  {franchisesWithBadge.length > 0 && (
+                    <div className="text-white/60 text-xs mt-2 pt-2 border-t border-white/20">
+                      <p>Obtenu par: {franchisesWithBadge.join(', ')}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+        }  // Fermeture de la page badges
+
+// Return principal avec le modal d'historique
+return (
+  <>
+    {/* NOUVEAU: Système de notifications */}
+    <NotificationSystem />
+    
+    {selectedPlayerHistory && (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-96 overflow-y-auto">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold">Historique de {selectedPlayerHistory}</h3>
+            <button
+              onClick={() => setSelectedPlayerHistory(null)}
+              className="text-gray-500 hover:text-gray-700 text-xl"
+            >
+              ×
+            </button>
+          </div>
+          <div className="space-y-2">
+            {playerHistory.length > 0 ? (
+              playerHistory.map((entry, index) => (
+                <div key={index} className="border-l-4 border-blue-500 pl-3 py-2">
+                  <div className="font-semibold">{entry.action}</div>
+                  <div className="text-sm text-gray-600">
+                    {entry.points > 0 ? '+' : ''}{entry.points} points
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {entry.timestamp} • Total: {entry.new_total} pts
+                    {entry.teacher_name && entry.teacher_name !== 'Anonyme' && (
+                      <span> • Par: {entry.teacher_name}</span>
+                    )}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500 text-center">Aucun historique disponible</p>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+  </>
+);
         ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
