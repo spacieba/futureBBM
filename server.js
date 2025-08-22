@@ -33,7 +33,7 @@ const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
 db.pragma('synchronous = NORMAL');
 
-// Créer les tables si elles n'existent pas
+// Créer les tables si elles n'existent pas (avec les nouvelles tables pour les badges)
 db.exec(`
   CREATE TABLE IF NOT EXISTS players (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,6 +50,40 @@ db.exec(`
     timestamp TEXT NOT NULL,
     new_total INTEGER NOT NULL,
     teacher_name TEXT DEFAULT 'Anonyme',
+    FOREIGN KEY (player_name) REFERENCES players (name)
+  );
+
+  -- NOUVELLES TABLES POUR LES BADGES
+  CREATE TABLE IF NOT EXISTS player_badges (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_name TEXT NOT NULL,
+    badge_id TEXT NOT NULL,
+    badge_name TEXT NOT NULL,
+    points INTEGER DEFAULT 0,
+    date_earned TEXT NOT NULL,
+    FOREIGN KEY (player_name) REFERENCES players (name),
+    UNIQUE(player_name, badge_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS franchise_badges (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    franchise TEXT NOT NULL,
+    badge_id TEXT NOT NULL,
+    badge_name TEXT NOT NULL,
+    points INTEGER DEFAULT 0,
+    date_earned TEXT NOT NULL,
+    UNIQUE(franchise, badge_id)
+  );
+
+  -- Table pour tracker les streaks et statistiques
+  CREATE TABLE IF NOT EXISTS player_stats (
+    player_name TEXT PRIMARY KEY,
+    current_streak INTEGER DEFAULT 0,
+    max_streak INTEGER DEFAULT 0,
+    consecutive_days TEXT DEFAULT '[]',
+    felicitations_count INTEGER DEFAULT 0,
+    hardworker_count INTEGER DEFAULT 0,
+    last_action_date TEXT,
     FOREIGN KEY (player_name) REFERENCES players (name)
   );
 `);
@@ -79,7 +113,21 @@ const initPlayers = () => {
 
 initPlayers();
 
-// === ROUTES API ===
+// Initialiser les stats des joueurs
+const initPlayerStats = () => {
+  const players = db.prepare('SELECT name FROM players').all();
+  const insertStats = db.prepare(`
+    INSERT OR IGNORE INTO player_stats (player_name) VALUES (?)
+  `);
+  
+  players.forEach(player => {
+    insertStats.run(player.name);
+  });
+};
+
+initPlayerStats();
+
+// === ROUTES API EXISTANTES ===
 
 // Vérification du mot de passe professeur
 app.post('/api/verify-teacher', (req, res) => {
@@ -125,7 +173,7 @@ app.get('/api/history/:playerName', (req, res) => {
   }
 });
 
-// Ajouter des points (PROFESSEURS SEULEMENT)
+// Ajouter des points (MODIFIÉ pour inclure les statistiques de badges)
 app.post('/api/add-points', (req, res) => {
   try {
     const { playerName, points, action, teacherName } = req.body;
@@ -143,11 +191,64 @@ app.post('/api/add-points', (req, res) => {
       const timestamp = new Date().toLocaleString('fr-FR');
       insertHistory.run(playerName, action, points, timestamp, player.score, teacherName || 'Anonyme');
       
-      return player.score;
+      // Mettre à jour les statistiques pour les badges
+      const stats = db.prepare('SELECT * FROM player_stats WHERE player_name = ?').get(playerName);
+      
+      if (stats) {
+        let updatedStats = {
+          current_streak: stats.current_streak,
+          max_streak: stats.max_streak,
+          felicitations_count: stats.felicitations_count,
+          hardworker_count: stats.hardworker_count
+        };
+        
+        // Gérer les streaks
+        if (points > 0) {
+          updatedStats.current_streak = stats.current_streak + 1;
+          updatedStats.max_streak = Math.max(updatedStats.current_streak, stats.max_streak);
+        } else {
+          updatedStats.current_streak = 0;
+        }
+        
+        // Compter les actions spéciales
+        if (action === 'Félicitations') {
+          updatedStats.felicitations_count = stats.felicitations_count + 1;
+        }
+        if (action === 'Hardworker') {
+          updatedStats.hardworker_count = stats.hardworker_count + 1;
+        }
+        
+        // Mettre à jour les stats
+        const updateStats = db.prepare(`
+          UPDATE player_stats 
+          SET current_streak = ?, 
+              max_streak = ?, 
+              felicitations_count = ?,
+              hardworker_count = ?,
+              last_action_date = ?
+          WHERE player_name = ?
+        `);
+        
+        updateStats.run(
+          updatedStats.current_streak,
+          updatedStats.max_streak,
+          updatedStats.felicitations_count,
+          updatedStats.hardworker_count,
+          new Date().toISOString(),
+          playerName
+        );
+        
+        return { 
+          newScore: player.score,
+          stats: updatedStats 
+        };
+      }
+      
+      return { newScore: player.score };
     });
     
-    const newScore = transaction();
-    res.json({ success: true, newScore });
+    const result = transaction();
+    res.json({ success: true, ...result });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -202,6 +303,10 @@ app.post('/api/add-student', (req, res) => {
     const insertPlayer = db.prepare('INSERT INTO players (name, franchise, score) VALUES (?, ?, ?)');
     insertPlayer.run(name, franchise, 0);
     
+    // Initialiser les stats pour le nouvel élève
+    const insertStats = db.prepare('INSERT OR IGNORE INTO player_stats (player_name) VALUES (?)');
+    insertStats.run(name);
+    
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -217,6 +322,14 @@ app.delete('/api/remove-student/:playerName', (req, res) => {
       // Supprimer l'historique de l'élève
       const deleteHistory = db.prepare('DELETE FROM history WHERE player_name = ?');
       deleteHistory.run(playerName);
+      
+      // Supprimer les badges de l'élève
+      const deleteBadges = db.prepare('DELETE FROM player_badges WHERE player_name = ?');
+      deleteBadges.run(playerName);
+      
+      // Supprimer les stats de l'élève
+      const deleteStats = db.prepare('DELETE FROM player_stats WHERE player_name = ?');
+      deleteStats.run(playerName);
       
       // Supprimer l'élève
       const deletePlayer = db.prepare('DELETE FROM players WHERE name = ?');
@@ -254,6 +367,213 @@ app.put('/api/change-franchise', (req, res) => {
   }
 });
 
+// === NOUVELLES ROUTES POUR LES BADGES ===
+
+// Récupérer tous les badges (joueurs et franchises)
+app.get('/api/badges/all', (req, res) => {
+  try {
+    const playerBadges = db.prepare(`
+      SELECT pb.*, p.franchise 
+      FROM player_badges pb
+      JOIN players p ON pb.player_name = p.name
+      ORDER BY pb.date_earned DESC
+    `).all();
+    
+    const franchiseBadges = db.prepare(`
+      SELECT * FROM franchise_badges 
+      ORDER BY date_earned DESC
+    `).all();
+    
+    res.json({ playerBadges, franchiseBadges });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Récupérer les badges d'un joueur spécifique
+app.get('/api/badges/player/:playerName', (req, res) => {
+  try {
+    const badges = db.prepare(`
+      SELECT * FROM player_badges 
+      WHERE player_name = ? 
+      ORDER BY date_earned DESC
+    `).all(req.params.playerName);
+    
+    res.json(badges);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Récupérer les badges d'une franchise
+app.get('/api/badges/franchise/:franchise', (req, res) => {
+  try {
+    const badges = db.prepare(`
+      SELECT * FROM franchise_badges 
+      WHERE franchise = ? 
+      ORDER BY date_earned DESC
+    `).all(req.params.franchise);
+    
+    res.json(badges);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Attribuer un badge à un joueur
+app.post('/api/badges/award-player', (req, res) => {
+  try {
+    const { playerName, badgeId, badgeName, points } = req.body;
+    
+    const transaction = db.transaction(() => {
+      // Vérifier si le badge existe déjà
+      const existing = db.prepare(`
+        SELECT * FROM player_badges 
+        WHERE player_name = ? AND badge_id = ?
+      `).get(playerName, badgeId);
+      
+      if (existing) {
+        return { success: false, message: 'Badge déjà obtenu' };
+      }
+      
+      // Ajouter le badge
+      const insertBadge = db.prepare(`
+        INSERT INTO player_badges (player_name, badge_id, badge_name, points, date_earned)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+      
+      const dateEarned = new Date().toISOString();
+      insertBadge.run(playerName, badgeId, badgeName, points, dateEarned);
+      
+      // Ajouter les points bonus au joueur
+      if (points > 0) {
+        const updatePlayer = db.prepare('UPDATE players SET score = score + ? WHERE name = ?');
+        updatePlayer.run(points, playerName);
+        
+        // Ajouter à l'historique
+        const insertHistory = db.prepare(`
+          INSERT INTO history (player_name, action, points, timestamp, new_total, teacher_name) 
+          VALUES (?, ?, ?, ?, (SELECT score FROM players WHERE name = ?), ?)
+        `);
+        const timestamp = new Date().toLocaleString('fr-FR');
+        insertHistory.run(playerName, `Badge: ${badgeName}`, points, timestamp, playerName, 'Système');
+      }
+      
+      return { success: true };
+    });
+    
+    const result = transaction();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Attribuer un badge à une franchise
+app.post('/api/badges/award-franchise', (req, res) => {
+  try {
+    const { franchise, badgeId, badgeName, points } = req.body;
+    
+    const transaction = db.transaction(() => {
+      // Vérifier si le badge existe déjà
+      const existing = db.prepare(`
+        SELECT * FROM franchise_badges 
+        WHERE franchise = ? AND badge_id = ?
+      `).get(franchise, badgeId);
+      
+      if (existing) {
+        return { success: false, message: 'Badge déjà obtenu' };
+      }
+      
+      // Ajouter le badge
+      const insertBadge = db.prepare(`
+        INSERT INTO franchise_badges (franchise, badge_id, badge_name, points, date_earned)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+      
+      const dateEarned = new Date().toISOString();
+      insertBadge.run(franchise, badgeId, badgeName, points, dateEarned);
+      
+      // Optionnel : distribuer les points aux joueurs de la franchise
+      if (points > 0) {
+        const updatePlayers = db.prepare('UPDATE players SET score = score + ? WHERE franchise = ?');
+        updatePlayers.run(Math.floor(points / 4), franchise); // Diviser les points entre les joueurs
+      }
+      
+      return { success: true };
+    });
+    
+    const result = transaction();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Récupérer les statistiques d'un joueur (pour les streaks)
+app.get('/api/stats/:playerName', (req, res) => {
+  try {
+    const stats = db.prepare(`
+      SELECT * FROM player_stats WHERE player_name = ?
+    `).get(req.params.playerName);
+    
+    res.json(stats || {
+      current_streak: 0,
+      max_streak: 0,
+      consecutive_days: '[]',
+      felicitations_count: 0,
+      hardworker_count: 0
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Mettre à jour les statistiques d'un joueur
+app.post('/api/stats/update', (req, res) => {
+  try {
+    const { playerName, stats } = req.body;
+    
+    const updateStats = db.prepare(`
+      UPDATE player_stats 
+      SET current_streak = ?, 
+          max_streak = ?, 
+          consecutive_days = ?,
+          felicitations_count = ?,
+          hardworker_count = ?,
+          last_action_date = ?
+      WHERE player_name = ?
+    `);
+    
+    updateStats.run(
+      stats.currentStreak || 0,
+      stats.maxStreak || 0,
+      JSON.stringify(stats.consecutiveDays || []),
+      stats.felicitationsCount || 0,
+      stats.hardworkerCount || 0,
+      new Date().toISOString(),
+      playerName
+    );
+    
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Réinitialiser les badges (OPTIONNEL - POUR TESTS)
+app.delete('/api/badges/reset', (req, res) => {
+  try {
+    db.prepare('DELETE FROM player_badges').run();
+    db.prepare('DELETE FROM franchise_badges').run();
+    db.prepare('UPDATE player_stats SET current_streak = 0, max_streak = 0, felicitations_count = 0, hardworker_count = 0').run();
+    
+    res.json({ success: true, message: 'Badges réinitialisés' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Servir l'application React
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -262,4 +582,5 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`🚀 Serveur démarré sur le port ${port}`);
   console.log(`🔐 Mot de passe professeur: ${TEACHER_PASSWORD}`);
+  console.log(`🏅 Système de badges activé`);
 });
