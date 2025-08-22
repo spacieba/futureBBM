@@ -147,7 +147,16 @@ const BADGES = {
         twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
         const recentCount = dates.filter(d => new Date(d) > twoWeeksAgo).length;
         return recentCount >= 2;
-      }
+      },
+      hot_streak: {
+  id: 'hot_streak',
+  name: 'Hot Streak',
+  emoji: '🔥',
+  description: '5 actions positives d\'affilée',
+  points: 5,
+  rarity: 'bronze',
+  condition: (stats) => stats.current_streak >= 5 && stats.max_streak >= 5
+},
     },
     
     // PERSÉVÉRANCE
