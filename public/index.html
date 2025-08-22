@@ -846,7 +846,7 @@
                                   </div>
                                 </div>
                                 {/* Affichage des badges */}
-                                <BadgeDisplay badges={playerBadges[player.name] || []} />
+                                <BadgeDisplay badges={player.Badges || []} />
                                 <div className="relative">
                                   <button
                                     onClick={() => setExpandedDropdown(expandedDropdown === player.name ? null : player.name)}
