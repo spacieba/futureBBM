@@ -104,7 +104,130 @@
     
     <script type="text/babel">
         const { useState, useEffect } = React;
+// Définition des badges individuels
+const individualBadges = {
+  firstBlood: {
+    id: 'first_blood',
+    name: 'Premier Sang',
+    emoji: '🩸',
+    description: 'Premier point de la saison',
+    points: 5,
+    rarity: 'common'
+  },
+  perfectWeek: {
+    id: 'perfect_week',
+    name: 'Semaine Parfaite',
+    emoji: '✨',
+    description: 'Aucun point négatif sur une semaine',
+    points: 10,
+    rarity: 'rare'
+  },
+  comeback: {
+    id: 'comeback',
+    name: 'Comeback Kid',
+    emoji: '🔄',
+    description: 'Revenir de -10 points à positif',
+    points: 15,
+    rarity: 'epic'
+  },
+  champion: {
+    id: 'champion',
+    name: 'Champion',
+    emoji: '👑',
+    description: 'Finir 1er du classement général',
+    points: 25,
+    rarity: 'legendary'
+  },
+  hardworker: {
+    id: 'hardworker_badge',
+    name: 'Travailleur Acharné',
+    emoji: '💪',
+    description: '5 Hardworker obtenus',
+    points: 20,
+    rarity: 'epic'
+  }
+};
 
+// Définition des badges collectifs
+const collectiveBadges = {
+  teamSpirit: {
+    id: 'team_spirit',
+    name: 'Esprit d\'équipe',
+    emoji: '🤝',
+    description: 'Tous les joueurs au-dessus de 0 points',
+    points: 50,
+    rarity: 'rare'
+  },
+  domination: {
+    id: 'domination',
+    name: 'Domination',
+    emoji: '🏆',
+    description: '100 points d\'avance sur la 2e franchise',
+    points: 100,
+    rarity: 'legendary'
+  },
+  unity: {
+    id: 'unity',
+    name: 'Unité',
+    emoji: '🔗',
+    description: 'Aucun joueur avec des points négatifs',
+    points: 30,
+    rarity: 'epic'
+  }
+};
+
+// État des badges (sera géré dans le composant)
+let playerBadges = {};
+let franchiseBadges = {};
+let notifications = [];
+
+// Fonction pour obtenir la couleur selon la rareté
+const getRarityColor = (rarity) => {
+  switch(rarity) {
+    case 'common': return 'border-gray-400';
+    case 'rare': return 'border-blue-400';
+    case 'epic': return 'border-purple-400';
+    case 'legendary': return 'border-yellow-400';
+    default: return 'border-gray-400';
+  }
+};
+
+// Composant BadgeDisplay
+const BadgeDisplay = ({ badges }) => {
+  if (!badges || badges.length === 0) return null;
+  
+  return (
+    <div className="flex flex-wrap gap-1 mt-2">
+      {badges.map(badge => (
+        <span 
+          key={badge.id} 
+          className="text-xl" 
+          title={`${badge.name} - ${badge.description}`}
+        >
+          {badge.emoji}
+        </span>
+      ))}
+    </div>
+  );
+};
+
+// Composant NotificationSystem
+const NotificationSystem = ({ notifications }) => {
+  if (!notifications || notifications.length === 0) return null;
+  
+  return (
+    <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
+      {notifications.map((notif, index) => (
+        <div
+          key={index}
+          className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg shadow-2xl animate-pulse"
+        >
+          {notif}
+        </div>
+      ))}
+    </div>
+  );
+};
         const App = () => {
           const [currentView, setCurrentView] = useState('home');
           const [userType, setUserType] = useState(null);
