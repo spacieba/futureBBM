@@ -198,22 +198,22 @@
 
         // Composant BadgeDisplay
         const BadgeDisplay = ({ badges }) => {
-          if (!badges || badges.length === 0) return null;
-          
-          return (
-            <div className="flex flex-wrap gap-1 mt-2">
-              {badges.map(badge => (
-                <span 
-                  key={badge.id} 
-                  className="text-xl" 
-                  title={`${badge.name} - ${badge.description}`}
-                >
-                  {badge.emoji}
-                </span>
-              ))}
-            </div>
-          );
-        };
+  if (!badges || badges.length === 0) return null;
+  
+  return (
+    <div className="flex flex-wrap gap-1 mt-2">
+      {badges.map((badge, index) => (
+        <span 
+          key={badge.badge_id || badge.id || index} 
+          className="text-xl" 
+          title={`${badge.badge_name || badge.name} - ${badge.description || ''}`}
+        >
+          {badge.badge_emoji || badge.emoji || '🏅'}
+        </span>
+      ))}
+    </div>
+  );
+};
 
         // Composant NotificationSystem
         const NotificationSystem = ({ notifications }) => {
