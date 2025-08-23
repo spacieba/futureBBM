@@ -1165,6 +1165,15 @@
                       <h3 className="text-xl font-bold">Badges</h3>
                       <p className="text-purple-100 text-sm">Découvrir les badges</p>
                     </button>
+
+                      <button
+  onClick={() => setCurrentView('grades')}
+  className="bg-gradient-to-r from-orange-600 to-orange-800 hover:from-orange-500 hover:to-orange-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+>
+  <div className="text-4xl mb-2">🏀</div>
+  <h3 className="text-xl font-bold">Grades</h3>
+  <p className="text-orange-100 text-sm">Découvrir les grades</p>
+</button>
                     
                     <button
                       onClick={() => setCurrentView('rankings')}
@@ -1551,7 +1560,172 @@
             </>
           );
         };
+// PAGE DES GRADES
+if (currentView === 'grades') {
+  // Définition complète de tous les grades
+  const allGrades = [
+    // GRADES NÉGATIFS
+    { emoji: '🗑️', name: 'Scrub', minScore: -1000, maxScore: -50, color: 'from-red-900 to-red-700', description: 'Le pire niveau possible' },
+    { emoji: '🪑', name: 'Benchwarmer', minScore: -50, maxScore: -25, color: 'from-red-700 to-red-500', description: 'Cloué sur le banc' },
+    { emoji: '📉', name: 'Plot', minScore: -25, maxScore: 0, color: 'from-gray-700 to-gray-500', description: 'Personnage sans importance' },
+    
+    // GRADES DÉBUTANTS
+    { emoji: '👶', name: 'Freshman', minScore: 0, maxScore: 10, color: 'from-yellow-600 to-yellow-500', description: 'Première année, apprend les bases' },
+    { emoji: '🏀', name: 'Rookie', minScore: 10, maxScore: 25, color: 'from-amber-600 to-amber-500', description: 'Débutant prometteur' },
+    
+    // GRADES DÉVELOPPEMENT
+    { emoji: '🏃', name: 'Sixth Man', minScore: 25, maxScore: 50, color: 'from-green-700 to-green-600', description: 'Premier remplaçant de qualité' },
+    { emoji: '⭐', name: 'Starting Five', minScore: 50, maxScore: 75, color: 'from-green-600 to-green-500', description: 'Titulaire indiscutable' },
+    
+    // GRADES CONFIRMÉS
+    { emoji: '💎', name: 'Franchise Player', minScore: 75, maxScore: 100, color: 'from-blue-700 to-blue-600', description: 'Pilier de l\'équipe' },
+    { emoji: '🌟', name: 'All-Star', minScore: 100, maxScore: 150, color: 'from-blue-600 to-blue-500', description: 'Sélectionné parmi l\'élite' },
+    
+    // GRADES ÉLITE
+    { emoji: '🔥', name: 'Superstar', minScore: 150, maxScore: 200, color: 'from-orange-600 to-red-500', description: 'Phénomène basketball' },
+    { emoji: '🏛️', name: 'Hall of Fame', minScore: 200, maxScore: 250, color: 'from-yellow-600 to-yellow-500', description: 'Légende du sport' },
+    
+    // GRADE ULTIME
+    { emoji: '🐐', name: 'GOAT', minScore: 250, maxScore: 9999, color: 'from-purple-600 to-pink-600', description: 'Greatest Of All Time' }
+  ];
 
+  // Compter combien d'élèves ont chaque grade
+  const getPlayersInGrade = (minScore, maxScore) => {
+    return players.filter(p => p.score >= minScore && p.score < maxScore).length;
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold text-white">🏀 Système de Grades Basketball</h1>
+          <button
+            onClick={() => setCurrentView(userType === 'teacher' ? 'teacher-dashboard' : 'student-dashboard')}
+            className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
+          >
+            ← Retour
+          </button>
+        </div>
+
+        {/* Progression visuelle */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
+          <h2 className="text-2xl font-bold text-white mb-6 text-center">🎯 Échelle de Progression</h2>
+          <div className="relative">
+            {/* Barre de progression */}
+            <div className="absolute left-0 right-0 top-1/2 h-2 bg-white/20 rounded-full transform -translate-y-1/2"></div>
+            
+            {/* Points clés */}
+            <div className="relative flex justify-between mb-8">
+              <div className="text-center">
+                <div className="w-4 h-4 bg-red-500 rounded-full mb-2"></div>
+                <div className="text-white text-xs">-50</div>
+              </div>
+              <div className="text-center">
+                <div className="w-4 h-4 bg-yellow-500 rounded-full mb-2"></div>
+                <div className="text-white text-xs">0</div>
+              </div>
+              <div className="text-center">
+                <div className="w-4 h-4 bg-green-500 rounded-full mb-2"></div>
+                <div className="text-white text-xs">50</div>
+              </div>
+              <div className="text-center">
+                <div className="w-4 h-4 bg-blue-500 rounded-full mb-2"></div>
+                <div className="text-white text-xs">100</div>
+              </div>
+              <div className="text-center">
+                <div className="w-4 h-4 bg-orange-500 rounded-full mb-2"></div>
+                <div className="text-white text-xs">150</div>
+              </div>
+              <div className="text-center">
+                <div className="w-4 h-4 bg-purple-500 rounded-full mb-2"></div>
+                <div className="text-white text-xs">250+</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Liste des grades */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {allGrades.map((grade, index) => {
+            const playersCount = getPlayersInGrade(grade.minScore, grade.maxScore);
+            const isNegative = grade.minScore < 0;
+            
+            return (
+              <div 
+                key={index} 
+                className={`bg-gradient-to-r ${grade.color} p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300`}
+              >
+                <div className="text-center">
+                  <div className="text-6xl mb-3">{grade.emoji}</div>
+                  <h3 className="text-2xl font-bold text-white mb-2">{grade.name}</h3>
+                  <p className="text-white/90 mb-3">{grade.description}</p>
+                  
+                  <div className="bg-black/30 rounded-lg p-3 mb-3">
+                    <div className="text-white font-bold">
+                      {grade.maxScore === 9999 ? 
+                        `${grade.minScore}+ points` : 
+                        `${grade.minScore} à ${grade.maxScore} points`
+                      }
+                    </div>
+                  </div>
+                  
+                  {userType === 'teacher' && (
+                    <div className="text-white/80 text-sm">
+                      {playersCount > 0 ? (
+                        <span className="font-bold">{playersCount} élève{playersCount > 1 ? 's' : ''}</span>
+                      ) : (
+                        <span className="text-white/50">Aucun élève</span>
+                      )}
+                    </div>
+                  )}
+                  
+                  {isNegative && (
+                    <div className="mt-2 text-red-200 text-xs">
+                      ⚠️ Zone de danger
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Statistiques pour les profs */}
+        {userType === 'teacher' && (
+          <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6">
+            <h3 className="text-2xl font-bold text-white mb-4">📊 Répartition Actuelle</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-red-400">
+                  {players.filter(p => p.score < 0).length}
+                </div>
+                <div className="text-white/70">En difficulté</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-yellow-400">
+                  {players.filter(p => p.score >= 0 && p.score < 50).length}
+                </div>
+                <div className="text-white/70">Débutants</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-green-400">
+                  {players.filter(p => p.score >= 50 && p.score < 150).length}
+                </div>
+                <div className="text-white/70">Confirmés</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-purple-400">
+                  {players.filter(p => p.score >= 150).length}
+                </div>
+                <div className="text-white/70">Élite</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
         ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
