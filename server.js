@@ -836,6 +836,8 @@ app.delete('/api/undo-last/:playerName', (req, res) => {
       }
       
       const player = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
+       // Recalculer les badges après annulation
+      recalculatePlayerBadges(playerName);
       return player.score;
     });
     
