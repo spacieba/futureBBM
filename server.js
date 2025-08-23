@@ -105,7 +105,7 @@ db.exec(`
 // Définition des badges (même structure que dans le front)
 const BADGES = {
   individual: {
-    // SÉRIES
+    // === SÉRIES (4 badges) ===
     hot_streak: {
       id: 'hot_streak',
       name: 'Hot Streak',
@@ -136,8 +136,8 @@ const BADGES = {
     on_fire: {
       id: 'on_fire',
       name: 'On Fire',
-      emoji: '🔥',
-      description: '2 "Hardworker" en 2 semaines',
+      emoji: '💪',
+      description: '2 Hardworker en 2 semaines',
       points: 10,
       rarity: 'argent',
       condition: (stats) => {
@@ -147,19 +147,10 @@ const BADGES = {
         twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
         const recentCount = dates.filter(d => new Date(d) > twoWeeksAgo).length;
         return recentCount >= 2;
-      },
-      hot_streak: {
-  id: 'hot_streak',
-  name: 'Hot Streak',
-  emoji: '🔥',
-  description: '5 actions positives d\'affilée',
-  points: 5,
-  rarity: 'bronze',
-  condition: (stats) => stats.current_streak >= 5 && stats.max_streak >= 5
-},
+      }
     },
     
-    // PERSÉVÉRANCE
+    // === PERSÉVÉRANCE (2 badges) ===
     phoenix: {
       id: 'phoenix',
       name: 'Phoenix',
@@ -178,11 +169,21 @@ const BADGES = {
       rarity: 'bronze',
       condition: (stats) => {
         const days = JSON.parse(stats.consecutive_days || '[]');
-        return days.length >= 5;
+        if (days.length < 5) return false;
+        
+        // Vérifier que les 5 derniers jours sont consécutifs
+        const lastDays = days.slice(-5);
+        const dates = lastDays.map(d => new Date(d));
+        
+        for (let i = 1; i < dates.length; i++) {
+          const diff = (dates[i] - dates[i-1]) / (1000 * 60 * 60 * 24);
+          if (diff > 1.5) return false; // Plus d'un jour d'écart
+        }
+        return true;
       }
     },
     
-    // SOCIAUX/ÉQUIPE
+    // === SOCIAUX/ÉQUIPE (3 badges) ===
     team_captain: {
       id: 'team_captain',
       name: 'Team Captain',
@@ -190,7 +191,7 @@ const BADGES = {
       description: 'Meilleur de sa franchise pendant 1 semaine',
       points: 10,
       rarity: 'argent',
-      condition: null // Vérifié séparément
+      condition: null // Vérifié séparément avec une fonction spéciale
     },
     veteran: {
       id: 'veteran',
@@ -199,15 +200,24 @@ const BADGES = {
       description: 'Top 3 de sa franchise pendant 2 mois',
       points: 20,
       rarity: 'or',
-      condition: null // Vérifié séparément
+      condition: null // Vérifié séparément avec une fonction spéciale
+    },
+    team_player: {
+      id: 'team_player',
+      name: 'Team Player',
+      emoji: '🤝',
+      description: 'Sa franchise gagne le + de points en 1 semaine',
+      points: 5,
+      rarity: 'bronze',
+      condition: null // Vérifié séparément avec une fonction spéciale
     },
     
-    // SPÉCIAUX
+    // === SPÉCIAUX & RARES (3 badges) ===
     showtime: {
       id: 'showtime',
       name: 'Showtime',
       emoji: '🎪',
-      description: 'Recevoir "Félicitations" 3 fois',
+      description: 'Recevoir Félicitations 3 fois',
       points: 35,
       rarity: 'diamant',
       condition: (stats) => stats.felicitations_count >= 3
@@ -216,10 +226,10 @@ const BADGES = {
       id: 'halloween_spirit',
       name: 'Halloween Spirit',
       emoji: '🎃',
-      description: 'Actions positives semaine Halloween',
+      description: '3 Actions positives semaine Halloween',
       points: 50,
       rarity: 'legendaire',
-      condition: null // Vérifié pendant Halloween
+      condition: null // Vérifié dans checkIndividualBadges avec la date
     },
     christmas_magic: {
       id: 'christmas_magic',
@@ -228,39 +238,12 @@ const BADGES = {
       description: 'Actions positives pendant les fêtes',
       points: 50,
       rarity: 'legendaire',
-      condition: null // Vérifié pendant Noël
-    },
-    back_to_school: {
-      id: 'back_to_school',
-      name: 'Back to School',
-      emoji: '📚',
-      description: '10 actions positives premier mois rentrée',
-      points: 50,
-      rarity: 'legendaire',
-      condition: null // Vérifié en septembre
+      condition: null // Vérifié dans checkIndividualBadges avec la date
     }
   },
   
   collective: {
-    // DOMINATION
-    franchise_royalty: {
-      id: 'franchise_royalty',
-      name: 'Franchise Royalty',
-      emoji: '👑',
-      description: '#1 pendant 1 mois complet',
-      points: 50,
-      rarity: 'argent'
-    },
-    dynasty: {
-      id: 'dynasty',
-      name: 'Dynasty',
-      emoji: '🌟',
-      description: '#1 pendant 3 mois consécutifs',
-      points: 100,
-      rarity: 'or'
-    },
-    
-    // PERFORMANCES
+    // === PERFORMANCES (4 badges) ===
     rocket_launch: {
       id: 'rocket_launch',
       name: 'Rocket Launch',
@@ -285,8 +268,16 @@ const BADGES = {
       points: 20,
       rarity: 'bronze'
     },
+    house_on_fire: {
+      id: 'house_on_fire',
+      name: 'House on Fire',
+      emoji: '🔥',
+      description: '80% membres actions positives en 1 semaine',
+      points: 50,
+      rarity: 'argent'
+    },
     
-    // SOLIDARITÉ
+    // === SOLIDARITÉ (3 badges) ===
     united_we_stand: {
       id: 'united_we_stand',
       name: 'United We Stand',
@@ -302,6 +293,14 @@ const BADGES = {
       description: 'Tous membres entre 25-75 points',
       points: 100,
       rarity: 'or'
+    },
+    harmony: {
+      id: 'harmony',
+      name: 'Harmony',
+      emoji: '🌈',
+      description: 'Écart <50 points entre 1er et dernier',
+      points: 50,
+      rarity: 'argent'
     }
   }
 };
