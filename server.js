@@ -141,14 +141,18 @@ const BADGES = {
       points: 10,
       rarity: 'argent',
       condition: (stats) => {
-        const dates = JSON.parse(stats.hardworker_dates || '[]');
-        if (dates.length < 2) return false;
-        const twoWeeksAgo = new Date();
-        twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-        const recentCount = dates.filter(d => new Date(d) > twoWeeksAgo).length;
-        return recentCount >= 2;
-      }
-    },
+        // Vérifier qu'il y a au moins 2 Hardworker comptés
+    if (stats.hardworker_count < 2) return false;
+    
+    const dates = JSON.parse(stats.hardworker_dates || '[]');
+    if (dates.length < 2) return false;
+    
+    const twoWeeksAgo = new Date();
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+    const recentCount = dates.filter(d => new Date(d) > twoWeeksAgo).length;
+    return recentCount >= 2;
+  }
+},
     
     // === PERSÉVÉRANCE (2 badges) ===
     phoenix: {
@@ -833,6 +837,14 @@ app.delete('/api/undo-last/:playerName', (req, res) => {
           WHERE player_name = ?
         `).run(playerName);
       }
+      // Si on annule un Hardworker, décrémenter le compteur
+if (lastAction.action === 'Hardworker') {
+  db.prepare(`
+    UPDATE player_stats 
+    SET hardworker_count = CASE WHEN hardworker_count > 0 THEN hardworker_count - 1 ELSE 0 END
+    WHERE player_name = ?
+  `).run(playerName);
+}
       
       const player = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
        // Recalculer les badges après annulation
