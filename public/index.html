@@ -286,6 +286,272 @@
           }
         };
 
+        // Composant ProgressionChart
+const ProgressionChart = ({ playerName, onClose }) => {
+  const [chartData, setChartData] = useState(null);
+  const [period, setPeriod] = useState('30'); // Par défaut 30 jours
+  const [loading, setLoading] = useState(true);
+  const [chartInstance, setChartInstance] = useState(null);
+
+  // Charger les données
+  const loadChartData = async (days) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/progression/${encodeURIComponent(playerName)}?days=${days}`);
+      const data = await response.json();
+      setChartData(data);
+      
+      // Mettre à jour le graphique
+      if (chartInstance) {
+        updateChart(data);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des données:', error);
+    }
+    setLoading(false);
+  };
+
+  // Créer le graphique
+  const createChart = (data) => {
+    const ctx = document.getElementById('progressionChart').getContext('2d');
+    
+    // Détruire l'ancien graphique s'il existe
+    if (chartInstance) {
+      chartInstance.destroy();
+    }
+    
+    const newChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.data.map(d => {
+          const date = new Date(d.date);
+          return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+        }),
+        datasets: [
+          {
+            label: 'Score cumulé',
+            data: data.data.map(d => d.cumulative_score),
+            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            tension: 0.3,
+            fill: true,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          },
+          {
+            label: 'Points du jour',
+            data: data.data.map(d => d.daily_points),
+            borderColor: d => d.y > 0 ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)',
+            backgroundColor: d => d.y > 0 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+            type: 'bar',
+            yAxisID: 'y1',
+            borderWidth: 2
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
+        plugins: {
+          title: {
+            display: true,
+            text: `Progression de ${playerName}`,
+            font: {
+              size: 16,
+              weight: 'bold'
+            }
+          },
+          legend: {
+            display: true,
+            position: 'top',
+          },
+          tooltip: {
+            callbacks: {
+              afterLabel: function(context) {
+                if (context.datasetIndex === 0) {
+                  const dataIndex = context.dataIndex;
+                  const dayData = data.data[dataIndex];
+                  return [
+                    `Actions: ${dayData.actions_count}`,
+                    `Points positifs: +${dayData.positive_points}`,
+                    `Points négatifs: ${dayData.negative_points}`
+                  ];
+                }
+                return [];
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            type: 'linear',
+            display: true,
+            position: 'left',
+            title: {
+              display: true,
+              text: 'Score cumulé'
+            },
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            }
+          },
+          y1: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            title: {
+              display: true,
+              text: 'Points du jour'
+            },
+            grid: {
+              drawOnChartArea: false,
+            },
+          },
+          x: {
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            }
+          }
+        }
+      }
+    });
+    
+    setChartInstance(newChart);
+  };
+
+  // Mettre à jour le graphique
+  const updateChart = (data) => {
+    if (!chartInstance) return;
+    
+    chartInstance.data.labels = data.data.map(d => {
+      const date = new Date(d.date);
+      return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+    });
+    
+    chartInstance.data.datasets[0].data = data.data.map(d => d.cumulative_score);
+    chartInstance.data.datasets[1].data = data.data.map(d => d.daily_points);
+    
+    chartInstance.update();
+  };
+
+  useEffect(() => {
+    loadChartData(period);
+  }, [period]);
+
+  useEffect(() => {
+    if (chartData && !loading) {
+      setTimeout(() => createChart(chartData), 100);
+    }
+    
+    return () => {
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+    };
+  }, [chartData, loading]);
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-2xl font-bold">📈 Progression de {playerName}</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 text-2xl"
+          >
+            ×
+          </button>
+        </div>
+        
+        {/* Sélecteur de période */}
+        <div className="flex space-x-2 mb-6">
+          <button
+            onClick={() => setPeriod('7')}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              period === '7' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-200 hover:bg-gray-300'
+            }`}
+          >
+            7 jours
+          </button>
+          <button
+            onClick={() => setPeriod('15')}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              period === '15' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-200 hover:bg-gray-300'
+            }`}
+          >
+            15 jours
+          </button>
+          <button
+            onClick={() => setPeriod('30')}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              period === '30' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-200 hover:bg-gray-300'
+            }`}
+          >
+            30 jours
+          </button>
+          <button
+            onClick={() => setPeriod('all')}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              period === 'all' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-200 hover:bg-gray-300'
+            }`}
+          >
+            Tout
+          </button>
+        </div>
+        
+        {/* Zone du graphique */}
+        {loading ? (
+          <div className="flex items-center justify-center h-96">
+            <div className="text-lg">⏳ Chargement...</div>
+          </div>
+        ) : (
+          <>
+            <div className="bg-gray-50 p-4 rounded-lg" style={{ height: '400px' }}>
+              <canvas id="progressionChart"></canvas>
+            </div>
+            
+            {/* Statistiques résumées */}
+            {chartData && (
+              <div className="grid grid-cols-3 gap-4 mt-6">
+                <div className="bg-blue-50 p-4 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {chartData.summary.totalPoints > 0 ? '+' : ''}{chartData.summary.totalPoints}
+                  </div>
+                  <div className="text-sm text-gray-600">Points sur la période</div>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {chartData.summary.totalActions}
+                  </div>
+                  <div className="text-sm text-gray-600">Actions totales</div>
+                </div>
+                <div className="bg-purple-50 p-4 rounded-lg text-center">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {chartData.summary.activeDays}
+                  </div>
+                  <div className="text-sm text-gray-600">Jours actifs</div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+        
         // Composant BadgeDisplay
         const BadgeDisplay = ({ badges }) => {
   if (!badges || badges.length === 0) return null;
@@ -347,7 +613,14 @@
           const [playerBadges, setPlayerBadges] = useState({});
           const [franchiseBadges, setFranchiseBadges] = useState({});
           const [notifications, setNotifications] = useState([]);
-          
+            // États pour le graphique de progression
+const [showProgressionChart, setShowProgressionChart] = useState(false);
+const [selectedChartPlayer, setSelectedChartPlayer] = useState(null);
+          // Fonction pour ouvrir le graphique
+const openProgressionChart = (playerName) => {
+  setSelectedChartPlayer(playerName);
+  setShowProgressionChart(true);
+};
           // Fonction pour obtenir le grade basketball selon le score
           const getBadge = (score) => {
             // Grade Ultime
@@ -910,31 +1183,41 @@
                             {getSortedPlayers(franchise).map(player => (
                               <div key={player.name} className="bg-white/20 rounded-lg p-3">
                                 <div className="flex justify-between items-center mb-2">
-                                  <button
-                                    onClick={() => loadPlayerHistory(player.name)}
-                                    className="text-white font-semibold hover:text-yellow-300 transition-colors flex items-center space-x-1"
-                                  >
-                                    <span>{player.name}</span>
-                                    <span>📋</span>
-                                  </button>
-                                  <div className="flex items-center space-x-2">
-                                    <div className="flex items-center space-x-1">
-                                      <span className={`text-2xl ${getBadge(player.score).emoji}`}>
-                                        {getBadge(player.score).emoji}
-                                      </span>
-                                      <span className="text-white font-bold">
-                                        {player.score} pts
-                                      </span>
-                                    </div>
-                                    <button
-                                      onClick={() => undoLastAction(player.name)}
-                                      className="bg-red-500 hover:bg-red-400 text-white px-2 py-1 rounded text-xs"
-                                      title="Annuler dernière action"
-                                    >
-                                      ↺
-                                    </button>
-                                  </div>
-                                </div>
+  <div className="flex items-center space-x-2">
+    <button
+      onClick={() => loadPlayerHistory(player.name)}
+      className="text-white font-semibold hover:text-yellow-300 transition-colors flex items-center space-x-1"
+      title="Voir l'historique"
+    >
+      <span>{player.name}</span>
+      <span>📋</span>
+    </button>
+    <button
+      onClick={() => openProgressionChart(player.name)}
+      className="text-white hover:text-blue-300 transition-colors"
+      title="Voir le graphique de progression"
+    >
+      📈
+    </button>
+  </div>
+  <div className="flex items-center space-x-2">
+    <div className="flex items-center space-x-1">
+      <span className={`text-2xl ${getBadge(player.score).emoji}`}>
+        {getBadge(player.score).emoji}
+      </span>
+      <span className="text-white font-bold">
+        {player.score} pts
+      </span>
+    </div>
+    <button
+      onClick={() => undoLastAction(player.name)}
+      className="bg-red-500 hover:bg-red-400 text-white px-2 py-1 rounded text-xs"
+      title="Annuler dernière action"
+    >
+      ↺
+    </button>
+  </div>
+</div>
                                 {/* Affichage des badges */}
                                   {console.log('Player:', player.name, 'Badges:', player.badges)}
                                 <BadgeDisplay badges={player.badges || []} />
@@ -1302,6 +1585,12 @@
                           <div className="text-5xl font-bold text-white">{foundPlayer.score} points</div>
                         </div>
                       </div>
+                        <button
+  onClick={() => openProgressionChart(foundPlayer.name)}
+  className="mt-4 bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-lg transition-colors font-bold"
+>
+  📈 Voir ma progression
+</button>
 {foundPlayer.badges && foundPlayer.badges.length > 0 && (
   <div className="mt-6 bg-white/10 backdrop-blur-sm rounded-xl p-6">
     <h4 className="text-2xl font-bold text-white mb-4 text-center">
@@ -1722,6 +2011,15 @@ if (currentView === 'grades') {
                   </div>
                 </div>
               )}
+                {showProgressionChart && selectedChartPlayer && (
+  <ProgressionChart 
+    playerName={selectedChartPlayer}
+    onClose={() => {
+      setShowProgressionChart(false);
+      setSelectedChartPlayer(null);
+    }}
+  />
+)}
             </>
           );
         };
