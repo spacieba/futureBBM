@@ -1025,6 +1025,115 @@ const filterHistoryByPeriod = (history, period) => {
     return entryDate >= startDate;
   });
 };
+        // Composant pour le graphique de progression
+const ProgressChart = ({ history, period }) => {
+  const canvasRef = React.useRef(null);
+  const chartRef = React.useRef(null);
+  
+  React.useEffect(() => {
+    if (!history || history.length === 0) return;
+    
+    // Détruire le graphique existant si présent
+    if (chartRef.current) {
+      chartRef.current.destroy();
+    }
+    
+    // Préparer les données pour le graphique
+    const reversedHistory = [...history].reverse();
+    const labels = [];
+    const scores = [];
+    let runningScore = 0;
+    
+    // Calculer le score cumulé pour chaque point
+    reversedHistory.forEach(entry => {
+      runningScore += entry.points;
+      
+      // Formater la date pour l'affichage
+      const dateParts = entry.timestamp.split(' ');
+      labels.push(dateParts[0]); // Juste la date (jour/mois/année)
+      scores.push(runningScore);
+    });
+    
+    // Créer le graphique
+    const ctx = canvasRef.current.getContext('2d');
+    chartRef.current = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Score',
+          data: scores,
+          borderColor: 'rgb(147, 51, 234)', // Violet
+          backgroundColor: 'rgba(147, 51, 234, 0.1)',
+          tension: 0.1,
+          borderWidth: 2,
+          pointRadius: 4,
+          pointBackgroundColor: 'rgb(147, 51, 234)',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 12,
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            borderColor: 'rgb(147, 51, 234)',
+            borderWidth: 1,
+            displayColors: false,
+            callbacks: {
+              label: function(context) {
+                return 'Score: ' + context.parsed.y + ' points';
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            },
+            ticks: {
+              color: 'rgba(255, 255, 255, 0.7)',
+              maxRotation: 45,
+              minRotation: 45
+            }
+          },
+          y: {
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            },
+            ticks: {
+              color: 'rgba(255, 255, 255, 0.7)',
+              stepSize: 10
+            },
+            beginAtZero: false
+          }
+        }
+      }
+    });
+    
+    // Cleanup
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+      }
+    };
+  }, [history, period]);
+  
+  return (
+    <div style={{ height: '300px', position: 'relative' }}>
+      <canvas ref={canvasRef}></canvas>
+    </div>
+  );
+};
           // PAGE D'ACCUEIL - CHOIX DU TYPE D'UTILISATEUR
           if (currentView === 'home') {
             return (
