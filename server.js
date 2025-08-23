@@ -995,6 +995,139 @@ app.post('/api/reset-monthly', (req, res) => {
   }
 });
 
+// Récupérer les données de progression d'un joueur
+app.get('/api/progression/:playerName', (req, res) => {
+  try {
+    const { playerName } = req.params;
+    const { days = 30 } = req.query; // Par défaut 30 jours
+    
+    // Récupérer l'historique sur la période demandée
+    let query;
+    let params;
+    
+    if (days === 'all') {
+      // Tout l'historique
+      query = `
+        SELECT 
+          DATE(timestamp) as date,
+          SUM(points) as daily_points,
+          MAX(new_total) as end_score,
+          COUNT(*) as actions_count,
+          SUM(CASE WHEN points > 0 THEN points ELSE 0 END) as positive_points,
+          SUM(CASE WHEN points < 0 THEN points ELSE 0 END) as negative_points
+        FROM history 
+        WHERE player_name = ?
+        GROUP BY DATE(timestamp)
+        ORDER BY date ASC
+      `;
+      params = [playerName];
+    } else {
+      // Période spécifique
+      query = `
+        SELECT 
+          DATE(timestamp) as date,
+          SUM(points) as daily_points,
+          MAX(new_total) as end_score,
+          COUNT(*) as actions_count,
+          SUM(CASE WHEN points > 0 THEN points ELSE 0 END) as positive_points,
+          SUM(CASE WHEN points < 0 THEN points ELSE 0 END) as negative_points
+        FROM history 
+        WHERE player_name = ? 
+          AND DATE(timestamp) >= DATE('now', '-' || ? || ' days')
+        GROUP BY DATE(timestamp)
+        ORDER BY date ASC
+      `;
+      params = [playerName, days];
+    }
+    
+    const progressionData = db.prepare(query).all(...params);
+    
+    // Obtenir le score initial (premier score avant la période)
+    let initialScore = 0;
+    if (days !== 'all' && progressionData.length > 0) {
+      const firstDateQuery = `
+        SELECT new_total - points as initial_score
+        FROM history
+        WHERE player_name = ?
+          AND DATE(timestamp) = ?
+        ORDER BY id ASC
+        LIMIT 1
+      `;
+      const firstEntry = db.prepare(firstDateQuery).get(playerName, progressionData[0].date);
+      if (firstEntry) {
+        initialScore = firstEntry.initial_score;
+      }
+    }
+    
+    // Calculer les scores cumulés
+    let cumulativeScore = initialScore;
+    const processedData = progressionData.map(day => {
+      cumulativeScore += day.daily_points;
+      return {
+        ...day,
+        cumulative_score: cumulativeScore
+      };
+    });
+    
+    // Ajouter les dates manquantes pour avoir une ligne continue
+    if (processedData.length > 0 && days !== 'all') {
+      const filledData = [];
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - parseInt(days));
+      
+      let currentScore = initialScore;
+      for (let d = new Date(startDate); d <= new Date(); d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        const existingData = processedData.find(item => item.date === dateStr);
+        
+        if (existingData) {
+          filledData.push(existingData);
+          currentScore = existingData.cumulative_score;
+        } else {
+          // Jour sans activité
+          filledData.push({
+            date: dateStr,
+            daily_points: 0,
+            end_score: currentScore,
+            cumulative_score: currentScore,
+            actions_count: 0,
+            positive_points: 0,
+            negative_points: 0
+          });
+        }
+      }
+      
+      res.json({
+        playerName,
+        period: days,
+        initialScore,
+        data: filledData,
+        summary: {
+          totalPoints: filledData[filledData.length - 1]?.cumulative_score - initialScore || 0,
+          totalActions: filledData.reduce((sum, d) => sum + d.actions_count, 0),
+          activeDays: filledData.filter(d => d.actions_count > 0).length
+        }
+      });
+    } else {
+      res.json({
+        playerName,
+        period: days,
+        initialScore,
+        data: processedData,
+        summary: {
+          totalPoints: processedData[processedData.length - 1]?.cumulative_score - initialScore || 0,
+          totalActions: processedData.reduce((sum, d) => sum + d.actions_count, 0),
+          activeDays: processedData.filter(d => d.actions_count > 0).length
+        }
+      });
+    }
+    
+  } catch (error) {
+    console.error('Erreur lors de la récupération de la progression:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Servir l'application React
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
