@@ -288,7 +288,7 @@
 
         // Composant ProgressionChart
 const ProgressionChart = ({ playerName, onClose }) => {
-    const ProgressionChart = ({ playerName, onClose }) => {
+  console.log("ProgressionChart component loaded for:", playerName); 
   const [chartData, setChartData] = useState(null);
   const [period, setPeriod] = useState('30'); // Par défaut 30 jours
   const [loading, setLoading] = useState(true);
