@@ -107,83 +107,173 @@
 
         // Définition des badges individuels
         const individualBadges = {
-          firstBlood: {
-            id: 'first_blood',
-            name: 'Premier Sang',
-            emoji: '🩸',
-            description: 'Premier point de la saison',
-            points: 5,
-            rarity: 'common'
-          },
-          perfectWeek: {
-            id: 'perfect_week',
-            name: 'Semaine Parfaite',
-            emoji: '✨',
-            description: 'Aucun point négatif sur une semaine',
-            points: 10,
-            rarity: 'rare'
-          },
-          comeback: {
-            id: 'comeback',
-            name: 'Comeback Kid',
-            emoji: '🔄',
-            description: 'Revenir de -10 points à positif',
-            points: 15,
-            rarity: 'epic'
-          },
-          champion: {
-            id: 'champion',
-            name: 'Champion',
-            emoji: '👑',
-            description: 'Finir 1er du classement général',
-            points: 25,
-            rarity: 'legendary'
-          },
-          hardworker: {
-            id: 'hardworker_badge',
-            name: 'Travailleur Acharné',
-            emoji: '💪',
-            description: '5 Hardworker obtenus',
-            points: 20,
-            rarity: 'epic'
-          },
-            hotStreak: {
-            id: 'hot_streak',
-            name: 'Hot Streak',
-            emoji: '🔥',
-            description: '5 actions positives d\'affilée',
-            points: 5,
-            rarity: 'bronze'
-          },
-        };
+  // === SÉRIES (4 badges) ===
+  hotStreak: {
+    id: 'hot_streak',
+    name: 'Hot Streak',
+    emoji: '🔥',
+    description: '5 actions positives d\'affilée',
+    points: 5,
+    rarity: 'bronze'
+  },
+  tsunami: {
+    id: 'tsunami',
+    name: 'Tsunami',
+    emoji: '🌊',
+    description: '10 actions positives d\'affilée',
+    points: 10,
+    rarity: 'argent'
+  },
+  unstoppable: {
+    id: 'unstoppable',
+    name: 'Unstoppable',
+    emoji: '🚀',
+    description: '15 actions positives d\'affilée',
+    points: 20,
+    rarity: 'or'
+  },
+  onFire: {
+    id: 'on_fire',
+    name: 'On Fire',
+    emoji: '💪',
+    description: '2 Hardworker en 2 semaines',
+    points: 10,
+    rarity: 'argent'
+  },
+  
+  // === PERSÉVÉRANCE (2 badges) ===
+  phoenix: {
+    id: 'phoenix',
+    name: 'Phoenix',
+    emoji: '🦅',
+    description: 'Remonter de -50 à +50 points',
+    points: 20,
+    rarity: 'or'
+  },
+  marathonRunner: {
+    id: 'marathon_runner',
+    name: 'Marathon Runner',
+    emoji: '🏃',
+    description: 'Actions positives 5 jours consécutifs',
+    points: 5,
+    rarity: 'bronze'
+  },
+  
+  // === SOCIAUX/ÉQUIPE (3 badges) ===
+  teamCaptain: {
+    id: 'team_captain',
+    name: 'Team Captain',
+    emoji: '👑',
+    description: 'Meilleur de sa franchise pendant 1 semaine',
+    points: 10,
+    rarity: 'argent'
+  },
+  veteran: {
+    id: 'veteran',
+    name: 'Veteran',
+    emoji: '🎖️',
+    description: 'Top 3 de sa franchise pendant 2 mois',
+    points: 20,
+    rarity: 'or'
+  },
+  teamPlayer: {
+    id: 'team_player',
+    name: 'Team Player',
+    emoji: '🤝',
+    description: 'Sa franchise gagne le + de points en 1 semaine',
+    points: 5,
+    rarity: 'bronze'
+  },
+  
+  // === SPÉCIAUX & RARES (3 badges) ===
+  showtime: {
+    id: 'showtime',
+    name: 'Showtime',
+    emoji: '🎪',
+    description: 'Recevoir Félicitations 3 fois',
+    points: 35,
+    rarity: 'diamant'
+  },
+  halloweenSpirit: {
+    id: 'halloween_spirit',
+    name: 'Halloween Spirit',
+    emoji: '🎃',
+    description: '3 Actions positives semaine Halloween',
+    points: 50,
+    rarity: 'legendaire'
+  },
+  christmasMagic: {
+    id: 'christmas_magic',
+    name: 'Christmas Magic',
+    emoji: '🎄',
+    description: 'Actions positives pendant les fêtes',
+    points: 50,
+    rarity: 'legendaire'
+  }
+};
 
-        // Définition des badges collectifs
-        const collectiveBadges = {
-          teamSpirit: {
-            id: 'team_spirit',
-            name: 'Esprit d\'équipe',
-            emoji: '🤝',
-            description: 'Tous les joueurs au-dessus de 0 points',
-            points: 50,
-            rarity: 'rare'
-          },
-          domination: {
-            id: 'domination',
-            name: 'Domination',
-            emoji: '🏆',
-            description: '100 points d\'avance sur la 2e franchise',
-            points: 100,
-            rarity: 'legendary'
-          },
-          unity: {
-            id: 'unity',
-            name: 'Unité',
-            emoji: '🔗',
-            description: 'Aucun joueur avec des points négatifs',
-            points: 30,
-            rarity: 'epic'
-          }
-        };
+       const collectiveBadges = {
+
+  // === PERFORMANCES (4 badges) ===
+  rocketLaunch: {
+    id: 'rocket_launch',
+    name: 'Rocket Launch',
+    emoji: '🚀',
+    description: '+80 points collectifs en 1 semaine',
+    points: 20,
+    rarity: 'bronze'
+  },
+  tidalWave: {
+    id: 'tidal_wave',
+    name: 'Tidal Wave',
+    emoji: '🌊',
+    description: '+200 points collectifs en 1 mois',
+    points: 100,
+    rarity: 'or'
+  },
+  lightningStrike: {
+    id: 'lightning_strike',
+    name: 'Lightning Strike',
+    emoji: '⚡',
+    description: 'Tous les membres gagnent points même jour',
+    points: 20,
+    rarity: 'bronze'
+  },
+  houseOnFire: {
+    id: 'house_on_fire',
+    name: 'House on Fire',
+    emoji: '🔥',
+    description: '80% membres actions positives en 1 semaine',
+    points: 50,
+    rarity: 'argent'
+  },
+  
+  // === SOLIDARITÉ (4 badges) ===
+  unitedWeStand: {
+    id: 'united_we_stand',
+    name: 'United We Stand',
+    emoji: '🤝',
+    description: 'Aucun membre négatif pendant 2 semaines',
+    points: 50,
+    rarity: 'argent'
+  },
+  perfectBalance: {
+    id: 'perfect_balance',
+    name: 'Perfect Balance',
+    emoji: '⚖️',
+    description: 'Tous membres entre 25-75 points',
+    points: 100,
+    rarity: 'or'
+  },
+  harmony: {
+    id: 'harmony',
+    name: 'Harmony',
+    emoji: '🌈',
+    description: 'Écart <50 points entre 1er et dernier',
+    points: 50,
+    rarity: 'argent'
+  }
+};
 
         // Fonction pour obtenir la couleur selon la rareté
         const getRarityColor = (rarity) => {
