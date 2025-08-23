@@ -1203,7 +1203,24 @@
                           <div className="text-5xl font-bold text-white">{foundPlayer.score} points</div>
                         </div>
                       </div>
-
+{foundPlayer.badges && foundPlayer.badges.length > 0 && (
+  <div className="mt-6 bg-white/10 backdrop-blur-sm rounded-xl p-6">
+    <h4 className="text-2xl font-bold text-white mb-4 text-center">
+      🏅 Mes Badges ({foundPlayer.badges.length})
+    </h4>
+    <div className="flex flex-wrap gap-3 justify-center">
+      {foundPlayer.badges.map((badge, index) => (
+        <div key={index} className="bg-black/30 px-4 py-3 rounded-lg flex items-center gap-2 hover:bg-black/50 transition-colors">
+          <span className="text-3xl">{badge.badge_emoji}</span>
+          <div>
+            <div className="text-white font-bold">{badge.badge_name}</div>
+            <div className="text-yellow-300 text-xs">+{badge.points || 0} pts</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
                       <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
                         <h3 className="text-2xl font-bold text-white mb-6 text-center">
                           📋 Mon Historique
