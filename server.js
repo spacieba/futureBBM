@@ -465,6 +465,40 @@ const checkIndividualBadges = (playerName) => {
     }
   }
 };
+// Fonction pour recalculer tous les badges d'un joueur lors d'une annulation
+const recalculatePlayerBadges = (playerName) => {
+  const player = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
+  const stats = db.prepare('SELECT * FROM player_stats WHERE player_name = ?').get(playerName);
+  
+  if (!player || !stats) return;
+  
+  // Supprimer tous les badges existants
+  db.prepare('DELETE FROM player_badges WHERE player_name = ?').run(playerName);
+  
+  // Recalculer selon les conditions actuelles
+  Object.values(BADGES.individual).forEach(badge => {
+    if (badge.condition && badge.condition(stats, player)) {
+      // Réattribuer le badge SANS ajouter les points
+      const insertBadge = db.prepare(`
+        INSERT INTO player_badges (player_name, badge_id, badge_name, badge_emoji, points, rarity, date_earned)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+      
+      insertBadge.run(
+        playerName, 
+        badge.id, 
+        badge.name, 
+        badge.emoji,
+        0, // 0 points car on ne veut pas re-ajouter les points
+        badge.rarity,
+        new Date().toISOString()
+      );
+    }
+  });
+  
+  console.log(`♻️ Badges recalculés pour ${playerName}`);
+};
+
 
 // Vérifier les badges collectifs
 const checkCollectiveBadges = (franchise) => {
