@@ -313,7 +313,7 @@ const ProgressionChart = ({ playerName, onClose }) => {
 
   // Créer le graphique
   const createChart = (data) => {
-    const ctx = document.getElementById('progressionChart').getContext('2d');
+    const ctx = document.getElementById('playerProgressionChart').getContext('2d');
     
     // Détruire l'ancien graphique s'il existe
     if (chartInstance) {
@@ -519,7 +519,7 @@ const ProgressionChart = ({ playerName, onClose }) => {
         ) : (
           <>
             <div className="bg-gray-50 p-4 rounded-lg" style={{ height: '400px' }}>
-              <canvas id="progressionChart"></canvas>
+              <canvas id="playerProgressionChart"></canvas>
             </div>
             
             {/* Statistiques résumées */}
