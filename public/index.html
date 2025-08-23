@@ -607,6 +607,7 @@ const ProgressionChart = ({ playerName, onClose }) => {
           const [searchName, setSearchName] = useState('');
           const [foundPlayer, setFoundPlayer] = useState(null);
           const [searchHistory, setSearchHistory] = useState([]);
+          const [graphPeriod, setGraphPeriod] = useState('15days'); // '15days', '3months', ou 'all'
           const [showEvolutionChart, setShowEvolutionChart] = useState(false);
           const [chartData, setChartData] = useState(null);
           const [chartType, setChartType] = useState('player');
@@ -953,7 +954,78 @@ const openProgressionChart = (playerName) => {
           const getGeneralPlayerRankings = () => {
             return [...players].sort((a, b) => b.score - a.score);
           };
-
+// Fonction pour filtrer l'historique selon la période sélectionnée
+const filterHistoryByPeriod = (history, period) => {
+  if (!history || history.length === 0) return [];
+  
+  const now = new Date();
+  let startDate;
+  
+  switch(period) {
+    case '15days':
+      startDate = new Date(now);
+      startDate.setDate(startDate.getDate() - 15);
+      break;
+    case '3months':
+      startDate = new Date(now);
+      startDate.setMonth(startDate.getMonth() - 3);
+      break;
+    case 'all':
+      return history; // Retourner tout l'historique
+    default:
+      return history;
+  }
+  
+  // Filtrer les entrées après la date de début
+  return history.filter(entry => {
+    // Convertir le format français en format Date
+    const parts = entry.timestamp.split(/[\s,:/]+/);
+    const entryDate = new Date(
+      parseInt(parts[2]), // année
+      parseInt(parts[1]) - 1, // mois (0-indexé)
+      parseInt(parts[0]), // jour
+      parseInt(parts[3] || 0), // heures
+      parseInt(parts[4] || 0) // minutes
+    );
+    return entryDate >= startDate;
+  });
+};
+            // Fonction pour filtrer l'historique selon la période sélectionnée
+const filterHistoryByPeriod = (history, period) => {
+  if (!history || history.length === 0) return [];
+  
+  const now = new Date();
+  let startDate;
+  
+  switch(period) {
+    case '15days':
+      startDate = new Date(now);
+      startDate.setDate(startDate.getDate() - 15);
+      break;
+    case '3months':
+      startDate = new Date(now);
+      startDate.setMonth(startDate.getMonth() - 3);
+      break;
+    case 'all':
+      return history; // Retourner tout l'historique
+    default:
+      return history;
+  }
+  
+  // Filtrer les entrées après la date de début
+  return history.filter(entry => {
+    // Convertir le format français en format Date
+    const parts = entry.timestamp.split(/[\s,:/]+/);
+    const entryDate = new Date(
+      parseInt(parts[2]), // année
+      parseInt(parts[1]) - 1, // mois (0-indexé)
+      parseInt(parts[0]), // jour
+      parseInt(parts[3] || 0), // heures
+      parseInt(parts[4] || 0) // minutes
+    );
+    return entryDate >= startDate;
+  });
+};
           // PAGE D'ACCUEIL - CHOIX DU TYPE D'UTILISATEUR
           if (currentView === 'home') {
             return (
@@ -1611,6 +1683,52 @@ const openProgressionChart = (playerName) => {
     </div>
   </div>
 )}
+                        {/* SECTION GRAPHIQUE DE PROGRESSION */}
+<div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+  <h3 className="text-2xl font-bold text-white mb-4 text-center">
+    📈 Ma Progression
+  </h3>
+  
+  {/* Boutons de sélection de période */}
+  <div className="flex justify-center gap-2 mb-4">
+    <button
+      onClick={() => setGraphPeriod('15days')}
+      className={`px-4 py-2 rounded-lg transition-colors ${
+        graphPeriod === '15days' 
+          ? 'bg-purple-600 text-white' 
+          : 'bg-white/20 text-white/70 hover:bg-white/30'
+      }`}
+    >
+      15 jours
+    </button>
+    <button
+      onClick={() => setGraphPeriod('3months')}
+      className={`px-4 py-2 rounded-lg transition-colors ${
+        graphPeriod === '3months' 
+          ? 'bg-purple-600 text-white' 
+          : 'bg-white/20 text-white/70 hover:bg-white/30'
+      }`}
+    >
+      3 mois
+    </button>
+    <button
+      onClick={() => setGraphPeriod('all')}
+      className={`px-4 py-2 rounded-lg transition-colors ${
+        graphPeriod === 'all' 
+          ? 'bg-purple-600 text-white' 
+          : 'bg-white/20 text-white/70 hover:bg-white/30'
+      }`}
+    >
+      Tout
+    </button>
+  </div>
+  
+  {/* Le graphique */}
+  <ProgressChart 
+    history={filterHistoryByPeriod(searchHistory, graphPeriod)} 
+    period={graphPeriod} 
+  />
+</div>
                       <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
                         <h3 className="text-2xl font-bold text-white mb-6 text-center">
                           📋 Mon Historique
