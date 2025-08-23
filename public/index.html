@@ -618,6 +618,7 @@ const [showProgressionChart, setShowProgressionChart] = useState(false);
 const [selectedChartPlayer, setSelectedChartPlayer] = useState(null);
           // Fonction pour ouvrir le graphique
 const openProgressionChart = (playerName) => {
+  console.log("Opening chart for:", playerName); // Pour debug
   setSelectedChartPlayer(playerName);
   setShowProgressionChart(true);
 };
