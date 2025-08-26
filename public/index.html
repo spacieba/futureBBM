@@ -975,28 +975,60 @@
                                 {/* Affichage des badges */}
                                   {console.log('Player:', player.name, 'Badges:', player.badges)}
                                 <BadgeDisplay badges={player.badges || []} />
-<div className="mt-2">
-  <button
-    onClick={() => {
-      setSelectedPlayerForAction(player);
-      setShowActionModal(true);
-    }}
-    className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded flex justify-between items-center transition-colors"
-    disabled={loading}
-  >
-    <span>Actions</span>
-    <span>→</span>
-  </button>
-</div>
+<div className="relative">
+                                  <button
+                                    onClick={() => setExpandedDropdown(expandedDropdown === player.name ? null : player.name)}
+                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded flex justify-between items-center transition-colors"
+                                    disabled={loading}
+                                  >
+                                    <span>Actions</span>
+                                    <span>{expandedDropdown === player.name ? '⌃' : '⌄'}</span>
+                                  </button>
+                                  
+                                  {expandedDropdown === player.name && (
+                                    <div className="absolute top-full left-0 right-0 bg-white rounded-lg shadow-xl z-10 mt-1 max-h-64 overflow-y-auto">
+                                      <div className="p-2">
+                                        <div className="text-green-700 font-semibold mb-2">Points positifs:</div>
+                                        {positiveActions.map((action, index) => (
+                                          <button
+                                            key={`pos-${index}`}
+                                            onClick={() => addPoints(player.name, action.points, action.label)}
+                                            className="w-full text-left px-3 py-2 hover:bg-green-100 rounded text-sm flex justify-between"
+                                            disabled={loading}
+                                          >
+                                            <span>{action.label}</span>
+                                            <span className="text-green-600 font-bold">+{action.points}</span>
+                                          </button>
+                                        ))}
+                                        
+                                        <div className="text-red-700 font-semibold mb-2 mt-3">Points négatifs:</div>
+                                        {negativeActions.map((action, index) => (
+                                          <button
+                                            key={`neg-${index}`}
+                                            onClick={() => addPoints(player.name, action.points, action.label)}
+                                            className="w-full text-left px-3 py-2 hover:bg-red-100 rounded text-sm flex justify-between"
+                                            disabled={loading}
+                                          >
+                                            <span>{action.label}</span>
+                                            <span className="text-red-600 font-bold">{action.points}</span>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      );
-    })}
-  </div>
-</div>
+            );
+          }
+
                 {showActionModal && selectedPlayerForAction && (
   <div className="fixed inset-0 bg-black/90 z-50 flex flex-col">
     {/* Header fixe */}
