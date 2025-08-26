@@ -286,21 +286,30 @@ const individualBadges = {
           }
         };
 
-        // Composant BadgeDisplay
-        const BadgeDisplay = ({ badges }) => {
+        // Composant BadgeDisplay corrigé
+const BadgeDisplay = ({ badges }) => {
   if (!badges || badges.length === 0) return null;
   
   return (
     <div className="flex flex-wrap gap-1 mt-2">
-      {badges.map((badge, index) => (
-        <span 
-          key={badge.badge_id || badge.id || index} 
-          className="text-xl" 
-          title={`${badge.badge_name || badge.name} - ${badge.description || ''}`}
-        >
-          {badge.badge_emoji || badge.emoji || '🏅'}
-        </span>
-      ))}
+      {badges.map((badge, index) => {
+        // Gérer les différents formats de badges
+        const badgeId = badge.badge_id || badge.id;
+        const badgeName = badge.badge_name || badge.name;
+        const badgeEmoji = badge.badge_emoji || badge.emoji;
+        const badgeDescription = badge.description || '';
+        const badgePoints = badge.points || 0;
+        
+        return (
+          <span 
+            key={badgeId || index} 
+            className="text-xl cursor-help" 
+            title={`${badgeName} - ${badgeDescription} (+${badgePoints} pts)`}
+          >
+            {badgeEmoji || '🏅'}
+          </span>
+        );
+      })}
     </div>
   );
 };
