@@ -981,20 +981,7 @@
 >
   Attribuer des points
 </button>
-                     </div>
-                              </div>
-                            ))}  
-                         </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            );
-              {console.log('selectedPlayer dans le modal:', selectedPlayer)}
-{selectedPlayer && (
-                            {selectedPlayer && (
+                                          {selectedPlayer && (
   <div className="fixed inset-0 bg-gray-100 z-50 overflow-y-auto">
     {/* Header */}
     <div className="bg-white shadow-md p-4 sticky top-0">
@@ -1079,6 +1066,17 @@
     </div>
   </div>
 )}
+    </div>
+                              </div>
+                            ))}  
+                         </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
                }
           // ADMINISTRATION PROFESSEUR
           if (currentView === 'teacher-admin') {
