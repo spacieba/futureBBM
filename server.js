@@ -837,13 +837,24 @@ app.delete('/api/undo-last/:playerName', (req, res) => {
           WHERE player_name = ?
         `).run(playerName);
       }
-      // Si on annule un Hardworker, décrémenter le compteur
-if (lastAction.action === 'Hardworker') {
-  db.prepare(`
-    UPDATE player_stats 
-    SET hardworker_count = CASE WHEN hardworker_count > 0 THEN hardworker_count - 1 ELSE 0 END
-    WHERE player_name = ?
-  `).run(playerName);
+     // Si on annule un Hardworker, décrémenter le compteur
+if (lastAction.action.includes('Hardworker')) {
+  const stats = db.prepare('SELECT * FROM player_stats WHERE player_name = ?').get(playerName);
+  if (stats) {
+    const hardworkerDates = JSON.parse(stats.hardworker_dates || '[]');
+    
+    // Supprimer la dernière date Hardworker
+    if (hardworkerDates.length > 0) {
+      hardworkerDates.pop();
+    }
+    
+    db.prepare(`
+      UPDATE player_stats 
+      SET hardworker_count = CASE WHEN hardworker_count > 0 THEN hardworker_count - 1 ELSE 0 END,
+          hardworker_dates = ?
+      WHERE player_name = ?
+    `).run(JSON.stringify(hardworkerDates), playerName);
+  }
 }
       
       const player = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
