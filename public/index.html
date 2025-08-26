@@ -723,7 +723,7 @@ const BadgeDisplay = ({ badges }) => {
           };
 
           // PAGE D'ACCUEIL - CHOIX DU TYPE D'UTILISATEUR
-          // Page d'accueil optimisée mobile - remplace la condition if (currentView === 'home')
+          // Page d'accueil avec logo - remplace votre condition if (currentView === 'home')
 if (currentView === 'home') {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden">
@@ -745,106 +745,86 @@ if (currentView === 'home') {
         ))}
       </div>
 
-      {/* Container principal avec padding mobile */}
+      {/* Container principal */}
       <div className="px-4 py-6 md:px-8 md:py-8 relative z-10">
         <div className="max-w-4xl mx-auto">
           
-          {/* Header compact mobile */}
+          {/* Logo centré */}
           <div className="text-center mb-8">
-            {/* Icons animés en ligne sur mobile */}
-            <div className="flex justify-center items-center space-x-2 mb-4">
-              <div className="text-3xl md:text-5xl animate-bounce">🏀</div>
-              <div className="text-3xl md:text-5xl animate-bounce" style={{animationDelay: '0.2s'}}>📚</div>
-              <div className="text-3xl md:text-5xl animate-bounce" style={{animationDelay: '0.4s'}}>🏆</div>
+            <div className="inline-block mb-6">
+              <img 
+                src="/gp basketblanc .png"
+                alt="Gerard Philipe Basketball" 
+                className="w-32 h-32 md:w-48 md:h-48 lg:w-56 lg:h-56 mx-auto drop-shadow-2xl hover:scale-105 transition-transform duration-300"
+              />
             </div>
             
-            {/* Titre responsive */}
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-3 leading-tight">
-              Gestion Scolaire
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 text-2xl md:text-4xl lg:text-5xl">
-                & Sportive
-              </span>
-            </h1>
+            {/* No Pain No Gain - Citation principale */}
+            <div className="mb-6">
+              <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-pink-500 to-orange-600 mb-2 tracking-tight">
+                "NO PAIN NO GAIN"
+              </h1>
+              <p className="text-lg md:text-xl text-white/90 font-semibold">
+                Notre cri de guerre
+              </p>
+            </div>
             
-            <p className="text-base md:text-xl text-purple-200 mb-6 px-2">
-              Un système de motivation pour vos élèves
+            {/* Citation du jour */}
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-8 border border-white/20">
+              <p className="text-sm text-orange-300 font-semibold mb-1">Citation du jour</p>
+              <p className="text-white text-base md:text-lg italic">
+                {(() => {
+                  const quotes = [
+                    "Hard work beats talent when talent refuses to work hard.",
+                    "Every practice is a chance to get closer to your best self.",
+                    "Success looks easy on game day, but it's built behind closed doors in sweat and silence.",
+                    "Discipline is choosing what you want most, over what you want now.",
+                    "Greatness is never given, it's earned in hours nobody sees.",
+                    "Stay humble in victory, stay hungry in defeat.",
+                    "The scoreboard doesn't lie, but neither does the effort you gave to get there.",
+                    "Respect the game, respect your opponents, but never stop believing in your own grind.",
+                    "Confidence comes from preparation, not from talking.",
+                    "The best players never act like they're bigger than the team.",
+                    "Champions are built from resilience, not comfort.",
+                    "Failing is part of learning; quitting is not an option.",
+                    "Pain is temporary, but quitting lasts forever.",
+                    "Pressure is a privilege — it means you've earned the right to compete.",
+                    "If you fall ten times, stand up eleven.",
+                    "Don't chase trophies, chase growth — the trophies will follow.",
+                    "Dreams don't come true without sweat as their foundation.",
+                    "Your body is pulled by fatigue, but your mind decides the limit.",
+                    "Leaders aren't born in the spotlight, they are forged in the unseen grind.",
+                    "Believe in the work you've put in — the results will eventually speak for you."
+                  ];
+                  const today = new Date().getDate();
+                  return quotes[today % quotes.length];
+                })()}
+              </p>
+            </div>
+            
+            {/* Sous-titre explicatif */}
+            <p className="text-base md:text-lg text-purple-200 mb-8 max-w-2xl mx-auto">
+              Système de motivation scolaire et sportive pour nos champions
             </p>
           </div>
 
-          {/* Section info compacte */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 md:p-6 mb-6">
-            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 text-center">
-              3 piliers du système
-            </h2>
-            
-            {/* Grid vertical sur mobile */}
-            <div className="space-y-4 md:grid md:grid-cols-3 md:gap-4 md:space-y-0">
-              <div className="flex items-center md:flex-col md:text-center space-x-3 md:space-x-0 p-3 bg-white/5 rounded-lg">
-                <div className="text-3xl md:text-4xl md:mb-2 flex-shrink-0">🏀</div>
-                <div>
-                  <h3 className="font-bold text-white text-sm md:text-base">Actions Basketball</h3>
-                  <p className="text-white/70 text-xs md:text-sm">Entraînements et matchs</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center md:flex-col md:text-center space-x-3 md:space-x-0 p-3 bg-white/5 rounded-lg">
-                <div className="text-3xl md:text-4xl md:mb-2 flex-shrink-0">📚</div>
-                <div>
-                  <h3 className="font-bold text-white text-sm md:text-base">Actions Scolaires</h3>
-                  <p className="text-white/70 text-xs md:text-sm">Travaux et comportement</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center md:flex-col md:text-center space-x-3 md:space-x-0 p-3 bg-white/5 rounded-lg">
-                <div className="text-3xl md:text-4xl md:mb-2 flex-shrink-0">🏆</div>
-                <div>
-                  <h3 className="font-bold text-white text-sm md:text-base">Récompenses</h3>
-                  <p className="text-white/70 text-xs md:text-sm">Badges et classements</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Stats compactes en grille 2x2 sur mobile */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <div className="bg-gradient-to-r from-green-600 to-green-800 p-3 rounded-lg text-center">
-              <div className="text-xl md:text-2xl font-bold text-white">
-                {players.length || 36}
-              </div>
-              <div className="text-green-100 text-xs md:text-sm">Élèves</div>
-            </div>
-            <div className="bg-gradient-to-r from-blue-600 to-blue-800 p-3 rounded-lg text-center">
-              <div className="text-xl md:text-2xl font-bold text-white">4</div>
-              <div className="text-blue-100 text-xs md:text-sm">Franchises</div>
-            </div>
-            <div className="bg-gradient-to-r from-purple-600 to-purple-800 p-3 rounded-lg text-center">
-              <div className="text-xl md:text-2xl font-bold text-white">15+</div>
-              <div className="text-purple-100 text-xs md:text-sm">Badges</div>
-            </div>
-            <div className="bg-gradient-to-r from-orange-600 to-orange-800 p-3 rounded-lg text-center">
-              <div className="text-xl md:text-2xl font-bold text-white">13</div>
-              <div className="text-orange-100 text-xs md:text-sm">Grades</div>
-            </div>
-          </div>
-
-          {/* Boutons d'accès - Stack sur mobile */}
-          <div className="space-y-4 md:grid md:grid-cols-2 md:gap-6 md:space-y-0">
+          {/* Boutons d'accès redesignés avec glassmorphism */}
+          <div className="space-y-4 md:grid md:grid-cols-2 md:gap-6 md:space-y-0 max-w-3xl mx-auto">
             
             {/* Bouton Professeur */}
             <button
               onClick={() => setCurrentView('teacher-login')}
-              className="w-full group relative overflow-hidden bg-gradient-to-r from-emerald-600 to-emerald-800 active:from-emerald-700 active:to-emerald-900 text-white rounded-xl shadow-lg transform active:scale-95 md:hover:scale-105 transition-all duration-200 touch-manipulation"
+              className="w-full group relative overflow-hidden backdrop-blur-md bg-white/10 border border-white/20 hover:bg-white/15 active:bg-white/20 text-white rounded-2xl shadow-2xl transform active:scale-95 md:hover:scale-105 transition-all duration-300 touch-manipulation"
             >
-              <div className="absolute inset-0 bg-white opacity-0 group-active:opacity-10 md:group-hover:opacity-10 transition-opacity duration-200"></div>
-              <div className="relative z-10 p-6">
-                {/* Layout horizontal sur mobile */}
-                <div className="flex items-center space-x-4 md:flex-col md:space-x-0 md:space-y-3">
-                  <div className="text-4xl md:text-5xl flex-shrink-0">👨‍🏫</div>
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10 p-6 md:p-8">
+                <div className="flex items-center space-x-4 md:flex-col md:space-x-0 md:space-y-4">
+                  <div className="text-4xl md:text-6xl flex-shrink-0 group-hover:scale-110 transition-transform duration-300">👨‍🏫</div>
                   <div className="text-left md:text-center">
-                    <h2 className="text-xl md:text-2xl font-bold mb-1">PROFESSEUR</h2>
-                    <p className="text-emerald-100 text-sm mb-2">Gestion complète</p>
-                    <div className="inline-flex items-center bg-emerald-800/50 px-3 py-1 rounded-full">
-                      <span className="text-xs text-emerald-200">🔐 Accès sécurisé</span>
+                    <h2 className="text-xl md:text-3xl font-bold mb-2 text-emerald-200">PROFESSEUR</h2>
+                    <p className="text-white/80 text-sm md:text-base mb-3">Gestion complète du système</p>
+                    <div className="inline-flex items-center bg-emerald-900/40 backdrop-blur-sm px-4 py-2 rounded-full border border-emerald-500/30">
+                      <span className="text-xs md:text-sm text-emerald-300 font-semibold">🔐 Accès sécurisé</span>
                     </div>
                   </div>
                 </div>
@@ -857,18 +837,17 @@ if (currentView === 'home') {
                 setUserType('student');
                 setCurrentView('student-dashboard');
               }}
-              className="w-full group relative overflow-hidden bg-gradient-to-r from-amber-600 to-amber-800 active:from-amber-700 active:to-amber-900 text-white rounded-xl shadow-lg transform active:scale-95 md:hover:scale-105 transition-all duration-200 touch-manipulation"
+              className="w-full group relative overflow-hidden backdrop-blur-md bg-white/10 border border-white/20 hover:bg-white/15 active:bg-white/20 text-white rounded-2xl shadow-2xl transform active:scale-95 md:hover:scale-105 transition-all duration-300 touch-manipulation"
             >
-              <div className="absolute inset-0 bg-white opacity-0 group-active:opacity-10 md:group-hover:opacity-10 transition-opacity duration-200"></div>
-              <div className="relative z-10 p-6">
-                {/* Layout horizontal sur mobile */}
-                <div className="flex items-center space-x-4 md:flex-col md:space-x-0 md:space-y-3">
-                  <div className="text-4xl md:text-5xl flex-shrink-0">👨‍🎓</div>
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-pink-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10 p-6 md:p-8">
+                <div className="flex items-center space-x-4 md:flex-col md:space-x-0 md:space-y-4">
+                  <div className="text-4xl md:text-6xl flex-shrink-0 group-hover:scale-110 transition-transform duration-300">👨‍🎓</div>
                   <div className="text-left md:text-center">
-                    <h2 className="text-xl md:text-2xl font-bold mb-1">ÉLÈVE</h2>
-                    <p className="text-amber-100 text-sm mb-2">Voir mes scores</p>
-                    <div className="inline-flex items-center bg-amber-800/50 px-3 py-1 rounded-full">
-                      <span className="text-xs text-amber-200">👁️ Accès libre</span>
+                    <h2 className="text-xl md:text-3xl font-bold mb-2 text-orange-200">ÉLÈVE</h2>
+                    <p className="text-white/80 text-sm md:text-base mb-3">Consultez vos performances</p>
+                    <div className="inline-flex items-center bg-orange-900/40 backdrop-blur-sm px-4 py-2 rounded-full border border-orange-500/30">
+                      <span className="text-xs md:text-sm text-orange-300 font-semibold">👁️ Accès libre</span>
                     </div>
                   </div>
                 </div>
@@ -877,12 +856,12 @@ if (currentView === 'home') {
             
           </div>
 
-          {/* Footer compact */}
-          <div className="mt-8">
-            <div className="bg-white/5 backdrop-blur-sm rounded-lg p-3 text-center">
-              <p className="text-white/70 text-xs">
-                Mis à jour: {new Date().toLocaleDateString('fr-FR')}
-              </p>
+          {/* Footer discret */}
+          <div className="mt-12 text-center">
+            <div className="inline-flex items-center bg-white/5 backdrop-blur-sm rounded-full px-4 py-2 border border-white/10">
+              <span className="text-white/60 text-xs">
+                Mis à jour: {new Date().toLocaleDateString('fr-FR')} • Gérard Philipe Basketball
+              </span>
             </div>
           </div>
           
