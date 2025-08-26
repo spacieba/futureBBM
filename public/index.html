@@ -327,7 +327,7 @@
           const [currentView, setCurrentView] = useState('home');
           const [userType, setUserType] = useState(null);
           const [players, setPlayers] = useState([]);
-          const [expandedDropdown, setExpandedDropdown] = useState(null);
+          const [selectedPlayer, setSelectedPlayer] = useState(null);
           const [selectedPlayerHistory, setSelectedPlayerHistory] = useState(null);
           const [playerHistory, setPlayerHistory] = useState([]);
           const [loading, setLoading] = useState(false);
@@ -347,9 +347,7 @@
           const [playerBadges, setPlayerBadges] = useState({});
           const [franchiseBadges, setFranchiseBadges] = useState({});
           const [notifications, setNotifications] = useState([]);
-          const [showActionModal, setShowActionModal] = useState(false);
-          const [selectedPlayerForAction, setSelectedPlayerForAction] = useState(null);
-          const [actionCategory, setActionCategory] = useState('sport');
+          
           
           // Fonction pour obtenir le grade basketball selon le score
           const getBadge = (score) => {
@@ -977,45 +975,64 @@
                                 <BadgeDisplay badges={player.badges || []} />
 <div className="relative">
                                   <button
-                                    onClick={() => setExpandedDropdown(expandedDropdown === player.name ? null : player.name)}
-                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded flex justify-between items-center transition-colors"
-                                    disabled={loading}
-                                  >
-                                    <span>Actions</span>
-                                    <span>{expandedDropdown === player.name ? '⌃' : '⌄'}</span>
-                                  </button>
+  onClick={() => setSelectedPlayer(player)}
+  className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded"
+  disabled={loading}
+>
+  Attribuer des points
+</button>
                                   
-                                  {expandedDropdown === player.name && (
-                                    <div className="absolute top-full left-0 right-0 bg-white rounded-lg shadow-xl z-10 mt-1 max-h-64 overflow-y-auto">
-                                      <div className="p-2">
-                                        <div className="text-green-700 font-semibold mb-2">Points positifs:</div>
-                                        {positiveActions.map((action, index) => (
-                                          <button
-                                            key={`pos-${index}`}
-                                            onClick={() => addPoints(player.name, action.points, action.label)}
-                                            className="w-full text-left px-3 py-2 hover:bg-green-100 rounded text-sm flex justify-between"
-                                            disabled={loading}
-                                          >
-                                            <span>{action.label}</span>
-                                            <span className="text-green-600 font-bold">+{action.points}</span>
-                                          </button>
-                                        ))}
-                                        
-                                        <div className="text-red-700 font-semibold mb-2 mt-3">Points négatifs:</div>
-                                        {negativeActions.map((action, index) => (
-                                          <button
-                                            key={`neg-${index}`}
-                                            onClick={() => addPoints(player.name, action.points, action.label)}
-                                            className="w-full text-left px-3 py-2 hover:bg-red-100 rounded text-sm flex justify-between"
-                                            disabled={loading}
-                                          >
-                                            <span>{action.label}</span>
-                                            <span className="text-red-600 font-bold">{action.points}</span>
-                                          </button>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
+                                  {selectedPlayer && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-96 overflow-y-auto">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold">
+          Points pour {selectedPlayer.name}
+        </h3>
+        <button
+          onClick={() => setSelectedPlayer(null)}
+          className="text-gray-500 hover:text-gray-700 text-xl"
+        >
+          ×
+        </button>
+      </div>
+      
+      <div className="space-y-3">
+        <div className="text-green-700 font-semibold mb-2">Points positifs:</div>
+        {positiveActions.map((action, index) => (
+          <button
+            key={`pos-${index}`}
+            onClick={() => {
+              addPoints(selectedPlayer.name, action.points, action.label);
+              setSelectedPlayer(null);
+            }}
+            className="w-full text-left px-3 py-2 hover:bg-green-100 rounded text-sm flex justify-between"
+            disabled={loading}
+          >
+            <span>{action.label}</span>
+            <span className="text-green-600 font-bold">+{action.points}</span>
+          </button>
+        ))}
+        
+        <div className="text-red-700 font-semibold mb-2 mt-4">Points négatifs:</div>
+        {negativeActions.map((action, index) => (
+          <button
+            key={`neg-${index}`}
+            onClick={() => {
+              addPoints(selectedPlayer.name, action.points, action.label);
+              setSelectedPlayer(null);
+            }}
+            className="w-full text-left px-3 py-2 hover:bg-red-100 rounded text-sm flex justify-between"
+            disabled={loading}
+          >
+            <span>{action.label}</span>
+            <span className="text-red-600 font-bold">{action.points}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  </div>
+)}
                                 </div>
                               </div>
                             ))}
