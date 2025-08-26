@@ -709,13 +709,13 @@ app.post('/api/add-points', (req, res) => {
         }
         
         // Compter les actions spéciales
-        if (action === 'Félicitations') {
-          updates.felicitations_count++;
-        }
-        if (action === 'Hardworker') {
-          updates.hardworker_count++;
-          updates.hardworker_dates.push(new Date().toISOString());
-        }
+if (action.includes('Félicitations')) {
+  updates.felicitations_count++;
+}
+if (action.includes('Hardworker')) {
+  updates.hardworker_count++;
+  updates.hardworker_dates.push(new Date().toISOString());
+}
         
         // Mettre à jour les consecutive_days
         const today = new Date().toDateString();
