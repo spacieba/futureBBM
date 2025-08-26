@@ -972,45 +972,19 @@
                                 {/* Affichage des badges */}
                                   {console.log('Player:', player.name, 'Badges:', player.badges)}
                                 <BadgeDisplay badges={player.badges || []} />
-                                <div className="relative">
-                                  <button
-                                    onClick={() => setExpandedDropdown(expandedDropdown === player.name ? null : player.name)}
-                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded flex justify-between items-center transition-colors"
-                                    disabled={loading}
-                                  >
-                                    <span>Actions</span>
-                                    <span>{expandedDropdown === player.name ? '⌃' : '⌄'}</span>
-                                  </button>
-                                  
-                                  {expandedDropdown === player.name && (
-                                    <div className="absolute top-full left-0 right-0 bg-white rounded-lg shadow-xl z-10 mt-1 max-h-64 overflow-y-auto">
-                                      <div className="p-2">
-                                        <div className="text-green-700 font-semibold mb-2">Points positifs:</div>
-                                        {positiveActions.map((action, index) => (
-                                          <button
-                                            key={`pos-${index}`}
-                                            onClick={() => addPoints(player.name, action.points, action.label)}
-                                            className="w-full text-left px-3 py-2 hover:bg-green-100 rounded text-sm flex justify-between"
-                                            disabled={loading}
-                                          >
-                                            <span>{action.label}</span>
-                                            <span className="text-green-600 font-bold">+{action.points}</span>
-                                          </button>
-                                        ))}
-                                        
-                                        <div className="text-red-700 font-semibold mb-2 mt-3">Points négatifs:</div>
-                                        {negativeActions.map((action, index) => (
-                                          <button
-                                            key={`neg-${index}`}
-                                            onClick={() => addPoints(player.name, action.points, action.label)}
-                                            className="w-full text-left px-3 py-2 hover:bg-red-100 rounded text-sm flex justify-between"
-                                            disabled={loading}
-                                          >
-                                            <span>{action.label}</span>
-                                            <span className="text-red-600 font-bold">{action.points}</span>
-                                          </button>
-                                        ))}
-                                      </div>
+                              <div className="mt-2">
+  <button
+    onClick={() => {
+      setSelectedPlayerForAction(player);
+      setShowActionModal(true);
+    }}
+    className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded flex justify-between items-center transition-colors"
+    disabled={loading}
+  >
+    <span>Actions</span>
+    <span>→</span>
+  </button>
+</div>
                                     </div>
                                   )}
                                 </div>
@@ -1020,6 +994,261 @@
                         </div>
                       );
                     })}
+                      {showActionModal && selectedPlayerForAction && (
+  <div className="fixed inset-0 bg-black/90 z-50 flex flex-col">
+    {/* Header fixe */}
+    <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 flex justify-between items-center">
+      <div>
+        <h2 className="text-lg font-bold">{selectedPlayerForAction.name}</h2>
+        <p className="text-xs text-blue-100">Score: {selectedPlayerForAction.score} pts</p>
+      </div>
+      <button
+        onClick={() => {
+          setShowActionModal(false);
+          setSelectedPlayerForAction(null);
+        }}
+        className="text-white text-3xl px-2"
+      >
+        ×
+      </button>
+    </div>
+
+    {/* Tabs horizontaux scrollables sur mobile */}
+    <div className="bg-gray-100 border-b flex overflow-x-auto">
+      <button
+        onClick={() => setActionCategory('sport')}
+        className={`px-6 py-3 font-semibold whitespace-nowrap ${
+          actionCategory === 'sport'
+            ? 'bg-white text-blue-600 border-b-2 border-blue-600'
+            : 'text-gray-600'
+        }`}
+      >
+        🏀 Sport
+      </button>
+      <button
+        onClick={() => setActionCategory('academic')}
+        className={`px-6 py-3 font-semibold whitespace-nowrap ${
+          actionCategory === 'academic'
+            ? 'bg-white text-blue-600 border-b-2 border-blue-600'
+            : 'text-gray-600'
+        }`}
+      >
+        📚 Académique
+      </button>
+      <button
+        onClick={() => setActionCategory('bonus')}
+        className={`px-6 py-3 font-semibold whitespace-nowrap ${
+          actionCategory === 'bonus'
+            ? 'bg-white text-blue-600 border-b-2 border-blue-600'
+            : 'text-gray-600'
+        }`}
+      >
+        ⭐ Bonus
+      </button>
+    </div>
+
+    {/* Contenu scrollable */}
+    <div className="flex-1 overflow-y-auto bg-white">
+      {actionCategory === 'sport' && (
+        <div className="p-3">
+          {/* Actions positives Sport */}
+          <div className="mb-6">
+            <h3 className="text-sm font-bold text-green-700 mb-3 sticky top-0 bg-white py-2">
+              ✅ ACTIONS POSITIVES
+            </h3>
+            <div className="space-y-2">
+              {positiveActions
+                .filter(a => a.category === 'sport')
+                .map((action, index) => (
+                  <button
+                    key={`sport-pos-${index}`}
+                    onClick={() => {
+                      addPoints(selectedPlayerForAction.name, action.points, action.label);
+                      setShowActionModal(false);
+                    }}
+                    className="w-full text-left p-4 bg-green-50 active:bg-green-200 rounded-lg flex justify-between items-center"
+                  >
+                    <span className="text-sm font-medium flex-1 mr-2">{action.label}</span>
+                    <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold whitespace-nowrap">
+                      +{action.points}
+                    </span>
+                  </button>
+                ))}
+            </div>
+          </div>
+
+          {/* Actions négatives Sport */}
+          <div>
+            <h3 className="text-sm font-bold text-red-700 mb-3 sticky top-0 bg-white py-2">
+              ⚠️ ACTIONS NÉGATIVES
+            </h3>
+            <div className="space-y-2">
+              {negativeActions
+                .filter(a => a.category === 'sport')
+                .map((action, index) => (
+                  <button
+                    key={`sport-neg-${index}`}
+                    onClick={() => {
+                      addPoints(selectedPlayerForAction.name, action.points, action.label);
+                      setShowActionModal(false);
+                    }}
+                    className="w-full text-left p-4 bg-red-50 active:bg-red-200 rounded-lg flex justify-between items-center"
+                  >
+                    <span className="text-sm font-medium flex-1 mr-2">{action.label}</span>
+                    <span className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold whitespace-nowrap">
+                      {action.points}
+                    </span>
+                  </button>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {actionCategory === 'academic' && (
+        <div className="p-3">
+          {/* Actions positives Académique */}
+          <div className="mb-6">
+            <h3 className="text-sm font-bold text-green-700 mb-3 sticky top-0 bg-white py-2">
+              ✅ ACTIONS POSITIVES
+            </h3>
+            <div className="space-y-2">
+              {positiveActions
+                .filter(a => a.category === 'academic')
+                .map((action, index) => (
+                  <button
+                    key={`academic-pos-${index}`}
+                    onClick={() => {
+                      addPoints(selectedPlayerForAction.name, action.points, action.label);
+                      setShowActionModal(false);
+                    }}
+                    className="w-full text-left p-4 bg-green-50 active:bg-green-200 rounded-lg flex justify-between items-center"
+                  >
+                    <span className="text-sm font-medium flex-1 mr-2">{action.label}</span>
+                    <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold whitespace-nowrap">
+                      +{action.points}
+                    </span>
+                  </button>
+                ))}
+            </div>
+          </div>
+
+          {/* Actions négatives Académique */}
+          <div>
+            <h3 className="text-sm font-bold text-red-700 mb-3 sticky top-0 bg-white py-2">
+              ⚠️ ACTIONS NÉGATIVES
+            </h3>
+            <div className="space-y-2">
+              {negativeActions
+                .filter(a => a.category === 'academic')
+                .map((action, index) => (
+                  <button
+                    key={`academic-neg-${index}`}
+                    onClick={() => {
+                      addPoints(selectedPlayerForAction.name, action.points, action.label);
+                      setShowActionModal(false);
+                    }}
+                    className="w-full text-left p-4 bg-red-50 active:bg-red-200 rounded-lg flex justify-between items-center"
+                  >
+                    <span className="text-sm font-medium flex-1 mr-2">{action.label}</span>
+                    <span className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold whitespace-nowrap">
+                      {action.points}
+                    </span>
+                  </button>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {actionCategory === 'bonus' && (
+        <div className="p-3">
+          {/* Bonus Sport */}
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-blue-700 mb-3">🏀 Sport</h3>
+            
+            <div className="mb-4">
+              <p className="text-sm text-green-600 font-semibold mb-2">Bonus positifs</p>
+              <div className="grid grid-cols-4 gap-2">
+                {[2, 3, 5, 10].map(points => (
+                  <button
+                    key={`bonus-sport-${points}`}
+                    onClick={() => {
+                      addPoints(selectedPlayerForAction.name, points, `Bonus Sport`);
+                      setShowActionModal(false);
+                    }}
+                    className="bg-green-500 active:bg-green-700 text-white py-4 rounded-lg font-bold text-lg"
+                  >
+                    +{points}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm text-red-600 font-semibold mb-2">Pénalités</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[2, 3, 5].map(points => (
+                  <button
+                    key={`penalite-sport-${points}`}
+                    onClick={() => {
+                      addPoints(selectedPlayerForAction.name, -points, `Pénalité Sport`);
+                      setShowActionModal(false);
+                    }}
+                    className="bg-red-500 active:bg-red-700 text-white py-4 rounded-lg font-bold text-lg"
+                  >
+                    -{points}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Bonus Académique */}
+          <div>
+            <h3 className="text-lg font-bold text-purple-700 mb-3">📚 Académique</h3>
+            
+            <div className="mb-4">
+              <p className="text-sm text-green-600 font-semibold mb-2">Bonus positifs</p>
+              <div className="grid grid-cols-4 gap-2">
+                {[2, 3, 5, 10].map(points => (
+                  <button
+                    key={`bonus-academic-${points}`}
+                    onClick={() => {
+                      addPoints(selectedPlayerForAction.name, points, `Bonus Académique`);
+                      setShowActionModal(false);
+                    }}
+                    className="bg-green-500 active:bg-green-700 text-white py-4 rounded-lg font-bold text-lg"
+                  >
+                    +{points}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm text-red-600 font-semibold mb-2">Pénalités</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[2, 3, 5].map(points => (
+                  <button
+                    key={`penalite-academic-${points}`}
+                    onClick={() => {
+                      addPoints(selectedPlayerForAction.name, -points, `Pénalité Académique`);
+                      setShowActionModal(false);
+                    }}
+                    className="bg-red-500 active:bg-red-700 text-white py-4 rounded-lg font-bold text-lg"
+                  >
+                    -{points}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+)}
                   </div>
                 </div>
               </div>
