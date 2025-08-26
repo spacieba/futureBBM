@@ -474,31 +474,65 @@
 
           // Actions positives et négatives
           const positiveActions = [
-            { label: 'Hardworker', points: 6 },
-            { label: 'Victoire le weekend', points: 4 },
-            { label: 'Participation le weekend', points: 2 },
-            { label: 'Entrainement/atelier facultatif', points: 4 },
-            { label: 'Observation positive', points: 5 },
-            { label: 'Bonus', points: 2 },
-            { label: 'Bonus', points: 3 },
-            { label: 'Bonus', points: 5 },
-            { label: 'Bonus', points: 10 },
-            { label: 'Félicitations', points: 25 },
-            { label: 'Compliments', points: 15 },
-            { label: 'Encouragements', points: 10 }
-          ];
-
-          const negativeActions = [
-            { label: 'Observation négative', points: -5 },
-            { label: 'Exclusion de cours', points: -8 },
-            { label: 'Exclusion temporaire de l\'établissement', points: -15 },
-            { label: 'Travail non fait', points: -3 },
-            { label: 'Retard/absence non justifiée', points: -3 },
-            { label: 'Absence non justifiée au club', points: -3 },
-            { label: 'Pénalité', points: -2 },
-            { label: 'Pénalité', points: -3 },
-            { label: 'Pénalité', points: -5 }
-          ];
+  // ====== CATÉGORIE SPORT ====== 
+  { label: '🏀 Hardworker', points: 6, category: 'sport' },
+  { label: '🏀 Bon entrainement club', points: 4, category: 'sport' },
+  { label: '🏆 Victoire weekend (Région/France)', points: 6, category: 'sport' },
+  { label: '🥈 Défaite weekend (Région/France)', points: 2, category: 'sport' },
+  { label: '🏅 Victoire weekend (Département)', points: 4, category: 'sport' },
+  { label: '🎯 Défaite weekend (Département)', points: 1, category: 'sport' },
+  { label: '⭐ Extra basket (cross, AS...) - Excellent', points: 10, category: 'sport' },
+  { label: '⭐ Extra basket (cross, AS...) - Très bien', points: 6, category: 'sport' },
+  { label: '⭐ Extra basket (cross, AS...) - Bien', points: 3, category: 'sport' },
+  { label: '🎖️ Parcours sélection', points: 10, category: 'sport' },
+  { label: '🌟 Tournoi des étoiles', points: 25, category: 'sport' },
+  { label: '💪 Entrainements facultatifs', points: 3, category: 'sport' },
+  { label: '📊 Table de marque/Arbitrage weekend', points: 5, category: 'sport' },
+  
+  // ====== CATÉGORIE ACADÉMIQUE ======
+  { label: '📚 Observation positive', points: 5, category: 'academic' },
+  { label: '📚 Participation active en classe', points: 4, category: 'academic' },
+  { label: '📚 Travail de qualité (oral/écrit)', points: 4, category: 'academic' },
+  { label: '📚 Activités facultatives (sentinelle)', points: 5, category: 'academic' },
+  { label: '📚 Activités facultatives (ateliers devoirs)', points: 4, category: 'academic' },
+  { label: '📚 Activités facultatives (délégué)', points: 6, category: 'academic' },
+  { label: '📚 Activités facultatives (conseil admin)', points: 8, category: 'academic' },
+  { label: '🏆 Félicitations', points: 25, category: 'academic' },
+  { label: '🎖️ Compliments', points: 15, category: 'academic' },
+  { label: '👍 Encouragements', points: 10, category: 'academic' },
+  
+  // === BONUS FLEXIBLES ===
+  { label: 'Bonus Sport', points: 2, category: 'sport' },
+  { label: 'Bonus Scolaire', points: 2, category: 'academic' },
+  { label: 'Bonus Sport', points: 3, category: 'sport' },
+  { label: 'Bonus Scolaire', points: 3, category: 'academic' },
+  { label: 'Bonus Sport', points: 5, category: 'sport' },
+  { label: 'Bonus Scolaire', points: 5, category: 'academic' },
+  { label: 'Bonus Sport', points: 10, category: 'sport' },
+  { label: 'Bonus Scolaire', points: 10, category: 'academic' }
+];
+          
+              const negativeActions = [
+  // ====== CATÉGORIE SPORT ====== 
+  { label: 'Mauvaise attitude/retard entrainement', points: -4, category: 'sport' },
+  { label: 'Absences répétées/non justifiées club', points: -4, category: 'sport' },
+  
+  // ====== CATÉGORIE ACADÉMIQUE ======
+  { label: 'Observation négative', points: -5, category: 'academic' },
+  { label: 'Exclusion de cours', points: -8, category: 'academic' },
+  { label: 'Exclusion temporaire établissement', points: -15, category: 'academic' },
+  { label: 'Travail non fait', points: -3, category: 'academic' },
+  { label: 'Retard/absence non justifiée', points: -3, category: 'academic' },
+  { label: 'Mauvaise attitude en classe (perturbe)', points: -5, category: 'academic' },
+  
+  // === PÉNALITÉS FLEXIBLES ===
+  { label: 'Pénalité Sport', points: -2, category: 'sport' },
+  { label: 'Pénalité Scolaire', points: -2, category: 'academic' },
+  { label: 'Pénalité Sport', points: -3, category: 'sport' },
+  { label: 'Pénalité Scolaire', points: -3, category: 'academic' },
+  { label: 'Pénalité Sport', points: -5, category: 'sport' },
+  { label: 'Pénalité Scolaire', points: -5, category: 'academic' }
+];
 
           // Couleurs des franchises
           const franchiseColors = {
