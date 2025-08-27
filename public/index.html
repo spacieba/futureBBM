@@ -362,6 +362,51 @@ const BadgeDisplay = ({ badges }) => {
           const [franchiseBalance, setFranchiseBalance] = useState([]);
           const [hallOfFameData, setHallOfFameData] = useState({});
           const [loadingStats, setLoadingStats] = useState(true);
+ // Charger toutes les statistiques réelles
+  useEffect(() => {
+    const loadAllStats = async () => {
+      try {
+        setLoadingStats(true);
+        
+        // Charger toutes les données en parallèle
+        const [
+          categoryResponse,
+          mvpResponse, 
+          top5Response,
+          franchiseResponse,
+          hallOfFameResponse
+        ] = await Promise.all([
+          fetch('/api/stats/category-breakdown'),
+          fetch('/api/stats/mvp-weekly'),
+          fetch('/api/stats/top5-by-category'),
+          fetch('/api/stats/franchise-balance'),
+          fetch('/api/stats/hall-of-fame')
+        ]);
+
+        const categoryData = await categoryResponse.json();
+        const mvpDataResponse = await mvpResponse.json();
+        const top5DataResponse = await top5Response.json();
+        const franchiseData = await franchiseResponse.json();
+        const hallOfFameDataResponse = await hallOfFameResponse.json();
+
+        setCategoryStats(categoryData);
+        setMvpData(mvpDataResponse);
+        setTop5Data(top5DataResponse);
+        setFranchiseBalance(franchiseData);
+        setHallOfFameData(hallOfFameDataResponse);
+        
+      } catch (error) {
+        console.error('Erreur lors du chargement des statistiques:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    loadAllStats();
+  }, []);
+
+  const franchiseRankings = getFranchiseRankings();
+  const playerRankings = getGeneralPlayerRankings();
 
           
           // Fonction pour obtenir le grade basketball selon le score
@@ -1591,55 +1636,8 @@ if (currentView === 'home') {
           }
 
           // PAGE CLASSEMENTS AMÉLIORÉE - Remplace la section "PAGE CLASSEMENTS" existante
-// PAGE CLASSEMENTS AVEC VRAIES DONNÉES - Remplacez votre condition if (currentView === 'rankings') par ceci
 if (currentView === 'rankings') {
   
-  // Charger toutes les statistiques réelles
-  useEffect(() => {
-    const loadAllStats = async () => {
-      try {
-        setLoadingStats(true);
-        
-        // Charger toutes les données en parallèle
-        const [
-          categoryResponse,
-          mvpResponse, 
-          top5Response,
-          franchiseResponse,
-          hallOfFameResponse
-        ] = await Promise.all([
-          fetch('/api/stats/category-breakdown'),
-          fetch('/api/stats/mvp-weekly'),
-          fetch('/api/stats/top5-by-category'),
-          fetch('/api/stats/franchise-balance'),
-          fetch('/api/stats/hall-of-fame')
-        ]);
-
-        const categoryData = await categoryResponse.json();
-        const mvpDataResponse = await mvpResponse.json();
-        const top5DataResponse = await top5Response.json();
-        const franchiseData = await franchiseResponse.json();
-        const hallOfFameDataResponse = await hallOfFameResponse.json();
-
-        setCategoryStats(categoryData);
-        setMvpData(mvpDataResponse);
-        setTop5Data(top5DataResponse);
-        setFranchiseBalance(franchiseData);
-        setHallOfFameData(hallOfFameDataResponse);
-        
-      } catch (error) {
-        console.error('Erreur lors du chargement des statistiques:', error);
-      } finally {
-        setLoadingStats(false);
-      }
-    };
-
-    loadAllStats();
-  }, []);
-
-  const franchiseRankings = getFranchiseRankings();
-  const playerRankings = getGeneralPlayerRankings();
-
   if (loadingStats) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8 flex items-center justify-center">
