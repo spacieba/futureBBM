@@ -161,10 +161,7 @@ db.exec(`
 
 // Modifier la table history pour inclure la catégorie (ajouter après la création initiale)
 db.exec(`
-  -- Ajouter colonne category à history si elle n'existe pas
-  ALTER TABLE history ADD COLUMN category TEXT DEFAULT 'unknown';
-  
-  -- Index pour optimiser les requêtes
+  -- Index pour optimiser les requêtes (sans ALTER TABLE)
   CREATE INDEX IF NOT EXISTS idx_history_category ON history(category);
   CREATE INDEX IF NOT EXISTS idx_history_date ON history(DATE(timestamp));
   CREATE INDEX IF NOT EXISTS idx_period_stats_period ON period_stats(period_type, period_start);
@@ -536,7 +533,133 @@ const initDatabase = () => {
   const insertFranchiseStats = db.prepare('INSERT OR IGNORE INTO franchise_stats (franchise) VALUES (?)');
   franchises.forEach(f => insertFranchiseStats.run(f));
 };
+// Fonction pour mettre à jour les catégories manquantes
+const updateHistoryCategories = () => {
+  const actionsWithoutCategory = db.prepare(`
+    SELECT id, action FROM history WHERE category IS NULL OR category = 'unknown'
+  `).all();
+  
+  actionsWithoutCategory.forEach(action => {
+    const category = getActionCategory(action.action);
+    db.prepare('UPDATE history SET category = ? WHERE id = ?').run(category, action.id);
+  });
+  
+  console.log(`Catégories mises à jour: ${actionsWithoutCategory.length}`);
+};
 
+// Fonction pour initialiser les données historiques
+const initializeHistoricalData = () => {
+  console.log('Initialisation des données historiques...');
+  
+  const periods = ['week', 'month', 'trimester'];
+  
+  periods.forEach(periodType => {
+    let bounds;
+    switch(periodType) {
+      case 'week': bounds = getWeekBounds(); break;
+      case 'month': bounds = getMonthBounds(); break;
+      case 'trimester': bounds = getTrimesterBounds(); break;
+    }
+    
+    const actions = db.prepare(`
+      SELECT 
+        h.player_name,
+        p.franchise,
+        h.points,
+        h.category
+      FROM history h
+      JOIN players p ON h.player_name = p.name
+      WHERE h.timestamp >= ? AND h.timestamp <= ?
+    `).all(bounds.start, bounds.end);
+    
+    const playerStats = {};
+    actions.forEach(action => {
+      if (!playerStats[action.player_name]) {
+        playerStats[action.player_name] = {
+          franchise: action.franchise,
+          sport_points: 0,
+          academic_points: 0,
+          total_points: 0,
+          actions_count: 0
+        };
+      }
+      
+      const stats = playerStats[action.player_name];
+      stats.total_points += action.points;
+      stats.actions_count++;
+      
+      if (action.category === 'sport') {
+        stats.sport_points += action.points;
+      } else if (action.category === 'academic') {
+        stats.academic_points += action.points;
+      }
+    });
+    
+    Object.entries(playerStats).forEach(([playerName, stats]) => {
+      db.prepare(`
+        INSERT OR REPLACE INTO period_stats 
+        (player_name, franchise, period_type, period_start, period_end, 
+         sport_points, academic_points, total_points, actions_count, date_updated)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        playerName,
+        stats.franchise,
+        periodType,
+        bounds.start,
+        bounds.end,
+        stats.sport_points,
+        stats.academic_points,
+        stats.total_points,
+        stats.actions_count,
+        new Date().toISOString()
+      );
+    });
+  });
+  
+  // Initialiser le Hall of Fame
+  const topPlayers = db.prepare(`
+    SELECT name as player_name, franchise, score 
+    FROM players 
+    WHERE score > 0
+    ORDER BY score DESC
+  `).all();
+  
+  if (topPlayers.length > 0) {
+    const milestones = [50, 100, 150, 200, 250];
+    milestones.forEach(milestone => {
+      const firstToReach = topPlayers.find(p => p.score >= milestone);
+      if (firstToReach) {
+        db.prepare(`
+          INSERT OR IGNORE INTO hall_of_fame 
+          (record_type, player_name, franchise, score, date_achieved, weeks_held, is_current)
+          VALUES (?, ?, ?, ?, ?, 1, 1)
+        `).run(
+          `first_${milestone}`,
+          firstToReach.player_name,
+          firstToReach.franchise,
+          firstToReach.score,
+          new Date().toISOString()
+        );
+      }
+    });
+    
+    const topPlayer = topPlayers[0];
+    db.prepare(`
+      INSERT OR REPLACE INTO hall_of_fame 
+      (record_type, player_name, franchise, score, date_achieved, weeks_held, is_current)
+      VALUES ('highest_score', ?, ?, ?, ?, 1, 1)
+    `).run(
+      topPlayer.player_name,
+      topPlayer.franchise,
+      topPlayer.score,
+      new Date().toISOString()
+    );
+  }
+  
+  console.log('Données historiques initialisées');
+};
+
+// Maintenant initialiser
 initDatabase();
 updateHistoryCategories();
 initializeHistoricalData();
