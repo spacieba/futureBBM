@@ -340,52 +340,6 @@ const initDatabase = () => {
 };
 
 initDatabase();
-initDatabase();
-
-// Ajoutez cette fonction complète juste ici :
-const addCategoryColumn = () => {
-  try {
-    const hasCategory = db.prepare(`
-      SELECT COUNT(*) as count 
-      FROM pragma_table_info('history') 
-      WHERE name = 'category'
-    `).get();
-    
-    if (hasCategory.count === 0) {
-      db.prepare('ALTER TABLE history ADD COLUMN category TEXT').run();
-      console.log('✅ Colonne category ajoutée à la table history');
-      
-      const updateExistingRecords = db.prepare(`
-        UPDATE history 
-        SET category = CASE 
-          WHEN action LIKE '%📚%' OR action LIKE '%Scolaire%' OR action LIKE '%Observation positive%' 
-               OR action LIKE '%Participation active%' OR action LIKE '%Travail de qualité%'
-               OR action LIKE '%Activités facultatives%' OR action LIKE '%Félicitations%'
-               OR action LIKE '%Compliments%' OR action LIKE '%Encouragements%'
-               OR action LIKE '%Exclusion%' OR action LIKE '%Travail non fait%'
-               OR action LIKE '%Retard%' OR action LIKE '%absence%' OR action LIKE '%Mauvaise attitude en classe%'
-               THEN 'academic'
-          WHEN action LIKE '%🏀%' OR action LIKE '%Sport%' OR action LIKE '%Hardworker%'
-               OR action LIKE '%entrainement%' OR action LIKE '%Victoire%' OR action LIKE '%Défaite%'
-               OR action LIKE '%Extra basket%' OR action LIKE '%sélection%' OR action LIKE '%étoiles%'
-               OR action LIKE '%Table de marque%' OR action LIKE '%Arbitrage%'
-               OR action LIKE '%attitude/retard entrainement%' OR action LIKE '%Absences répétées%'
-               THEN 'sport'
-          ELSE 'general'
-        END
-        WHERE category IS NULL
-      `);
-      
-      const result = updateExistingRecords.run();
-      console.log(`✅ ${result.changes} enregistrements historiques mis à jour avec les catégories`);
-    }
-  } catch (error) {
-    console.error('Erreur lors de l\'ajout de la colonne category:', error);
-  }
-};
-
-// Et appelez-la immédiatement après :
-addCategoryColumn()
 
 // === FONCTIONS DE VÉRIFICATION DES BADGES ===
 
@@ -706,45 +660,25 @@ app.post('/api/add-points', (req, res) => {
   try {
     const { playerName, points, action, teacherName } = req.body;
     
-    // Déterminer la catégorie de l'action
-    const determineCategory = (actionText) => {
-      if (actionText.includes('📚') || actionText.includes('Scolaire') ||
-          actionText.includes('Observation positive') || actionText.includes('Participation active') ||
-          actionText.includes('Travail de qualité') || actionText.includes('Activités facultatives') ||
-          actionText.includes('Félicitations') || actionText.includes('Compliments') ||
-          actionText.includes('Encouragements') || actionText.includes('Exclusion') ||
-          actionText.includes('Travail non fait') || actionText.includes('Retard') ||
-          actionText.includes('absence') || actionText.includes('Mauvaise attitude en classe')) {
-        return 'academic';
-      }
-      if (actionText.includes('🏀') || actionText.includes('Sport') ||
-          actionText.includes('Hardworker') || actionText.includes('entrainement') ||
-          actionText.includes('Victoire') || actionText.includes('Défaite') ||
-          actionText.includes('Extra basket') || actionText.includes('sélection') ||
-          actionText.includes('étoiles') || actionText.includes('Table de marque') ||
-          actionText.includes('Arbitrage') || actionText.includes('attitude/retard entrainement') ||
-          actionText.includes('Absences répétées')) {
-        return 'sport';
-      }
-      return 'general';
-    };
-    
     const transaction = db.transaction(() => {
+      // Récupérer l'ancien score
       const oldPlayer = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
       if (!oldPlayer) throw new Error('Joueur non trouvé');
       
+      // Mettre à jour le score
       db.prepare('UPDATE players SET score = score + ? WHERE name = ?').run(points, playerName);
+      
+      // Récupérer le nouveau score
       const player = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
       
-      // MODIFIÉ : Ajouter la catégorie à l'historique
-      const category = determineCategory(action);
+      // Ajouter à l'historique
       const timestamp = new Date().toLocaleString('fr-FR');
       db.prepare(`
-        INSERT INTO history (player_name, action, points, timestamp, new_total, teacher_name, category) 
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(playerName, action, points, timestamp, player.score, teacherName || 'Anonyme', category);
+        INSERT INTO history (player_name, action, points, timestamp, new_total, teacher_name) 
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(playerName, action, points, timestamp, player.score, teacherName || 'Anonyme');
       
-      // Le reste de votre code existant pour les stats
+      // Mettre à jour les statistiques
       const stats = db.prepare('SELECT * FROM player_stats WHERE player_name = ?').get(playerName);
       
       if (stats) {
@@ -759,6 +693,7 @@ app.post('/api/add-points', (req, res) => {
           monthly_actions: stats.monthly_actions
         };
         
+        // Gérer les streaks
         if (points > 0) {
           updates.current_streak++;
           updates.max_streak = Math.max(updates.current_streak, updates.max_streak);
@@ -768,27 +703,32 @@ app.post('/api/add-points', (req, res) => {
           updates.current_streak = 0;
         }
         
+        // Tracker le score le plus bas
         if (player.score < updates.lowest_score) {
           updates.lowest_score = player.score;
         }
         
-        if (action.includes('Félicitations')) {
-          updates.felicitations_count++;
-        }
-        if (action.includes('Hardworker')) {
-          updates.hardworker_count++;
-          updates.hardworker_dates.push(new Date().toISOString());
-        }
+        // Compter les actions spéciales
+if (action.includes('Félicitations')) {
+  updates.felicitations_count++;
+}
+if (action.includes('Hardworker')) {
+  updates.hardworker_count++;
+  updates.hardworker_dates.push(new Date().toISOString());
+}
         
+        // Mettre à jour les consecutive_days
         const today = new Date().toDateString();
         const consecutiveDays = JSON.parse(stats.consecutive_days || '[]');
         if (!consecutiveDays.includes(today) && points > 0) {
           consecutiveDays.push(today);
+          // Garder seulement les 7 derniers jours
           if (consecutiveDays.length > 7) {
             consecutiveDays.shift();
           }
         }
         
+        // Sauvegarder les stats
         db.prepare(`
           UPDATE player_stats 
           SET current_streak = ?, 
@@ -817,6 +757,7 @@ app.post('/api/add-points', (req, res) => {
         );
       }
       
+      // Mettre à jour les stats de franchise
       const franchise = oldPlayer.franchise;
       const franchiseStats = db.prepare('SELECT * FROM franchise_stats WHERE franchise = ?').get(franchise);
       
@@ -842,9 +783,11 @@ app.post('/api/add-points', (req, res) => {
     
     const result = transaction();
     
+    // Vérifier les badges après la transaction
     checkIndividualBadges(playerName);
     checkCollectiveBadges(result.franchise);
     
+    // Récupérer les badges du joueur
     const badges = db.prepare(`
       SELECT badge_id, badge_name, badge_emoji, rarity 
       FROM player_badges 
@@ -1202,198 +1145,6 @@ app.get('/', (req, res) => {
 });
 
 // Lancer le serveur
-// Route pour obtenir les points par catégorie pour tous les joueurs
-app.get('/api/stats/category-breakdown', (req, res) => {
-  try {
-    const stats = db.prepare(`
-      SELECT 
-        p.name,
-        p.franchise,
-        p.score as total_score,
-        COALESCE(SUM(CASE WHEN h.category = 'academic' THEN h.points ELSE 0 END), 0) as academic_points,
-        COALESCE(SUM(CASE WHEN h.category = 'sport' THEN h.points ELSE 0 END), 0) as sport_points,
-        COALESCE(SUM(CASE WHEN h.category = 'general' THEN h.points ELSE 0 END), 0) as general_points
-      FROM players p
-      LEFT JOIN history h ON p.name = h.player_name
-      GROUP BY p.name, p.franchise, p.score
-      ORDER BY p.score DESC
-    `).all();
-    
-    res.json(stats);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/stats/mvp-weekly', (req, res) => {
-  try {
-    const mvpAcademic = db.prepare(`
-      SELECT 
-        h.player_name as name,
-        p.franchise,
-        p.score as total_score,
-        SUM(h.points) as weekly_points
-      FROM history h
-      JOIN players p ON h.player_name = p.name
-      WHERE h.category = 'academic' 
-        AND DATE(h.timestamp) >= DATE('now', '-7 days')
-        AND h.points > 0
-      GROUP BY h.player_name, p.franchise, p.score
-      ORDER BY weekly_points DESC
-      LIMIT 1
-    `).get();
-    
-    const mvpSport = db.prepare(`
-      SELECT 
-        h.player_name as name,
-        p.franchise,
-        p.score as total_score,
-        SUM(h.points) as weekly_points
-      FROM history h
-      JOIN players p ON h.player_name = p.name
-      WHERE h.category = 'sport' 
-        AND DATE(h.timestamp) >= DATE('now', '-7 days')
-        AND h.points > 0
-      GROUP BY h.player_name, p.franchise, p.score
-      ORDER BY weekly_points DESC
-      LIMIT 1
-    `).get();
-    
-    res.json({ 
-      mvpAcademic: mvpAcademic || null, 
-      mvpSport: mvpSport || null 
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/stats/top5-by-category', (req, res) => {
-  try {
-    const top5Academic = db.prepare(`
-      SELECT 
-        p.name,
-        p.franchise,
-        p.score as total_score,
-        COALESCE(SUM(CASE WHEN h.category = 'academic' THEN h.points ELSE 0 END), 0) as category_points
-      FROM players p
-      LEFT JOIN history h ON p.name = h.player_name
-      GROUP BY p.name, p.franchise, p.score
-      ORDER BY category_points DESC
-      LIMIT 5
-    `).all();
-    
-    const top5Sport = db.prepare(`
-      SELECT 
-        p.name,
-        p.franchise,
-        p.score as total_score,
-        COALESCE(SUM(CASE WHEN h.category = 'sport' THEN h.points ELSE 0 END), 0) as category_points
-      FROM players p
-      LEFT JOIN history h ON p.name = h.player_name
-      GROUP BY p.name, p.franchise, p.score
-      ORDER BY category_points DESC
-      LIMIT 5
-    `).all();
-    
-    res.json({ 
-      academic: top5Academic, 
-      sport: top5Sport 
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/stats/franchise-balance', (req, res) => {
-  try {
-    const franchiseStats = db.prepare(`
-      SELECT 
-        p.franchise,
-        COUNT(p.name) as player_count,
-        SUM(p.score) as total_points,
-        COALESCE(SUM(CASE WHEN h.category = 'academic' THEN h.points ELSE 0 END), 0) as academic_points,
-        COALESCE(SUM(CASE WHEN h.category = 'sport' THEN h.points ELSE 0 END), 0) as sport_points,
-        COALESCE(SUM(CASE WHEN h.category = 'general' THEN h.points ELSE 0 END), 0) as general_points
-      FROM players p
-      LEFT JOIN history h ON p.name = h.player_name
-      GROUP BY p.franchise
-      ORDER BY total_points DESC
-    `).all();
-    
-    const franchiseBalance = franchiseStats.map(franchise => {
-      const totalCategorized = franchise.academic_points + franchise.sport_points;
-      const academicPercent = totalCategorized > 0 ? (franchise.academic_points / totalCategorized * 100) : 50;
-      const balance = Math.abs(50 - academicPercent);
-      const avgPerPlayer = franchise.player_count > 0 ? Math.round(franchise.total_points / franchise.player_count) : 0;
-      
-      return {
-        ...franchise,
-        academic_percent: Math.round(academicPercent),
-        sport_percent: Math.round(100 - academicPercent),
-        balance_score: Math.round(100 - balance),
-        avg_per_player: avgPerPlayer
-      };
-    });
-    
-    franchiseBalance.sort((a, b) => b.balance_score - a.balance_score);
-    
-    res.json(franchiseBalance);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/api/stats/hall-of-fame', (req, res) => {
-  try {
-    const recordHolder = db.prepare(`
-      SELECT name, franchise, score 
-      FROM players 
-      ORDER BY score DESC 
-      LIMIT 1
-    `).get();
-    
-    const mostBadges = db.prepare(`
-      SELECT 
-        pb.player_name as name,
-        p.franchise,
-        p.score,
-        COUNT(pb.badge_id) as badge_count
-      FROM player_badges pb
-      JOIN players p ON pb.player_name = p.name
-      GROUP BY pb.player_name, p.franchise, p.score
-      ORDER BY badge_count DESC
-      LIMIT 1
-    `).get();
-    
-    const getFirstToReach = (threshold) => {
-      return db.prepare(`
-        SELECT h.player_name as name, p.franchise, MIN(h.timestamp) as date_reached
-        FROM history h
-        JOIN players p ON h.player_name = p.name
-        WHERE h.new_total >= ?
-        GROUP BY h.player_name, p.franchise
-        ORDER BY date_reached ASC
-        LIMIT 1
-      `).get(threshold);
-    };
-    
-    const hallOfFame = {
-      recordHolder,
-      mostBadges,
-      firstTo50: getFirstToReach(50),
-      firstTo100: getFirstToReach(100),
-      firstTo150: getFirstToReach(150),
-      firstTo200: getFirstToReach(200)
-    };
-    
-    res.json(hallOfFame);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Lancer le serveur 
 app.listen(port, () => {
   console.log(`🚀 Serveur démarré sur le port ${port}`);
   console.log(`🔐 Mot de passe professeur: ${TEACHER_PASSWORD}`);
