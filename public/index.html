@@ -356,6 +356,13 @@ const BadgeDisplay = ({ badges }) => {
           const [playerBadges, setPlayerBadges] = useState({});
           const [franchiseBadges, setFranchiseBadges] = useState({});
           const [notifications, setNotifications] = useState([]);
+          const [categoryStats, setCategoryStats] = useState([]);
+          const [mvpData, setMvpData] = useState({ mvpAcademic: null, mvpSport: null });
+          const [top5Data, setTop5Data] = useState({ academic: [], sport: [] });
+          const [franchiseBalance, setFranchiseBalance] = useState([]);
+          const [hallOfFameData, setHallOfFameData] = useState({});
+          const [loadingStats, setLoadingStats] = useState(true);
+
           
           // Fonction pour obtenir le grade basketball selon le score
           const getBadge = (score) => {
@@ -1584,89 +1591,68 @@ if (currentView === 'home') {
           }
 
           // PAGE CLASSEMENTS AMÉLIORÉE - Remplace la section "PAGE CLASSEMENTS" existante
+// PAGE CLASSEMENTS AVEC VRAIES DONNÉES - Remplacez votre condition if (currentView === 'rankings') par ceci
 if (currentView === 'rankings') {
+  const [categoryStats, setCategoryStats] = useState([]);
+  const [mvpData, setMvpData] = useState({ mvpAcademic: null, mvpSport: null });
+  const [top5Data, setTop5Data] = useState({ academic: [], sport: [] });
+  const [franchiseBalance, setFranchiseBalance] = useState([]);
+  const [hallOfFameData, setHallOfFameData] = useState({});
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  // Charger toutes les statistiques réelles
+  useEffect(() => {
+    const loadAllStats = async () => {
+      try {
+        setLoadingStats(true);
+        
+        // Charger toutes les données en parallèle
+        const [
+          categoryResponse,
+          mvpResponse, 
+          top5Response,
+          franchiseResponse,
+          hallOfFameResponse
+        ] = await Promise.all([
+          fetch('/api/stats/category-breakdown'),
+          fetch('/api/stats/mvp-weekly'),
+          fetch('/api/stats/top5-by-category'),
+          fetch('/api/stats/franchise-balance'),
+          fetch('/api/stats/hall-of-fame')
+        ]);
+
+        const categoryData = await categoryResponse.json();
+        const mvpDataResponse = await mvpResponse.json();
+        const top5DataResponse = await top5Response.json();
+        const franchiseData = await franchiseResponse.json();
+        const hallOfFameDataResponse = await hallOfFameResponse.json();
+
+        setCategoryStats(categoryData);
+        setMvpData(mvpDataResponse);
+        setTop5Data(top5DataResponse);
+        setFranchiseBalance(franchiseData);
+        setHallOfFameData(hallOfFameDataResponse);
+        
+      } catch (error) {
+        console.error('Erreur lors du chargement des statistiques:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    loadAllStats();
+  }, []);
+
   const franchiseRankings = getFranchiseRankings();
   const playerRankings = getGeneralPlayerRankings();
 
-  // Calculer les MVP de la semaine
-  const getMVPOfWeek = (category) => {
-    // Simuler les points de la semaine par catégorie (à adapter selon votre backend)
-    const weeklyStats = players.map(player => {
-      // Pour la démo, on simule des points par catégorie
-      const academicPoints = Math.floor(player.score * 0.4); // 40% du score en académique
-      const sportPoints = Math.floor(player.score * 0.6); // 60% du score en sport
-      
-      return {
-        ...player,
-        academicPoints: category === 'academic' ? academicPoints : 0,
-        sportPoints: category === 'sport' ? sportPoints : 0,
-        weeklyTotal: category === 'academic' ? academicPoints : sportPoints
-      };
-    });
-    
-    return weeklyStats.reduce((max, player) => 
-      player.weeklyTotal > max.weeklyTotal ? player : max
+  if (loadingStats) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8 flex items-center justify-center">
+        <div className="text-white text-2xl">📊 Chargement des statistiques...</div>
+      </div>
     );
-  };
-
-  const mvpAcademic = getMVPOfWeek('academic');
-  const mvpSport = getMVPOfWeek('sport');
-
-  // Top 5 par catégorie
-  const getTop5ByCategory = (category) => {
-    return players.map(player => {
-      const academicPoints = Math.floor(player.score * 0.4);
-      const sportPoints = Math.floor(player.score * 0.6);
-      return {
-        ...player,
-        categoryPoints: category === 'academic' ? academicPoints : sportPoints
-      };
-    }).sort((a, b) => b.categoryPoints - a.categoryPoints).slice(0, 5);
-  };
-
-  const top5Academic = getTop5ByCategory('academic');
-  const top5Sport = getTop5ByCategory('sport');
-
-  // Statistiques par franchise
-  const getFranchiseBalance = () => {
-    return ['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
-      const franchisePlayers = players.filter(p => p.franchise === franchise);
-      const totalAcademic = franchisePlayers.reduce((sum, p) => sum + Math.floor(p.score * 0.4), 0);
-      const totalSport = franchisePlayers.reduce((sum, p) => sum + Math.floor(p.score * 0.6), 0);
-      const total = totalAcademic + totalSport;
-      
-      return {
-        franchise,
-        academicPoints: totalAcademic,
-        sportPoints: totalSport,
-        totalPoints: total,
-        balance: total > 0 ? Math.abs(50 - (totalAcademic / total * 100)) : 50,
-        avgPerPlayer: franchisePlayers.length > 0 ? Math.round(total / franchisePlayers.length) : 0
-      };
-    }).sort((a, b) => a.balance - b.balance); // Le plus équilibré en premier
-  };
-
-  const franchiseBalance = getFranchiseBalance();
-
-  // Hall of Fame
-  const getHallOfFame = () => {
-    const hallOfFame = {
-      recordHolder: playerRankings[0],
-      firstTo50: playerRankings.find(p => p.score >= 50),
-      firstTo100: playerRankings.find(p => p.score >= 100),
-      firstTo150: playerRankings.find(p => p.score >= 150),
-      firstTo200: playerRankings.find(p => p.score >= 200),
-      mostBadges: playerRankings.reduce((max, player) => {
-        const playerBadges = player.badges || [];
-        const maxBadges = max.badges || [];
-        return playerBadges.length > maxBadges.length ? player : max;
-      }, playerRankings[0] || {})
-    };
-    
-    return hallOfFame;
-  };
-
-  const hallOfFame = getHallOfFame();
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4 md:p-8">
@@ -1681,55 +1667,69 @@ if (currentView === 'rankings') {
           </button>
         </div>
 
-        {/* MVP de la semaine */}
+        {/* MVP de la semaine avec vraies données */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
             <h2 className="text-2xl font-bold text-amber-400 mb-4 text-center flex items-center justify-center">
               📚 MVP Académique de la Semaine
             </h2>
-            <div className={`bg-gradient-to-r ${franchiseColors[mvpAcademic.franchise]} p-6 rounded-lg text-center`}>
-              <div className="text-4xl mb-2">{getBadge(mvpAcademic.score).emoji}</div>
-              <h3 className="text-2xl font-bold text-white mb-1">{mvpAcademic.name}</h3>
-              <p className="text-white/80 mb-2">{mvpAcademic.franchise}</p>
-              <div className="text-3xl font-bold text-white">{mvpAcademic.academicPoints} pts académiques</div>
-              <div className="text-sm text-white/70">Score total: {mvpAcademic.score}</div>
-            </div>
+            {mvpData.mvpAcademic ? (
+              <div className={`bg-gradient-to-r ${franchiseColors[mvpData.mvpAcademic.franchise]} p-6 rounded-lg text-center`}>
+                <div className="text-4xl mb-2">{getBadge(mvpData.mvpAcademic.total_score).emoji}</div>
+                <h3 className="text-2xl font-bold text-white mb-1">{mvpData.mvpAcademic.name}</h3>
+                <p className="text-white/80 mb-2">{mvpData.mvpAcademic.franchise}</p>
+                <div className="text-3xl font-bold text-white">+{mvpData.mvpAcademic.weekly_points} pts</div>
+                <div className="text-sm text-white/70">cette semaine • Total: {mvpData.mvpAcademic.total_score}</div>
+              </div>
+            ) : (
+              <div className="bg-white/20 p-6 rounded-lg text-center">
+                <div className="text-4xl mb-2">📚</div>
+                <p className="text-white/70">Aucune action académique cette semaine</p>
+              </div>
+            )}
           </div>
 
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
             <h2 className="text-2xl font-bold text-orange-400 mb-4 text-center flex items-center justify-center">
               🏀 MVP Sport de la Semaine
             </h2>
-            <div className={`bg-gradient-to-r ${franchiseColors[mvpSport.franchise]} p-6 rounded-lg text-center`}>
-              <div className="text-4xl mb-2">{getBadge(mvpSport.score).emoji}</div>
-              <h3 className="text-2xl font-bold text-white mb-1">{mvpSport.name}</h3>
-              <p className="text-white/80 mb-2">{mvpSport.franchise}</p>
-              <div className="text-3xl font-bold text-white">{mvpSport.sportPoints} pts sportifs</div>
-              <div className="text-sm text-white/70">Score total: {mvpSport.score}</div>
-            </div>
+            {mvpData.mvpSport ? (
+              <div className={`bg-gradient-to-r ${franchiseColors[mvpData.mvpSport.franchise]} p-6 rounded-lg text-center`}>
+                <div className="text-4xl mb-2">{getBadge(mvpData.mvpSport.total_score).emoji}</div>
+                <h3 className="text-2xl font-bold text-white mb-1">{mvpData.mvpSport.name}</h3>
+                <p className="text-white/80 mb-2">{mvpData.mvpSport.franchise}</p>
+                <div className="text-3xl font-bold text-white">+{mvpData.mvpSport.weekly_points} pts</div>
+                <div className="text-sm text-white/70">cette semaine • Total: {mvpData.mvpSport.total_score}</div>
+              </div>
+            ) : (
+              <div className="bg-white/20 p-6 rounded-lg text-center">
+                <div className="text-4xl mb-2">🏀</div>
+                <p className="text-white/70">Aucune action sportive cette semaine</p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Top 5 par catégorie */}
+        {/* Top 5 par catégorie avec vraies données */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
             <h2 className="text-2xl font-bold text-blue-400 mb-6 text-center">📚 Top 5 Académique</h2>
             <div className="space-y-3">
-              {top5Academic.map((player, index) => (
+              {top5Data.academic.map((player, index) => (
                 <div
                   key={player.name}
                   className={`bg-gradient-to-r ${franchiseColors[player.franchise]} p-4 rounded-lg flex justify-between items-center shadow-md`}
                 >
                   <div className="flex items-center space-x-3">
                     <span className="text-lg font-bold text-white">#{index + 1}</span>
-                    <span className="text-2xl">{getBadge(player.score).emoji}</span>
+                    <span className="text-2xl">{getBadge(player.total_score).emoji}</span>
                     <div>
                       <span className="text-lg font-semibold text-white">{player.name}</span>
                       <div className="text-sm text-white/80">{player.franchise}</div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-bold text-white">{player.categoryPoints} pts</div>
+                    <div className="text-lg font-bold text-white">{player.category_points} pts</div>
                     <div className="text-xs text-white/70">académiques</div>
                   </div>
                 </div>
@@ -1740,21 +1740,21 @@ if (currentView === 'rankings') {
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
             <h2 className="text-2xl font-bold text-orange-400 mb-6 text-center">🏀 Top 5 Sport</h2>
             <div className="space-y-3">
-              {top5Sport.map((player, index) => (
+              {top5Data.sport.map((player, index) => (
                 <div
                   key={player.name}
                   className={`bg-gradient-to-r ${franchiseColors[player.franchise]} p-4 rounded-lg flex justify-between items-center shadow-md`}
                 >
                   <div className="flex items-center space-x-3">
                     <span className="text-lg font-bold text-white">#{index + 1}</span>
-                    <span className="text-2xl">{getBadge(player.score).emoji}</span>
+                    <span className="text-2xl">{getBadge(player.total_score).emoji}</span>
                     <div>
                       <span className="text-lg font-semibold text-white">{player.name}</span>
                       <div className="text-sm text-white/80">{player.franchise}</div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-bold text-white">{player.categoryPoints} pts</div>
+                    <div className="text-lg font-bold text-white">{player.category_points} pts</div>
                     <div className="text-xs text-white/70">sportifs</div>
                   </div>
                 </div>
@@ -1763,7 +1763,7 @@ if (currentView === 'rankings') {
           </div>
         </div>
 
-        {/* Statistiques par franchise */}
+        {/* Statistiques par franchise avec vraies données */}
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
           <h2 className="text-2xl font-bold text-white mb-6 text-center">⚖️ Équilibre Sport/Académique par Franchise</h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1783,21 +1783,21 @@ if (currentView === 'rankings') {
                         <span className="text-xl font-bold text-white">{franchise.franchise}</span>
                         {index === 0 && <span className="text-yellow-300 text-sm">⚖️ Plus équilibrée</span>}
                       </div>
-                      <span className="text-lg font-bold text-white">{franchise.totalPoints} pts</span>
+                      <span className="text-lg font-bold text-white">{franchise.total_points} pts</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-2 gap-4 text-sm mb-2">
                       <div className="text-center">
-                        <div className="text-blue-300 font-bold">{franchise.academicPoints}</div>
-                        <div className="text-white/70">Académique</div>
+                        <div className="text-blue-300 font-bold">{franchise.academic_points}</div>
+                        <div className="text-white/70">Académique ({franchise.academic_percent}%)</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-orange-300 font-bold">{franchise.sportPoints}</div>
-                        <div className="text-white/70">Sport</div>
+                        <div className="text-orange-300 font-bold">{franchise.sport_points}</div>
+                        <div className="text-white/70">Sport ({franchise.sport_percent}%)</div>
                       </div>
                     </div>
-                    <div className="text-center mt-2">
+                    <div className="text-center">
                       <div className="text-white/80 text-xs">
-                        Moy./joueur: {franchise.avgPerPlayer} pts • Équilibre: {Math.round(100 - franchise.balance)}%
+                        Moy./joueur: {franchise.avg_per_player} pts • Équilibre: {franchise.balance_score}%
                       </div>
                     </div>
                   </div>
@@ -1805,37 +1805,34 @@ if (currentView === 'rankings') {
               })}
             </div>
             
-            {/* Graphique visuel */}
+            {/* Graphique visuel avec vraies données */}
             <div className="bg-white/20 rounded-lg p-4">
               <h3 className="text-white font-bold mb-4 text-center">Répartition Sport vs Académique</h3>
               <div className="space-y-3">
                 {franchiseBalance.map(franchise => {
-                  const academicPercent = franchise.totalPoints > 0 ? (franchise.academicPoints / franchise.totalPoints * 100) : 50;
-                  const sportPercent = 100 - academicPercent;
-                  
                   return (
                     <div key={franchise.franchise} className="mb-4">
                       <div className="flex justify-between text-white text-sm mb-1">
                         <span>{franchise.franchise}</span>
-                        <span>{franchise.totalPoints} pts</span>
+                        <span>{franchise.total_points} pts</span>
                       </div>
                       <div className="w-full bg-white/20 rounded-full h-4 overflow-hidden">
                         <div className="h-full flex">
                           <div 
                             className="bg-blue-500 transition-all duration-500"
-                            style={{ width: `${academicPercent}%` }}
-                            title={`Académique: ${Math.round(academicPercent)}%`}
+                            style={{ width: `${franchise.academic_percent}%` }}
+                            title={`Académique: ${franchise.academic_percent}%`}
                           ></div>
                           <div 
                             className="bg-orange-500 transition-all duration-500"
-                            style={{ width: `${sportPercent}%` }}
-                            title={`Sport: ${Math.round(sportPercent)}%`}
+                            style={{ width: `${franchise.sport_percent}%` }}
+                            title={`Sport: ${franchise.sport_percent}%`}
                           ></div>
                         </div>
                       </div>
                       <div className="flex justify-between text-xs text-white/60 mt-1">
-                        <span>📚 {Math.round(academicPercent)}%</span>
-                        <span>🏀 {Math.round(sportPercent)}%</span>
+                        <span>📚 {franchise.academic_percent}%</span>
+                        <span>🏀 {franchise.sport_percent}%</span>
                       </div>
                     </div>
                   );
@@ -1845,37 +1842,37 @@ if (currentView === 'rankings') {
           </div>
         </div>
 
-        {/* Hall of Fame */}
+        {/* Hall of Fame avec vraies données */}
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
           <h2 className="text-2xl font-bold text-yellow-400 mb-6 text-center">🏛️ Hall of Fame</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {hallOfFame.recordHolder && (
-              <div className={`bg-gradient-to-r ${franchiseColors[hallOfFame.recordHolder.franchise]} p-4 rounded-lg text-center border-2 border-yellow-400`}>
+            {hallOfFameData.recordHolder && (
+              <div className={`bg-gradient-to-r ${franchiseColors[hallOfFameData.recordHolder.franchise]} p-4 rounded-lg text-center border-2 border-yellow-400`}>
                 <div className="text-3xl mb-2">👑</div>
                 <h3 className="text-white font-bold">Record Absolu</h3>
-                <div className="text-2xl font-bold text-white">{hallOfFame.recordHolder.name}</div>
-                <div className="text-white/80">{hallOfFame.recordHolder.franchise}</div>
-                <div className="text-xl font-bold text-yellow-300">{hallOfFame.recordHolder.score} points</div>
+                <div className="text-2xl font-bold text-white">{hallOfFameData.recordHolder.name}</div>
+                <div className="text-white/80">{hallOfFameData.recordHolder.franchise}</div>
+                <div className="text-xl font-bold text-yellow-300">{hallOfFameData.recordHolder.score} points</div>
               </div>
             )}
 
-            {hallOfFame.mostBadges && hallOfFame.mostBadges.badges && (
-              <div className={`bg-gradient-to-r ${franchiseColors[hallOfFame.mostBadges.franchise]} p-4 rounded-lg text-center border-2 border-purple-400`}>
+            {hallOfFameData.mostBadges && (
+              <div className={`bg-gradient-to-r ${franchiseColors[hallOfFameData.mostBadges.franchise]} p-4 rounded-lg text-center border-2 border-purple-400`}>
                 <div className="text-3xl mb-2">🏅</div>
                 <h3 className="text-white font-bold">Roi des Badges</h3>
-                <div className="text-2xl font-bold text-white">{hallOfFame.mostBadges.name}</div>
-                <div className="text-white/80">{hallOfFame.mostBadges.franchise}</div>
-                <div className="text-xl font-bold text-purple-300">{hallOfFame.mostBadges.badges.length} badges</div>
+                <div className="text-2xl font-bold text-white">{hallOfFameData.mostBadges.name}</div>
+                <div className="text-white/80">{hallOfFameData.mostBadges.franchise}</div>
+                <div className="text-xl font-bold text-purple-300">{hallOfFameData.mostBadges.badge_count} badges</div>
               </div>
             )}
 
             <div className="space-y-3">
               <h3 className="text-white font-bold text-center">🎯 Premiers Paliers</h3>
               {[
-                { threshold: 50, player: hallOfFame.firstTo50, emoji: '⭐' },
-                { threshold: 100, player: hallOfFame.firstTo100, emoji: '🌟' },
-                { threshold: 150, player: hallOfFame.firstTo150, emoji: '🔥' },
-                { threshold: 200, player: hallOfFame.firstTo200, emoji: '🏛️' }
+                { threshold: 50, player: hallOfFameData.firstTo50, emoji: '⭐' },
+                { threshold: 100, player: hallOfFameData.firstTo100, emoji: '🌟' },
+                { threshold: 150, player: hallOfFameData.firstTo150, emoji: '🔥' },
+                { threshold: 200, player: hallOfFameData.firstTo200, emoji: '🏛️' }
               ].map(({ threshold, player, emoji }) => (
                 player && (
                   <div key={threshold} className="bg-white/20 p-2 rounded flex justify-between items-center">
