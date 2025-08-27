@@ -1907,50 +1907,46 @@ if (currentView === 'home') {
 
         {/* Onglets de navigation */}
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2 mb-8">
-          <div className="flex space-x-1 md:space-x-2">
+          <div className="flex space-x-2">
             <button
               onClick={() => setActiveTab('general')}
-              className={`flex-1 flex items-center justify-center py-3 px-2 md:px-4 rounded-lg transition-colors text-xs md:text-base ${
+              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg transition-colors ${
                 activeTab === 'general'
                   ? 'bg-white text-purple-900 font-bold'
                   : 'text-white hover:bg-white/20'
               }`}
             >
-              <span className="hidden sm:inline">Classements Généraux</span>
-            <span className="sm:hidden">Généraux</span>
+              <span>Classements Généraux</span>
             </button>
             <button
               onClick={() => setActiveTab('mvp')}
-              className={`flex-1 flex items-center justify-center py-3 px-2 md:px-4 rounded-lg transition-colors text-xs md:text-base ${
+              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg transition-colors ${
                 activeTab === 'mvp'
                   ? 'bg-white text-purple-900 font-bold'
                   : 'text-white hover:bg-white/20'
               }`}
             >
-              <span className="hidden sm:inline">MVP & Records</span>
-              <span className="sm:hidden">MVP</span>
+              <span>MVP & Records</span>
             </button>
             <button
               onClick={() => setActiveTab('franchises')}
-              className={`flex-1 flex items-center justify-center py-3 px-2 md:px-4 rounded-lg transition-colors text-xs md:text-base ${
+              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg transition-colors ${
                 activeTab === 'franchises'
                   ? 'bg-white text-purple-900 font-bold'
                   : 'text-white hover:bg-white/20'
               }`}
             >
-              <span className="hidden sm:inline">Stats Franchises</span>
-              <span className="sm:hidden">Stats</span>
+              <span>Stats Franchises</span>
             </button>
             <button
               onClick={() => setActiveTab('hall-of-fame')}
-              className={`flex-1 flex items-center justify-center py-3 px-2 md:px-4 rounded-lg transition-colors text-xs md:text-base ${
+              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg transition-colors ${
                 activeTab === 'hall-of-fame'
                   ? 'bg-white text-purple-900 font-bold'
                   : 'text-white hover:bg-white/20'
               }`}
             >
-              <span className="hidden sm:inline">Hall of Fame</span>
-              <span className="sm:hidden">Hall</span>
+              <span>Hall of Fame</span>
             </button>
           </div>
         </div>
