@@ -489,9 +489,20 @@ const FranchiseStatsSection = ({ period = 'week' }) => {
   }, [period]);
 
   if (loading) return <div className="text-center text-white text-xl">Chargement...</div>;
-  if (!franchiseData || !franchiseData.franchise_stats.length) {
-    return <div className="text-center text-white text-xl">Pas encore de données</div>;
-  }
+
+// Vérification plus robuste
+if (!franchiseData) {
+  return <div className="text-center text-white text-xl">Erreur de chargement des données</div>;
+}
+
+if (!franchiseData.franchise_stats || franchiseData.franchise_stats.length === 0) {
+  return (
+    <div className="text-center text-white">
+      <div className="text-xl mb-4">Pas encore de données pour cette période</div>
+      <div className="text-gray-400">Ajoutez des points aux élèves pour voir les statistiques apparaître</div>
+    </div>
+  );
+}
 
   return (
     <div className="space-y-6">
