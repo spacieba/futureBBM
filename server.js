@@ -40,7 +40,7 @@ db.exec(`
     score INTEGER DEFAULT 0
   );
 
-CREATE TABLE IF NOT EXISTS history (
+  CREATE TABLE IF NOT EXISTS history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     player_name TEXT NOT NULL,
     action TEXT NOT NULL,
@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS history (
     last_rank_check TEXT
   );
 `);
+
 db.exec(`
   -- Table pour les records permanents du Hall of Fame
   CREATE TABLE IF NOT EXISTS hall_of_fame (
@@ -160,34 +161,57 @@ db.exec(`
   );
 `);
 
-// Modifier la table history pour inclure la catégorie (ajouter après la création initiale)
+// Index pour optimiser les requêtes
 db.exec(`
-  -- Index pour optimiser les requêtes
   CREATE INDEX IF NOT EXISTS idx_history_category ON history(category);
   CREATE INDEX IF NOT EXISTS idx_history_date ON history(DATE(timestamp));
   CREATE INDEX IF NOT EXISTS idx_period_stats_period ON period_stats(period_type, period_start);
 `);
 
-// FONCTIONS UTILITAIRES À AJOUTER
+// FONCTIONS UTILITAIRES
 
 // Fonction pour déterminer la catégorie d'une action
 const getActionCategory = (action) => {
+  const actionLower = action.toLowerCase();
+  
+  // Sport - Vérifier d'abord les mots-clés spécifiques
   if (action.includes('🏀') || 
-      action.toLowerCase().includes('sport') ||
-      action.toLowerCase().includes('entrainement') ||
-      action.toLowerCase().includes('basket') ||
-      action.toLowerCase().includes('hardworker') ||
-      action.toLowerCase().includes('victoire') ||
-      action.toLowerCase().includes('défaite')) {
+      actionLower.includes('hardworker') ||
+      actionLower.includes('entrainement') ||
+      actionLower.includes('basket') ||
+      actionLower.includes('victoire') ||
+      actionLower.includes('défaite') ||
+      actionLower.includes('weekend') ||
+      actionLower.includes('tournoi') ||
+      actionLower.includes('sélection') ||
+      actionLower.includes('arbitrage') ||
+      actionLower.includes('table de marque') ||
+      actionLower.includes('bonus sport') ||
+      actionLower.includes('pénalité sport')) {
     return 'sport';
-  } else if (action.includes('📚') || 
-             action.toLowerCase().includes('scolaire') ||
-             action.toLowerCase().includes('classe') ||
-             action.toLowerCase().includes('observation') ||
-             action.toLowerCase().includes('félicitations') ||
-             action.toLowerCase().includes('compliments')) {
+  }
+  
+  // Académique
+  if (action.includes('📚') || 
+      actionLower.includes('scolaire') ||
+      actionLower.includes('classe') ||
+      actionLower.includes('observation') ||
+      actionLower.includes('félicitations') ||
+      actionLower.includes('compliments') ||
+      actionLower.includes('encouragements') ||
+      actionLower.includes('exclusion') ||
+      actionLower.includes('travail') ||
+      actionLower.includes('retard') ||
+      actionLower.includes('absence') ||
+      actionLower.includes('délégué') ||
+      actionLower.includes('sentinelle') ||
+      actionLower.includes('devoirs') ||
+      actionLower.includes('bonus scolaire') ||
+      actionLower.includes('pénalité scolaire')) {
     return 'academic';
   }
+  
+  console.log(`⚠️ Catégorie inconnue pour: "${action}"`);
   return 'unknown';
 };
 
@@ -269,11 +293,6 @@ const updatePeriodStats = (playerName, points, action) => {
 
 const updatePlayerPeriodStat = (playerName, periodType, periodStart, periodEnd, points, category) => {
   const player = db.prepare('SELECT franchise FROM players WHERE name = ?').get(playerName);
-  if (!player) return;
-  
-  // Insérer ou mettre à jour
-  const updatePlayerPeriodStat = (playerName, periodType, periodStart, periodEnd, points, category) => {
-  const player = db.prepare('SELECT franchise FROM players WHERE name = ?').get(playerName);
   if (!player) {
     console.log(`⚠️ Joueur ${playerName} non trouvé`);
     return;
@@ -333,6 +352,7 @@ const updatePlayerPeriodStat = (playerName, periodType, periodStart, periodEnd, 
     console.log(`✅ Nouvelles stats créées pour ${playerName}`);
   }
 };
+
 // Définition des badges (même structure que dans le front)
 const BADGES = {
   individual: {
@@ -373,17 +393,17 @@ const BADGES = {
       rarity: 'argent',
       condition: (stats) => {
         // Vérifier qu'il y a au moins 2 Hardworker comptés
-    if (stats.hardworker_count < 2) return false;
-    
-    const dates = JSON.parse(stats.hardworker_dates || '[]');
-    if (dates.length < 2) return false;
-    
-    const twoWeeksAgo = new Date();
-    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-    const recentCount = dates.filter(d => new Date(d) > twoWeeksAgo).length;
-    return recentCount >= 2;
-  }
-},
+        if (stats.hardworker_count < 2) return false;
+        
+        const dates = JSON.parse(stats.hardworker_dates || '[]');
+        if (dates.length < 2) return false;
+        
+        const twoWeeksAgo = new Date();
+        twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+        const recentCount = dates.filter(d => new Date(d) > twoWeeksAgo).length;
+        return recentCount >= 2;
+      }
+    },
     
     // === PERSÉVÉRANCE (2 badges) ===
     phoenix: {
@@ -603,11 +623,11 @@ const awardPlayerBadge = (playerName, badge) => {
       
       // Ajouter à l'historique
       const insertHistory = db.prepare(`
-        INSERT INTO history (player_name, action, points, timestamp, new_total, teacher_name)
-        VALUES (?, ?, ?, ?, (SELECT score FROM players WHERE name = ?), ?)
+        INSERT INTO history (player_name, action, points, timestamp, new_total, teacher_name, category)
+        VALUES (?, ?, ?, ?, (SELECT score FROM players WHERE name = ?), ?, ?)
       `);
       const timestamp = new Date().toLocaleString('fr-FR');
-      insertHistory.run(playerName, `Badge débloqué: ${badge.name}`, badge.points, timestamp, playerName, 'Système');
+      insertHistory.run(playerName, `Badge débloqué: ${badge.name}`, badge.points, timestamp, playerName, 'Système', 'unknown');
     }
     
     console.log(`🏅 Badge attribué: ${badge.name} à ${playerName}`);
@@ -699,6 +719,7 @@ const checkIndividualBadges = (playerName) => {
     }
   }
 };
+
 // Fonction pour recalculer tous les badges d'un joueur lors d'une annulation
 const recalculatePlayerBadges = (playerName) => {
   const player = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
@@ -732,7 +753,6 @@ const recalculatePlayerBadges = (playerName) => {
   
   console.log(`♻️ Badges recalculés pour ${playerName}`);
 };
-
 
 // Vérifier les badges collectifs
 const checkCollectiveBadges = (franchise) => {
@@ -818,6 +838,68 @@ const checkFranchiseRankings = () => {
   }
 };
 
+// Fonction pour mettre à jour les records du Hall of Fame
+const updateHallOfFame = (playerName, newScore) => {
+  const player = db.prepare('SELECT franchise FROM players WHERE name = ?').get(playerName);
+  if (!player) return;
+  
+  const milestones = [50, 100, 150, 200, 250];
+  
+  milestones.forEach(milestone => {
+    // Vérifier si ce joueur a atteint ce palier
+    const previousScore = db.prepare(`
+      SELECT new_total - points as previous_score 
+      FROM history 
+      WHERE player_name = ? 
+      ORDER BY id DESC 
+      LIMIT 1
+    `).get(playerName);
+    
+    const prevScore = previousScore ? previousScore.previous_score : 0;
+    
+    if (prevScore < milestone && newScore >= milestone) {
+      // Premier à atteindre ce palier ?
+      const existing = db.prepare(`
+        SELECT * FROM hall_of_fame 
+        WHERE record_type = ? AND is_current = 1
+      `).get(`first_${milestone}`);
+      
+      if (!existing) {
+        // Premier à atteindre ce palier
+        db.prepare(`
+          INSERT INTO hall_of_fame 
+          (record_type, player_name, franchise, score, date_achieved, weeks_held, is_current)
+          VALUES (?, ?, ?, ?, ?, 1, 1)
+        `).run(`first_${milestone}`, playerName, player.franchise, newScore, new Date().toISOString());
+      }
+    }
+  });
+  
+  // Mettre à jour le record absolu
+  const currentHighest = db.prepare(`
+    SELECT * FROM hall_of_fame 
+    WHERE record_type = 'highest_score' AND is_current = 1
+  `).get();
+  
+  if (!currentHighest || newScore > currentHighest.score) {
+    // Marquer l'ancien record comme dépassé
+    if (currentHighest) {
+      db.prepare(`
+        UPDATE hall_of_fame 
+        SET is_current = 0 
+        WHERE id = ?
+      `).run(currentHighest.id);
+    }
+    
+    // Nouveau record
+    db.prepare(`
+      INSERT INTO hall_of_fame 
+      (record_type, player_name, franchise, score, date_achieved, weeks_held, is_current)
+      VALUES ('highest_score', ?, ?, ?, ?, 1, 1)
+    `).run(playerName, player.franchise, newScore, new Date().toISOString());
+  }
+};
+
 // === ROUTES API ===
 
 // Vérification du mot de passe professeur
@@ -890,6 +972,7 @@ app.get('/api/history/:playerName', (req, res) => {
 app.post('/api/add-points', (req, res) => {
   try {
     const { playerName, points, action, teacherName } = req.body;
+    console.log(`🎯 Ajout de points: ${playerName}, ${points} pts, action: ${action}`);
     
     const transaction = db.transaction(() => {
       // Récupérer l'ancien score
@@ -902,7 +985,7 @@ app.post('/api/add-points', (req, res) => {
       // Récupérer le nouveau score
       const player = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
       
-    // Déterminer la catégorie AVANT l'insertion
+      // Déterminer la catégorie AVANT l'insertion
       const category = getActionCategory(action);
       console.log(`📌 Catégorie détectée: ${category} pour l'action: ${action}`);
       
@@ -916,8 +999,10 @@ app.post('/api/add-points', (req, res) => {
       
       // IMPORTANT: Appeler updatePeriodStats ICI
       updatePeriodStats(playerName, points, action);
+      
       // Mettre à jour les records du Hall of Fame
-updateHallOfFame(playerName, player.score);
+      updateHallOfFame(playerName, player.score);
+      
       // Mettre à jour les statistiques
       const stats = db.prepare('SELECT * FROM player_stats WHERE player_name = ?').get(playerName);
       
@@ -949,13 +1034,13 @@ updateHallOfFame(playerName, player.score);
         }
         
         // Compter les actions spéciales
-if (action.includes('Félicitations')) {
-  updates.felicitations_count++;
-}
-if (action.includes('Hardworker')) {
-  updates.hardworker_count++;
-  updates.hardworker_dates.push(new Date().toISOString());
-}
+        if (action.includes('Félicitations')) {
+          updates.felicitations_count++;
+        }
+        if (action.includes('Hardworker')) {
+          updates.hardworker_count++;
+          updates.hardworker_dates.push(new Date().toISOString());
+        }
         
         // Mettre à jour les consecutive_days
         const today = new Date().toDateString();
@@ -1034,6 +1119,7 @@ if (action.includes('Hardworker')) {
       WHERE player_name = ?
     `).all(playerName);
     
+    console.log(`✅ Points ajoutés avec succès pour ${playerName}`);
     res.json({ 
       success: true, 
       newScore: result.player.score,
@@ -1041,6 +1127,7 @@ if (action.includes('Hardworker')) {
     });
     
   } catch (error) {
+    console.error('❌ Erreur lors de l\'ajout de points:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1077,28 +1164,29 @@ app.delete('/api/undo-last/:playerName', (req, res) => {
           WHERE player_name = ?
         `).run(playerName);
       }
-     // Si on annule un Hardworker, décrémenter le compteur
-if (lastAction.action.includes('Hardworker')) {
-  const stats = db.prepare('SELECT * FROM player_stats WHERE player_name = ?').get(playerName);
-  if (stats) {
-    const hardworkerDates = JSON.parse(stats.hardworker_dates || '[]');
-    
-    // Supprimer la dernière date Hardworker
-    if (hardworkerDates.length > 0) {
-      hardworkerDates.pop();
-    }
-    
-    db.prepare(`
-      UPDATE player_stats 
-      SET hardworker_count = CASE WHEN hardworker_count > 0 THEN hardworker_count - 1 ELSE 0 END,
-          hardworker_dates = ?
-      WHERE player_name = ?
-    `).run(JSON.stringify(hardworkerDates), playerName);
-  }
-}
+      
+      // Si on annule un Hardworker, décrémenter le compteur
+      if (lastAction.action.includes('Hardworker')) {
+        const stats = db.prepare('SELECT * FROM player_stats WHERE player_name = ?').get(playerName);
+        if (stats) {
+          const hardworkerDates = JSON.parse(stats.hardworker_dates || '[]');
+          
+          // Supprimer la dernière date Hardworker
+          if (hardworkerDates.length > 0) {
+            hardworkerDates.pop();
+          }
+          
+          db.prepare(`
+            UPDATE player_stats 
+            SET hardworker_count = CASE WHEN hardworker_count > 0 THEN hardworker_count - 1 ELSE 0 END,
+                hardworker_dates = ?
+            WHERE player_name = ?
+          `).run(JSON.stringify(hardworkerDates), playerName);
+        }
+      }
       
       const player = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
-       // Recalculer les badges après annulation
+      // Recalculer les badges après annulation
       recalculatePlayerBadges(playerName);
       return player.score;
     });
@@ -1378,35 +1466,7 @@ app.get('/api/progression/:playerName', (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-// ENDPOINT DE DIAGNOSTIC pour vérifier les données
-app.get('/api/debug/period-stats', (req, res) => {
-  try {
-    const stats = db.prepare('SELECT * FROM period_stats ORDER BY date_updated DESC LIMIT 10').all();
-    const history = db.prepare('SELECT * FROM history ORDER BY id DESC LIMIT 10').all();
-    const counts = db.prepare(`
-      SELECT 
-        period_type,
-        COUNT(*) as count,
-        SUM(total_points) as total_points
-      FROM period_stats
-      GROUP BY period_type
-    `).all();
-    
-    res.json({
-      recent_stats: stats,
-      recent_history: history,
-      summary: counts,
-      current_week: getWeekBounds(),
-      current_month: getMonthBounds()
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-// Servir l'application React
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+
 // 1. MVP actuels (semaine/mois/trimestre)
 app.get('/api/mvp/current', (req, res) => {
   try {
@@ -1597,11 +1657,11 @@ app.get('/api/stats/franchise-breakdown', (req, res) => {
 app.get('/api/hall-of-fame', (req, res) => {
   try {
     // Records actuels
-   const currentRecords = db.prepare(`
-  SELECT * FROM hall_of_fame 
-  WHERE is_current = 1 
-  ORDER BY score DESC
-`).all();
+    const currentRecords = db.prepare(`
+      SELECT * FROM hall_of_fame 
+      WHERE is_current = 1 
+      ORDER BY score DESC
+    `).all();
     
     // Historique complet
     const fullHistory = db.prepare(`
@@ -1711,67 +1771,79 @@ app.get('/api/progression/franchise', (req, res) => {
   }
 });
 
-// 6. Fonction utilitaire pour mettre à jour les records du Hall of Fame
-const updateHallOfFame = (playerName, newScore) => {
-  const player = db.prepare('SELECT franchise FROM players WHERE name = ?').get(playerName);
-  if (!player) return;
-  
-  const milestones = [50, 100, 150, 200, 250];
-  
-  milestones.forEach(milestone => {
-    // Vérifier si ce joueur a atteint ce palier
-    const previousScore = db.prepare(`
-      SELECT new_total - points as previous_score 
-      FROM history 
-      WHERE player_name = ? 
-      ORDER BY id DESC 
-      LIMIT 1
-    `).get(playerName);
+// ENDPOINT DE DIAGNOSTIC pour vérifier les données
+app.get('/api/debug/period-stats', (req, res) => {
+  try {
+    const stats = db.prepare('SELECT * FROM period_stats ORDER BY date_updated DESC LIMIT 10').all();
+    const history = db.prepare('SELECT * FROM history ORDER BY id DESC LIMIT 10').all();
+    const counts = db.prepare(`
+      SELECT 
+        period_type,
+        COUNT(*) as count,
+        SUM(total_points) as total_points
+      FROM period_stats
+      GROUP BY period_type
+    `).all();
     
-    const prevScore = previousScore ? previousScore.previous_score : 0;
-    
-    if (prevScore < milestone && newScore >= milestone) {
-      // Premier à atteindre ce palier ?
-      const existing = db.prepare(`
-        SELECT * FROM hall_of_fame 
-        WHERE record_type = ? AND is_current = 1
-      `).get(`first_${milestone}`);
-      
-      if (!existing) {
-        // Premier à atteindre ce palier
-        db.prepare(`
-          INSERT INTO hall_of_fame 
-          (record_type, player_name, franchise, score, date_achieved, weeks_held, is_current)
-          VALUES (?, ?, ?, ?, ?, 1, 1)
-        `).run(`first_${milestone}`, playerName, player.franchise, newScore, new Date().toISOString());
-      }
-    }
-  });
-  
-  // Mettre à jour le record absolu
-  const currentHighest = db.prepare(`
-    SELECT * FROM hall_of_fame 
-    WHERE record_type = 'highest_score' AND is_current = 1
-  `).get();
-  
-  if (!currentHighest || newScore > currentHighest.score) {
-    // Marquer l'ancien record comme dépassé
-    if (currentHighest) {
-      db.prepare(`
-        UPDATE hall_of_fame 
-        SET is_current = 0 
-        WHERE id = ?
-      `).run(currentHighest.id);
-    }
-    
-    // Nouveau record
-    db.prepare(`
-      INSERT INTO hall_of_fame 
-      (record_type, player_name, franchise, score, date_achieved, weeks_held, is_current)
-      VALUES ('highest_score', ?, ?, ?, ?, 1, 1)
-    `).run(playerName, player.franchise, newScore, new Date().toISOString());
+    res.json({
+      recent_stats: stats,
+      recent_history: history,
+      summary: counts,
+      current_week: getWeekBounds(),
+      current_month: getMonthBounds()
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
-};
+});
+
+// FONCTION POUR MIGRER LES DONNÉES EXISTANTES
+app.post('/api/migrate-existing-data', (req, res) => {
+  try {
+    console.log('🔄 Migration des données existantes...');
+    
+    // Récupérer tout l'historique
+    const allHistory = db.prepare('SELECT * FROM history ORDER BY id ASC').all();
+    
+    allHistory.forEach(entry => {
+      // Déterminer la catégorie si elle n'existe pas
+      if (!entry.category || entry.category === 'unknown') {
+        const category = getActionCategory(entry.action);
+        db.prepare('UPDATE history SET category = ? WHERE id = ?').run(category, entry.id);
+      }
+      
+      // Recréer les stats périodiques basées sur la date
+      const entryDate = new Date(entry.timestamp);
+      const weekBounds = getWeekBounds(entryDate);
+      const monthBounds = getMonthBounds(entryDate);
+      const trimesterBounds = getTrimesterBounds(entryDate);
+      
+      const category = entry.category || getActionCategory(entry.action);
+      
+      // Mettre à jour les stats pour chaque période
+      updatePlayerPeriodStat(entry.player_name, 'week', weekBounds.start, weekBounds.end, entry.points, category);
+      updatePlayerPeriodStat(entry.player_name, 'month', monthBounds.start, monthBounds.end, entry.points, category);
+      updatePlayerPeriodStat(entry.player_name, 'trimester', trimesterBounds.start, trimesterBounds.end, entry.points, category);
+    });
+    
+    console.log(`✅ Migration terminée: ${allHistory.length} entrées traitées`);
+    res.json({ 
+      success: true, 
+      processed: allHistory.length,
+      message: 'Migration des données terminée avec succès'
+    });
+    
+  } catch (error) {
+    console.error('❌ Erreur lors de la migration:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Servir l'application React
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // Lancer le serveur
 app.listen(port, () => {
   console.log(`🚀 Serveur démarré sur le port ${port}`);
