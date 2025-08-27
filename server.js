@@ -985,7 +985,34 @@ app.post('/api/add-points', (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?)
       `).run(playerName, action, points, timestamp, player.score, teacherName || 'Anonyme');
       
-      // Mettre à jour les statistiques
+      // === NOUVEAU: TRACKER PAR CATÉGORIE ===
+      const category = getCategoryFromAction(action);
+      const now = new Date();
+      
+      // Insérer dans player_category_points
+      db.prepare(`
+        INSERT INTO player_category_points 
+        (player_name, category, points, date, week_year, month_year, quarter_year, action_description)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        playerName,
+        category,
+        points,
+        now.toISOString(),
+        getWeekYear(now),
+        getMonthYear(now),
+        getQuarterYear(now),
+        action
+      );
+      
+      console.log(`📊 Points trackés: ${playerName} - ${points} pts en ${category} (${action})`);
+      
+      // === NOUVEAU: VÉRIFIER HALL OF FAME ===
+      if (player.score > oldPlayer.score) {
+        updateHallOfFame(playerName, player.score);
+      }
+      
+      // Mettre à jour les statistiques existantes (code inchangé)
       const stats = db.prepare('SELECT * FROM player_stats WHERE player_name = ?').get(playerName);
       
       if (stats) {
@@ -1016,20 +1043,19 @@ app.post('/api/add-points', (req, res) => {
         }
         
         // Compter les actions spéciales
-if (action.includes('Félicitations')) {
-  updates.felicitations_count++;
-}
-if (action.includes('Hardworker')) {
-  updates.hardworker_count++;
-  updates.hardworker_dates.push(new Date().toISOString());
-}
+        if (action.includes('Félicitations')) {
+          updates.felicitations_count++;
+        }
+        if (action.includes('Hardworker')) {
+          updates.hardworker_count++;
+          updates.hardworker_dates.push(new Date().toISOString());
+        }
         
         // Mettre à jour les consecutive_days
         const today = new Date().toDateString();
         const consecutiveDays = JSON.parse(stats.consecutive_days || '[]');
         if (!consecutiveDays.includes(today) && points > 0) {
           consecutiveDays.push(today);
-          // Garder seulement les 7 derniers jours
           if (consecutiveDays.length > 7) {
             consecutiveDays.shift();
           }
@@ -1064,7 +1090,7 @@ if (action.includes('Hardworker')) {
         );
       }
       
-      // Mettre à jour les stats de franchise
+      // Mettre à jour les stats de franchise (code existant inchangé)
       const franchise = oldPlayer.franchise;
       const franchiseStats = db.prepare('SELECT * FROM franchise_stats WHERE franchise = ?').get(franchise);
       
@@ -1085,14 +1111,17 @@ if (action.includes('Hardworker')) {
         `).run(new Date().toISOString(), franchise);
       }
       
-      return { player, franchise };
+      return { player, franchise, category };
     });
     
     const result = transaction();
     
-    // Vérifier les badges après la transaction
+    // Vérifier les badges après la transaction (code existant)
     checkIndividualBadges(playerName);
     checkCollectiveBadges(result.franchise);
+    
+    // === NOUVEAU: CALCULER ET METTRE À JOUR LES MVP ===
+    updateMVPRecords();
     
     // Récupérer les badges du joueur
     const badges = db.prepare(`
@@ -1104,13 +1133,89 @@ if (action.includes('Hardworker')) {
     res.json({ 
       success: true, 
       newScore: result.player.score,
+      category: result.category,
       badges: badges
     });
     
   } catch (error) {
+    console.error('Erreur lors de l\'ajout de points:', error);
     res.status(500).json({ error: error.message });
   }
 });
+
+// === NOUVELLE FONCTION: CALCULER ET METTRE À JOUR LES MVP ===
+const updateMVPRecords = () => {
+  const now = new Date();
+  const currentWeek = getWeekYear(now);
+  const currentMonth = getMonthYear(now);
+  const currentQuarter = getQuarterYear(now);
+  
+  // Calculer MVP de la semaine (sport et académique)
+  updateMVPForPeriod('week', currentWeek, 'sport');
+  updateMVPForPeriod('week', currentWeek, 'academic');
+  updateMVPForPeriod('week', currentWeek, 'overall');
+  
+  // Calculer MVP du mois (sport et académique)
+  updateMVPForPeriod('month', currentMonth, 'sport');
+  updateMVPForPeriod('month', currentMonth, 'academic');
+  updateMVPForPeriod('month', currentMonth, 'overall');
+  
+  // Calculer MVP du trimestre (sport et académique)
+  updateMVPForPeriod('quarter', currentQuarter, 'sport');
+  updateMVPForPeriod('quarter', currentQuarter, 'academic');
+  updateMVPForPeriod('quarter', currentQuarter, 'overall');
+};
+
+// Fonction helper pour calculer MVP d'une période spécifique
+const updateMVPForPeriod = (periodType, periodValue, category) => {
+  let query;
+  let params = [periodValue];
+  
+  if (category === 'overall') {
+    // MVP global (toutes catégories)
+    query = `
+      SELECT player_name, SUM(points) as total_points
+      FROM player_category_points 
+      WHERE ${periodType}_year = ? AND points > 0
+      GROUP BY player_name 
+      ORDER BY total_points DESC 
+      LIMIT 1
+    `;
+  } else {
+    // MVP par catégorie (sport ou academic)
+    query = `
+      SELECT player_name, SUM(points) as total_points
+      FROM player_category_points 
+      WHERE ${periodType}_year = ? AND category = ? AND points > 0
+      GROUP BY player_name 
+      ORDER BY total_points DESC 
+      LIMIT 1
+    `;
+    params.push(category);
+  }
+  
+  const mvpData = db.prepare(query).get(...params);
+  
+  if (mvpData && mvpData.total_points > 0) {
+    // Mettre à jour ou insérer le MVP
+    db.prepare(`
+      INSERT OR REPLACE INTO mvp_records 
+      (period_type, period_value, category, player_name, points, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(
+      periodType,
+      periodValue,
+      category,
+      mvpData.player_name,
+      mvpData.total_points,
+      new Date().toISOString()
+    );
+    
+    console.log(`🏆 MVP ${category} ${periodType}: ${mvpData.player_name} (${mvpData.total_points} pts)`);
+  }
+};
+
+console.log('✅ Étape 2 terminée - Fonction addPoints modifiée avec tracking automatique');
 
 // Annuler la dernière action
 app.delete('/api/undo-last/:playerName', (req, res) => {
