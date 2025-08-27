@@ -32,56 +32,6 @@ db.pragma('journal_mode = WAL');
 db.pragma('synchronous = NORMAL');
 
 // Créer les tables
-db.exec(`
-const additionalTables = `
-  -- Table pour tracker les points par catégorie (sport/académique)
-  CREATE TABLE IF NOT EXISTS player_category_points (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    player_name TEXT NOT NULL,
-    category TEXT NOT NULL CHECK(category IN ('sport', 'academic')),
-    points INTEGER NOT NULL,
-    date TEXT NOT NULL,
-    week_year TEXT NOT NULL, -- Format '2025-W01', '2025-W02', etc.
-    month_year TEXT NOT NULL, -- Format '2025-01', '2025-02', etc.
-    quarter_year TEXT NOT NULL, -- Format '2025-Q1', '2025-Q2', etc.
-    action_description TEXT,
-    FOREIGN KEY (player_name) REFERENCES players (name)
-  );
-
-  -- Table pour le Hall of Fame (records et premiers à atteindre chaque palier)
-  CREATE TABLE IF NOT EXISTS hall_of_fame (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    player_name TEXT NOT NULL,
-    achievement_type TEXT NOT NULL, -- 'milestone', 'record', 'badges'
-    achievement_name TEXT NOT NULL, -- 'first_to_50', 'highest_score', 'most_badges'
-    value INTEGER NOT NULL, -- Score ou nombre de badges
-    date_achieved TEXT NOT NULL,
-    is_current_record BOOLEAN DEFAULT 1, -- Si c'est encore le record actuel
-    FOREIGN KEY (player_name) REFERENCES players (name)
-  );
-
-  -- Table pour tracker les MVP par période
-  CREATE TABLE IF NOT EXISTS mvp_records (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    period_type TEXT NOT NULL CHECK(period_type IN ('week', 'month', 'quarter')),
-    period_value TEXT NOT NULL, -- '2025-W01', '2025-01', '2025-Q1'
-    category TEXT NOT NULL CHECK(category IN ('sport', 'academic', 'overall')),
-    player_name TEXT NOT NULL,
-    points INTEGER NOT NULL,
-    created_at TEXT NOT NULL,
-    FOREIGN KEY (player_name) REFERENCES players (name),
-    UNIQUE(period_type, period_value, category)
-  );
-
-  -- Index pour optimiser les performances des requêtes
-  CREATE INDEX IF NOT EXISTS idx_category_points_date ON player_category_points(date);
-  CREATE INDEX IF NOT EXISTS idx_category_points_week ON player_category_points(week_year);
-  CREATE INDEX IF NOT EXISTS idx_category_points_month ON player_category_points(month_year);
-  CREATE INDEX IF NOT EXISTS idx_category_points_quarter ON player_category_points(quarter_year);
-  CREATE INDEX IF NOT EXISTS idx_category_points_category ON player_category_points(category);
-  CREATE INDEX IF NOT EXISTS idx_hall_of_fame_type ON hall_of_fame(achievement_type);
-  CREATE INDEX IF NOT EXISTS idx_mvp_period ON mvp_records(period_type, period_value);
-`;
 
 // === À AJOUTER DANS LE db.exec APRÈS LA LIGNE 103 ===
 // Remplacez votre db.exec actuel par :
