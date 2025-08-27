@@ -638,6 +638,8 @@ const HallOfFameSection = () => {
           const [playerBadges, setPlayerBadges] = useState({});
           const [franchiseBadges, setFranchiseBadges] = useState({});
           const [notifications, setNotifications] = useState([]);
+          const [activeTab, setActiveTab] = useState('general');
+          const [selectedPeriod, setSelectedPeriod] = useState('week');
           
           // Fonction pour obtenir le grade basketball selon le score
           const getBadge = (score) => {
@@ -1867,8 +1869,6 @@ if (currentView === 'home') {
 
           // PAGE CLASSEMENTS
           if (currentView === 'rankings') {
-  const [activeTab, setActiveTab] = useState('general');
-  const [selectedPeriod, setSelectedPeriod] = useState('week');
   
   const franchiseRankings = getFranchiseRankings();
   const playerRankings = getGeneralPlayerRankings();
