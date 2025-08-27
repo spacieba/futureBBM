@@ -1593,13 +1593,7 @@ if (currentView === 'home') {
           // PAGE CLASSEMENTS AMÉLIORÉE - Remplace la section "PAGE CLASSEMENTS" existante
 // PAGE CLASSEMENTS AVEC VRAIES DONNÉES - Remplacez votre condition if (currentView === 'rankings') par ceci
 if (currentView === 'rankings') {
-  const [categoryStats, setCategoryStats] = useState([]);
-  const [mvpData, setMvpData] = useState({ mvpAcademic: null, mvpSport: null });
-  const [top5Data, setTop5Data] = useState({ academic: [], sport: [] });
-  const [franchiseBalance, setFranchiseBalance] = useState([]);
-  const [hallOfFameData, setHallOfFameData] = useState({});
-  const [loadingStats, setLoadingStats] = useState(true);
-
+  
   // Charger toutes les statistiques réelles
   useEffect(() => {
     const loadAllStats = async () => {
