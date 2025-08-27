@@ -1539,18 +1539,11 @@ app.get('/api/stats/franchise-breakdown', (req, res) => {
 app.get('/api/hall-of-fame', (req, res) => {
   try {
     // Records actuels
-    const currentRecords = db.prepare(`
-      SELECT * FROM hall_of_fame 
-      WHERE is_current = 1 
-      ORDER BY 
-        CASE record_type
-          WHEN 'highest_score' THEN 1
-          WHEN 'first_150' THEN 2
-          WHEN 'first_100' THEN 3
-          WHEN 'first_50' THEN 4
-          ELSE 5
-        END
-    `).all();
+   const currentRecords = db.prepare(`
+  SELECT * FROM hall_of_fame 
+  WHERE is_current = 1 
+  ORDER BY score DESC
+`).all();
     
     // Historique complet
     const fullHistory = db.prepare(`
