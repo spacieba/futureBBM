@@ -101,7 +101,205 @@ db.exec(`
     last_rank_check TEXT
   );
 `);
+db.exec(`
+  -- Table pour les records permanents du Hall of Fame
+  CREATE TABLE IF NOT EXISTS hall_of_fame (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    record_type TEXT NOT NULL, -- 'first_50', 'first_100', 'first_150', 'highest_score'
+    player_name TEXT NOT NULL,
+    franchise TEXT NOT NULL,
+    score INTEGER NOT NULL,
+    date_achieved TEXT NOT NULL,
+    weeks_held INTEGER DEFAULT 1,
+    is_current INTEGER DEFAULT 1, -- 1 si record actuel, 0 si dépassé
+    UNIQUE(record_type, player_name, date_achieved)
+  );
 
+  -- Table pour l'historique des MVP
+  CREATE TABLE IF NOT EXISTS mvp_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    period_type TEXT NOT NULL, -- 'week', 'month', 'trimester'
+    period_start TEXT NOT NULL,
+    period_end TEXT NOT NULL,
+    mvp_type TEXT NOT NULL, -- 'academic', 'sport', 'overall', 'progression'
+    player_name TEXT NOT NULL,
+    franchise TEXT NOT NULL,
+    points_earned INTEGER NOT NULL,
+    total_score INTEGER NOT NULL,
+    date_awarded TEXT NOT NULL
+  );
+
+  -- Table pour les statistiques par période et catégorie
+  CREATE TABLE IF NOT EXISTS period_stats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_name TEXT NOT NULL,
+    franchise TEXT NOT NULL,
+    period_type TEXT NOT NULL, -- 'week', 'month', 'trimester'
+    period_start TEXT NOT NULL,
+    period_end TEXT NOT NULL,
+    sport_points INTEGER DEFAULT 0,
+    academic_points INTEGER DEFAULT 0,
+    total_points INTEGER DEFAULT 0,
+    actions_count INTEGER DEFAULT 0,
+    date_updated TEXT NOT NULL,
+    FOREIGN KEY (player_name) REFERENCES players (name),
+    UNIQUE(player_name, period_type, period_start)
+  );
+
+  -- Table pour suivre les positions des franchises dans le temps
+  CREATE TABLE IF NOT EXISTS franchise_rankings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    franchise TEXT NOT NULL,
+    date_recorded TEXT NOT NULL,
+    position INTEGER NOT NULL, -- 1, 2, 3, 4
+    total_points INTEGER NOT NULL,
+    sport_points INTEGER DEFAULT 0,
+    academic_points INTEGER DEFAULT 0,
+    UNIQUE(franchise, date_recorded)
+  );
+`);
+
+// Modifier la table history pour inclure la catégorie (ajouter après la création initiale)
+db.exec(`
+  -- Ajouter colonne category à history si elle n'existe pas
+  ALTER TABLE history ADD COLUMN category TEXT DEFAULT 'unknown';
+  
+  -- Index pour optimiser les requêtes
+  CREATE INDEX IF NOT EXISTS idx_history_category ON history(category);
+  CREATE INDEX IF NOT EXISTS idx_history_date ON history(DATE(timestamp));
+  CREATE INDEX IF NOT EXISTS idx_period_stats_period ON period_stats(period_type, period_start);
+`);
+
+// FONCTIONS UTILITAIRES À AJOUTER
+
+// Fonction pour déterminer la catégorie d'une action
+const getActionCategory = (action) => {
+  if (action.includes('🏀') || 
+      action.toLowerCase().includes('sport') ||
+      action.toLowerCase().includes('entrainement') ||
+      action.toLowerCase().includes('basket') ||
+      action.toLowerCase().includes('hardworker') ||
+      action.toLowerCase().includes('victoire') ||
+      action.toLowerCase().includes('défaite')) {
+    return 'sport';
+  } else if (action.includes('📚') || 
+             action.toLowerCase().includes('scolaire') ||
+             action.toLowerCase().includes('classe') ||
+             action.toLowerCase().includes('observation') ||
+             action.toLowerCase().includes('félicitations') ||
+             action.toLowerCase().includes('compliments')) {
+    return 'academic';
+  }
+  return 'unknown';
+};
+
+// Fonction pour obtenir les dates de début/fin de semaine (lundi à dimanche)
+const getWeekBounds = (date = new Date()) => {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Lundi = début
+  
+  const monday = new Date(d.setDate(diff));
+  monday.setHours(0, 0, 0, 0);
+  
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  
+  return {
+    start: monday.toISOString(),
+    end: sunday.toISOString()
+  };
+};
+
+// Fonction pour obtenir les dates de début/fin de mois
+const getMonthBounds = (date = new Date()) => {
+  const d = new Date(date);
+  const start = new Date(d.getFullYear(), d.getMonth(), 1);
+  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+  
+  return {
+    start: start.toISOString(),
+    end: end.toISOString()
+  };
+};
+
+// Fonction pour obtenir les dates de trimestre scolaire
+const getTrimesterBounds = (date = new Date()) => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = d.getMonth() + 1;
+  
+  if (month >= 9 || month <= 12) {
+    // Trimestre 1: septembre à décembre
+    return {
+      start: new Date(year, 8, 1).toISOString(), // 1er septembre
+      end: new Date(year, 11, 31, 23, 59, 59, 999).toISOString() // 31 décembre
+    };
+  } else if (month >= 1 && month <= 3) {
+    // Trimestre 2: janvier à mars
+    return {
+      start: new Date(year, 0, 1).toISOString(), // 1er janvier
+      end: new Date(year, 2, 31, 23, 59, 59, 999).toISOString() // 31 mars
+    };
+  } else {
+    // Trimestre 3: avril à juin
+    return {
+      start: new Date(year, 3, 1).toISOString(), // 1er avril
+      end: new Date(year, 5, 30, 23, 59, 59, 999).toISOString() // 30 juin
+    };
+  }
+};
+
+// Fonction pour mettre à jour les statistiques par période
+const updatePeriodStats = (playerName, points, action) => {
+  const category = getActionCategory(action);
+  const now = new Date();
+  
+  // Mettre à jour stats hebdomadaires
+  const weekBounds = getWeekBounds(now);
+  updatePlayerPeriodStat(playerName, 'week', weekBounds.start, weekBounds.end, points, category);
+  
+  // Mettre à jour stats mensuelles
+  const monthBounds = getMonthBounds(now);
+  updatePlayerPeriodStat(playerName, 'month', monthBounds.start, monthBounds.end, points, category);
+  
+  // Mettre à jour stats trimestrielles
+  const trimesterBounds = getTrimesterBounds(now);
+  updatePlayerPeriodStat(playerName, 'trimester', trimesterBounds.start, trimesterBounds.end, points, category);
+};
+
+const updatePlayerPeriodStat = (playerName, periodType, periodStart, periodEnd, points, category) => {
+  const player = db.prepare('SELECT franchise FROM players WHERE name = ?').get(playerName);
+  if (!player) return;
+  
+  // Insérer ou mettre à jour
+  const upsertStat = db.prepare(`
+    INSERT INTO period_stats (player_name, franchise, period_type, period_start, period_end, 
+                             sport_points, academic_points, total_points, actions_count, date_updated)
+    VALUES (?, ?, ?, ?, ?, 
+            CASE WHEN ? = 'sport' THEN ? ELSE 0 END,
+            CASE WHEN ? = 'academic' THEN ? ELSE 0 END,
+            ?, 1, ?)
+    ON CONFLICT(player_name, period_type, period_start) DO UPDATE SET
+      sport_points = sport_points + CASE WHEN ? = 'sport' THEN ? ELSE 0 END,
+      academic_points = academic_points + CASE WHEN ? = 'academic' THEN ? ELSE 0 END,
+      total_points = total_points + ?,
+      actions_count = actions_count + 1,
+      date_updated = ?
+  `);
+  
+  const now = new Date().toISOString();
+  upsertStat.run(
+    playerName, player.franchise, periodType, periodStart, periodEnd,
+    category, points, // sport condition
+    category, points, // academic condition
+    points, now,
+    category, points, // sport update
+    category, points, // academic update
+    points, now
+  );
+};
 // Définition des badges (même structure que dans le front)
 const BADGES = {
   individual: {
@@ -677,7 +875,15 @@ app.post('/api/add-points', (req, res) => {
         INSERT INTO history (player_name, action, points, timestamp, new_total, teacher_name) 
         VALUES (?, ?, ?, ?, ?, ?)
       `).run(playerName, action, points, timestamp, player.score, teacherName || 'Anonyme');
-      
+
+      // Déterminer la catégorie et mettre à jour
+const category = getActionCategory(action);
+db.prepare('UPDATE history SET category = ? WHERE id = last_insert_rowid()').run(category);
+
+// Mettre à jour les statistiques par période
+updatePeriodStats(playerName, points, action);
+      // Mettre à jour les records du Hall of Fame
+updateHallOfFame(playerName, player.score);
       // Mettre à jour les statistiques
       const stats = db.prepare('SELECT * FROM player_stats WHERE player_name = ?').get(playerName);
       
@@ -1143,7 +1349,378 @@ app.get('/api/progression/:playerName', (req, res) => {
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+// 1. MVP actuels (semaine/mois/trimestre)
+app.get('/api/mvp/current', (req, res) => {
+  try {
+    const { period = 'week' } = req.query; // 'week', 'month', 'trimester'
+    
+    let bounds;
+    switch(period) {
+      case 'week': bounds = getWeekBounds(); break;
+      case 'month': bounds = getMonthBounds(); break;
+      case 'trimester': bounds = getTrimesterBounds(); break;
+      default: bounds = getWeekBounds();
+    }
+    
+    // MVP Académique
+    const academicMVP = db.prepare(`
+      SELECT ps.player_name, ps.franchise, ps.academic_points, p.score as total_score
+      FROM period_stats ps
+      JOIN players p ON ps.player_name = p.name
+      WHERE ps.period_type = ? AND ps.period_start = ? AND ps.academic_points > 0
+      ORDER BY ps.academic_points DESC
+      LIMIT 1
+    `).get(period, bounds.start);
+    
+    // MVP Sport
+    const sportMVP = db.prepare(`
+      SELECT ps.player_name, ps.franchise, ps.sport_points, p.score as total_score
+      FROM period_stats ps
+      JOIN players p ON ps.player_name = p.name
+      WHERE ps.period_type = ? AND ps.period_start = ? AND ps.sport_points > 0
+      ORDER BY ps.sport_points DESC
+      LIMIT 1
+    `).get(period, bounds.start);
+    
+    // MVP Progression (qui a gagné le plus de points total)
+    const progressionMVP = db.prepare(`
+      SELECT ps.player_name, ps.franchise, ps.total_points, p.score as total_score
+      FROM period_stats ps
+      JOIN players p ON ps.player_name = p.name
+      WHERE ps.period_type = ? AND ps.period_start = ? AND ps.total_points > 0
+      ORDER BY ps.total_points DESC
+      LIMIT 1
+    `).get(period, bounds.start);
+    
+    // Top 5 Académique
+    const top5Academic = db.prepare(`
+      SELECT ps.player_name, ps.franchise, ps.academic_points, p.score as total_score
+      FROM period_stats ps
+      JOIN players p ON ps.player_name = p.name
+      WHERE ps.period_type = ? AND ps.period_start = ? AND ps.academic_points > 0
+      ORDER BY ps.academic_points DESC
+      LIMIT 5
+    `).all(period, bounds.start);
+    
+    // Top 5 Sport
+    const top5Sport = db.prepare(`
+      SELECT ps.player_name, ps.franchise, ps.sport_points, p.score as total_score
+      FROM period_stats ps
+      JOIN players p ON ps.player_name = p.name
+      WHERE ps.period_type = ? AND ps.period_start = ? AND ps.sport_points > 0
+      ORDER BY ps.sport_points DESC
+      LIMIT 5
+    `).all(period, bounds.start);
+    
+    res.json({
+      period,
+      period_bounds: bounds,
+      mvps: {
+        academic: academicMVP,
+        sport: sportMVP,
+        progression: progressionMVP
+      },
+      rankings: {
+        top5_academic: top5Academic,
+        top5_sport: top5Sport
+      }
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
+// 2. Historique des MVP
+app.get('/api/mvp/history', (req, res) => {
+  try {
+    const { period = 'week', mvp_type = 'all', limit = 20 } = req.query;
+    
+    let whereClause = '';
+    let params = [];
+    
+    if (period !== 'all') {
+      whereClause += ' WHERE period_type = ?';
+      params.push(period);
+    }
+    
+    if (mvp_type !== 'all') {
+      whereClause += whereClause ? ' AND mvp_type = ?' : ' WHERE mvp_type = ?';
+      params.push(mvp_type);
+    }
+    
+    params.push(parseInt(limit));
+    
+    const history = db.prepare(`
+      SELECT * FROM mvp_history 
+      ${whereClause}
+      ORDER BY date_awarded DESC 
+      LIMIT ?
+    `).all(...params);
+    
+    res.json(history);
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 3. Statistiques des franchises (répartition sport/académique)
+app.get('/api/stats/franchise-breakdown', (req, res) => {
+  try {
+    const { period = 'week' } = req.query;
+    
+    let bounds;
+    switch(period) {
+      case 'week': bounds = getWeekBounds(); break;
+      case 'month': bounds = getMonthBounds(); break;
+      case 'trimester': bounds = getTrimesterBounds(); break;
+      default: bounds = getWeekBounds();
+    }
+    
+    const franchiseStats = db.prepare(`
+      SELECT 
+        franchise,
+        SUM(sport_points) as total_sport,
+        SUM(academic_points) as total_academic,
+        SUM(total_points) as total_points,
+        COUNT(*) as active_players,
+        ROUND(
+          CASE 
+            WHEN (SUM(sport_points) + SUM(academic_points)) = 0 THEN 0
+            ELSE (SUM(sport_points) * 100.0) / (SUM(sport_points) + SUM(academic_points))
+          END, 1
+        ) as sport_percentage,
+        ROUND(
+          CASE 
+            WHEN (SUM(sport_points) + SUM(academic_points)) = 0 THEN 0
+            ELSE (SUM(academic_points) * 100.0) / (SUM(sport_points) + SUM(academic_points))
+          END, 1
+        ) as academic_percentage
+      FROM period_stats 
+      WHERE period_type = ? AND period_start = ?
+      GROUP BY franchise
+      ORDER BY total_points DESC
+    `).all(period, bounds.start);
+    
+    // Calculer la franchise la plus équilibrée (ratio le plus proche de 50/50)
+    let mostBalanced = null;
+    let bestBalance = 100;
+    
+    franchiseStats.forEach(franchise => {
+      if (franchise.total_points > 0) {
+        const balance = Math.abs(50 - franchise.sport_percentage);
+        if (balance < bestBalance) {
+          bestBalance = balance;
+          mostBalanced = franchise;
+        }
+      }
+    });
+    
+    res.json({
+      period,
+      period_bounds: bounds,
+      franchise_stats: franchiseStats,
+      most_balanced: mostBalanced,
+      summary: {
+        total_sport_points: franchiseStats.reduce((sum, f) => sum + f.total_sport, 0),
+        total_academic_points: franchiseStats.reduce((sum, f) => sum + f.total_academic, 0),
+        most_active_franchise: franchiseStats.reduce((prev, curr) => 
+          prev.active_players > curr.active_players ? prev : curr, franchiseStats[0])
+      }
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 4. Hall of Fame (records permanents)
+app.get('/api/hall-of-fame', (req, res) => {
+  try {
+    // Records actuels
+    const currentRecords = db.prepare(`
+      SELECT * FROM hall_of_fame 
+      WHERE is_current = 1 
+      ORDER BY 
+        CASE record_type
+          WHEN 'highest_score' THEN 1
+          WHEN 'first_150' THEN 2
+          WHEN 'first_100' THEN 3
+          WHEN 'first_50' THEN 4
+          ELSE 5
+        END
+    `).all();
+    
+    // Historique complet
+    const fullHistory = db.prepare(`
+      SELECT * FROM hall_of_fame 
+      ORDER BY date_achieved DESC
+      LIMIT 50
+    `).all();
+    
+    // Statistiques des badges
+    const badgeLeaders = db.prepare(`
+      SELECT 
+        player_name,
+        franchise,
+        COUNT(*) as badge_count,
+        SUM(points) as bonus_points
+      FROM player_badges 
+      GROUP BY player_name, franchise
+      ORDER BY badge_count DESC, bonus_points DESC
+      LIMIT 10
+    `).all();
+    
+    // Record absolu actuel
+    const absoluteRecord = db.prepare(`
+      SELECT name as player_name, franchise, score 
+      FROM players 
+      ORDER BY score DESC 
+      LIMIT 1
+    `).get();
+    
+    res.json({
+      current_records: currentRecords,
+      full_history: fullHistory,
+      badge_leaders: badgeLeaders,
+      absolute_record: absoluteRecord,
+      last_updated: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 5. Évolution des positions des franchises
+app.get('/api/progression/franchise', (req, res) => {
+  try {
+    const { days = 30 } = req.query;
+    
+    // Récupérer les classements des X derniers jours
+    const rankings = db.prepare(`
+      SELECT * FROM franchise_rankings 
+      WHERE DATE(date_recorded) >= DATE('now', '-' || ? || ' days')
+      ORDER BY date_recorded ASC
+    `).all(days);
+    
+    // Si pas assez de données historiques, calculer sur les données actuelles
+    if (rankings.length === 0) {
+      // Calculer le classement actuel
+      const currentRankings = db.prepare(`
+        SELECT 
+          franchise,
+          SUM(score) as total_points,
+          DATE('now') as date_recorded
+        FROM players 
+        GROUP BY franchise 
+        ORDER BY total_points DESC
+      `).all();
+      
+      currentRankings.forEach((franchise, index) => {
+        // Insérer dans franchise_rankings pour l'historique
+        db.prepare(`
+          INSERT OR REPLACE INTO franchise_rankings 
+          (franchise, date_recorded, position, total_points, sport_points, academic_points)
+          VALUES (?, ?, ?, ?, 0, 0)
+        `).run(franchise.franchise, franchise.date_recorded, index + 1, franchise.total_points);
+      });
+      
+      return res.json({
+        period: `${days} derniers jours`,
+        data: currentRankings.map((f, i) => ({...f, position: i + 1})),
+        message: 'Données limitées - classement actuel affiché'
+      });
+    }
+    
+    // Organiser les données par franchise
+    const franchiseProgression = {};
+    rankings.forEach(ranking => {
+      if (!franchiseProgression[ranking.franchise]) {
+        franchiseProgression[ranking.franchise] = [];
+      }
+      franchiseProgression[ranking.franchise].push({
+        date: ranking.date_recorded,
+        position: ranking.position,
+        total_points: ranking.total_points,
+        sport_points: ranking.sport_points || 0,
+        academic_points: ranking.academic_points || 0
+      });
+    });
+    
+    res.json({
+      period: `${days} derniers jours`,
+      franchise_progression: franchiseProgression,
+      total_records: rankings.length
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 6. Fonction utilitaire pour mettre à jour les records du Hall of Fame
+const updateHallOfFame = (playerName, newScore) => {
+  const player = db.prepare('SELECT franchise FROM players WHERE name = ?').get(playerName);
+  if (!player) return;
+  
+  const milestones = [50, 100, 150, 200, 250];
+  
+  milestones.forEach(milestone => {
+    // Vérifier si ce joueur a atteint ce palier
+    const previousScore = db.prepare(`
+      SELECT new_total - points as previous_score 
+      FROM history 
+      WHERE player_name = ? 
+      ORDER BY id DESC 
+      LIMIT 1
+    `).get(playerName);
+    
+    const prevScore = previousScore ? previousScore.previous_score : 0;
+    
+    if (prevScore < milestone && newScore >= milestone) {
+      // Premier à atteindre ce palier ?
+      const existing = db.prepare(`
+        SELECT * FROM hall_of_fame 
+        WHERE record_type = ? AND is_current = 1
+      `).get(`first_${milestone}`);
+      
+      if (!existing) {
+        // Premier à atteindre ce palier
+        db.prepare(`
+          INSERT INTO hall_of_fame 
+          (record_type, player_name, franchise, score, date_achieved, weeks_held, is_current)
+          VALUES (?, ?, ?, ?, ?, 1, 1)
+        `).run(`first_${milestone}`, playerName, player.franchise, newScore, new Date().toISOString());
+      }
+    }
+  });
+  
+  // Mettre à jour le record absolu
+  const currentHighest = db.prepare(`
+    SELECT * FROM hall_of_fame 
+    WHERE record_type = 'highest_score' AND is_current = 1
+  `).get();
+  
+  if (!currentHighest || newScore > currentHighest.score) {
+    // Marquer l'ancien record comme dépassé
+    if (currentHighest) {
+      db.prepare(`
+        UPDATE hall_of_fame 
+        SET is_current = 0 
+        WHERE id = ?
+      `).run(currentHighest.id);
+    }
+    
+    // Nouveau record
+    db.prepare(`
+      INSERT INTO hall_of_fame 
+      (record_type, player_name, franchise, score, date_achieved, weeks_held, is_current)
+      VALUES ('highest_score', ?, ?, ?, ?, 1, 1)
+    `).run(playerName, player.franchise, newScore, new Date().toISOString());
+  }
+};
 // Lancer le serveur
 app.listen(port, () => {
   console.log(`🚀 Serveur démarré sur le port ${port}`);
