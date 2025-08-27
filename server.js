@@ -40,7 +40,7 @@ db.exec(`
     score INTEGER DEFAULT 0
   );
 
-  CREATE TABLE IF NOT EXISTS history (
+CREATE TABLE IF NOT EXISTS history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     player_name TEXT NOT NULL,
     action TEXT NOT NULL,
@@ -48,6 +48,7 @@ db.exec(`
     timestamp TEXT NOT NULL,
     new_total INTEGER NOT NULL,
     teacher_name TEXT DEFAULT 'Anonyme',
+    category TEXT DEFAULT 'unknown',
     FOREIGN KEY (player_name) REFERENCES players (name)
   );
 
@@ -161,9 +162,6 @@ db.exec(`
 
 // Modifier la table history pour inclure la catégorie (ajouter après la création initiale)
 db.exec(`
-  -- Ajouter colonne category à history si elle n'existe pas
-  ALTER TABLE history ADD COLUMN category TEXT DEFAULT 'unknown';
-  
   -- Index pour optimiser les requêtes
   CREATE INDEX IF NOT EXISTS idx_history_category ON history(category);
   CREATE INDEX IF NOT EXISTS idx_history_date ON history(DATE(timestamp));
@@ -274,31 +272,66 @@ const updatePlayerPeriodStat = (playerName, periodType, periodStart, periodEnd, 
   if (!player) return;
   
   // Insérer ou mettre à jour
-  const upsertStat = db.prepare(`
-    INSERT INTO period_stats (player_name, franchise, period_type, period_start, period_end, 
-                             sport_points, academic_points, total_points, actions_count, date_updated)
-    VALUES (?, ?, ?, ?, ?, 
-            CASE WHEN ? = 'sport' THEN ? ELSE 0 END,
-            CASE WHEN ? = 'academic' THEN ? ELSE 0 END,
-            ?, 1, ?)
-    ON CONFLICT(player_name, period_type, period_start) DO UPDATE SET
-      sport_points = sport_points + CASE WHEN ? = 'sport' THEN ? ELSE 0 END,
-      academic_points = academic_points + CASE WHEN ? = 'academic' THEN ? ELSE 0 END,
-      total_points = total_points + ?,
-      actions_count = actions_count + 1,
-      date_updated = ?
-  `);
+  const updatePlayerPeriodStat = (playerName, periodType, periodStart, periodEnd, points, category) => {
+  const player = db.prepare('SELECT franchise FROM players WHERE name = ?').get(playerName);
+  if (!player) {
+    console.log(`⚠️ Joueur ${playerName} non trouvé`);
+    return;
+  }
+  
+  console.log(`📊 Mise à jour stats: ${playerName}, période: ${periodType}, catégorie: ${category}, points: ${points}`);
+  
+  // Vérifier si l'enregistrement existe
+  const existing = db.prepare(`
+    SELECT * FROM period_stats 
+    WHERE player_name = ? AND period_type = ? AND period_start = ?
+  `).get(playerName, periodType, periodStart);
   
   const now = new Date().toISOString();
-  upsertStat.run(
-    playerName, player.franchise, periodType, periodStart, periodEnd,
-    category, points, // sport condition
-    category, points, // academic condition
-    points, now,
-    category, points, // sport update
-    category, points, // academic update
-    points, now
-  );
+  
+  if (existing) {
+    // Mise à jour
+    const updateStmt = db.prepare(`
+      UPDATE period_stats SET
+        sport_points = sport_points + CASE WHEN ? = 'sport' THEN ? ELSE 0 END,
+        academic_points = academic_points + CASE WHEN ? = 'academic' THEN ? ELSE 0 END,
+        total_points = total_points + ?,
+        actions_count = actions_count + 1,
+        date_updated = ?
+      WHERE player_name = ? AND period_type = ? AND period_start = ?
+    `);
+    
+    updateStmt.run(
+      category, points,
+      category, points,
+      points,
+      now,
+      playerName, periodType, periodStart
+    );
+    console.log(`✅ Stats mises à jour pour ${playerName}`);
+  } else {
+    // Insertion
+    const insertStmt = db.prepare(`
+      INSERT INTO period_stats (
+        player_name, franchise, period_type, period_start, period_end,
+        sport_points, academic_points, total_points, actions_count, date_updated
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    insertStmt.run(
+      playerName,
+      player.franchise,
+      periodType,
+      periodStart,
+      periodEnd,
+      category === 'sport' ? points : 0,
+      category === 'academic' ? points : 0,
+      points,
+      1,
+      now
+    );
+    console.log(`✅ Nouvelles stats créées pour ${playerName}`);
+  }
 };
 // Définition des badges (même structure que dans le front)
 const BADGES = {
@@ -869,19 +902,20 @@ app.post('/api/add-points', (req, res) => {
       // Récupérer le nouveau score
       const player = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
       
-      // Ajouter à l'historique
+    // Déterminer la catégorie AVANT l'insertion
+      const category = getActionCategory(action);
+      console.log(`📌 Catégorie détectée: ${category} pour l'action: ${action}`);
+      
+      // Ajouter à l'historique avec la catégorie
       const timestamp = new Date().toLocaleString('fr-FR');
-      db.prepare(`
-        INSERT INTO history (player_name, action, points, timestamp, new_total, teacher_name) 
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(playerName, action, points, timestamp, player.score, teacherName || 'Anonyme');
-
-      // Déterminer la catégorie et mettre à jour
-const category = getActionCategory(action);
-db.prepare('UPDATE history SET category = ? WHERE id = last_insert_rowid()').run(category);
-
-// Mettre à jour les statistiques par période
-updatePeriodStats(playerName, points, action);
+      const insertHistory = db.prepare(`
+        INSERT INTO history (player_name, action, points, timestamp, new_total, teacher_name, category) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+      insertHistory.run(playerName, action, points, timestamp, player.score, teacherName || 'Anonyme', category);
+      
+      // IMPORTANT: Appeler updatePeriodStats ICI
+      updatePeriodStats(playerName, points, action);
       // Mettre à jour les records du Hall of Fame
 updateHallOfFame(playerName, player.score);
       // Mettre à jour les statistiques
@@ -1344,7 +1378,31 @@ app.get('/api/progression/:playerName', (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
+// ENDPOINT DE DIAGNOSTIC pour vérifier les données
+app.get('/api/debug/period-stats', (req, res) => {
+  try {
+    const stats = db.prepare('SELECT * FROM period_stats ORDER BY date_updated DESC LIMIT 10').all();
+    const history = db.prepare('SELECT * FROM history ORDER BY id DESC LIMIT 10').all();
+    const counts = db.prepare(`
+      SELECT 
+        period_type,
+        COUNT(*) as count,
+        SUM(total_points) as total_points
+      FROM period_stats
+      GROUP BY period_type
+    `).all();
+    
+    res.json({
+      recent_stats: stats,
+      recent_history: history,
+      summary: counts,
+      current_week: getWeekBounds(),
+      current_month: getMonthBounds()
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 // Servir l'application React
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
