@@ -646,6 +646,9 @@ if (!hofData) {
           const [selectedStudent, setSelectedStudent] = useState('');
           const [newStudentName, setNewStudentName] = useState('');
           const [newStudentFranchise, setNewStudentFranchise] = useState('Minotaurs');
+          const [selectedPlayerForGraph, setSelectedPlayerForGraph] = useState(null);
+          const [playerProgressionData, setPlayerProgressionData] = useState(null);
+          const [currentChart, setCurrentChart] = useState(null);
           const [searchName, setSearchName] = useState('');
           const [foundPlayer, setFoundPlayer] = useState(null);
           const [searchHistory, setSearchHistory] = useState([]);
@@ -921,6 +924,155 @@ if (!hofData) {
             } catch (error) {
               console.error('Erreur lors du chargement de l\'historique:', error);
             }
+          };
+
+          // Charger les données de progression d'un joueur
+          const loadPlayerProgression = async (playerName) => {
+            try {
+              const response = await fetch(`/api/progression/${encodeURIComponent(playerName)}?days=all`);
+              const data = await response.json();
+              setPlayerProgressionData(data);
+              
+              // Créer le graphique après un délai pour s'assurer que le canvas existe
+              setTimeout(() => createProgressionChart(data), 100);
+            } catch (error) {
+              console.error('Erreur lors du chargement de la progression:', error);
+            }
+          };
+
+          // Créer le graphique d'évolution avec Chart.js
+          const createProgressionChart = (data) => {
+            const canvas = document.getElementById('playerChart');
+            if (!canvas || !data || !data.data) return;
+
+            const ctx = canvas.getContext('2d');
+            
+            // Détruire le graphique précédent s'il existe
+            if (currentChart) {
+              currentChart.destroy();
+            }
+
+            // Préparer les données pour le graphique
+            const dates = data.data.map((item, index) => {
+              if (item.date && item.date !== null) {
+                const date = new Date(item.date);
+                return date.toLocaleDateString('fr-FR', { 
+                  day: '2-digit', 
+                  month: '2-digit' 
+                });
+              } else {
+                return `Jour ${index + 1}`;
+              }
+            });
+            
+            const scores = data.data.map(item => item.cumulative_score);
+            const dailyPoints = data.data.map(item => item.daily_points);
+
+            // Créer le graphique
+            const chart = new Chart(ctx, {
+              type: 'line',
+              data: {
+                labels: dates,
+                datasets: [
+                  {
+                    label: 'Score Total',
+                    data: scores,
+                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: 'rgb(59, 130, 246)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                  },
+                  {
+                    label: 'Points du jour',
+                    data: dailyPoints,
+                    type: 'bar',
+                    backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                    borderColor: 'rgb(16, 185, 129)',
+                    borderWidth: 1,
+                    yAxisID: 'y1',
+                  }
+                ]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                  mode: 'index',
+                  intersect: false,
+                },
+                plugins: {
+                  title: {
+                    display: true,
+                    text: `Évolution de ${data.playerName}`,
+                    font: {
+                      size: 16,
+                      weight: 'bold'
+                    }
+                  },
+                  legend: {
+                    display: true,
+                    position: 'top'
+                  },
+                  tooltip: {
+                    callbacks: {
+                      title: function(context) {
+                        return `Jour: ${context[0].label}`;
+                      },
+                      label: function(context) {
+                        if (context.datasetIndex === 0) {
+                          return `Score total: ${context.parsed.y} points`;
+                        } else {
+                          return `Points gagnés: ${context.parsed.y > 0 ? '+' : ''}${context.parsed.y} points`;
+                        }
+                      }
+                    }
+                  }
+                },
+                scales: {
+                  x: {
+                    display: true,
+                    title: {
+                      display: true,
+                      text: 'Dates'
+                    },
+                    ticks: {
+                      maxTicksLimit: 10
+                    }
+                  },
+                  y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                      display: true,
+                      text: 'Score Total'
+                    },
+                    grid: {
+                      color: 'rgba(0, 0, 0, 0.1)'
+                    }
+                  },
+                  y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                      display: true,
+                      text: 'Points du Jour'
+                    },
+                    grid: {
+                      drawOnChartArea: false,
+                    },
+                  },
+                }
+              }
+            });
+
+            setCurrentChart(chart);
           };
 
           // Annuler la dernière action (professeurs uniquement)
@@ -1259,7 +1411,7 @@ if (currentView === 'home') {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
                     <button
                       onClick={() => setCurrentView('teacher-players')}
                       className="bg-gradient-to-r from-emerald-600 to-emerald-800 hover:from-emerald-500 hover:to-emerald-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
@@ -1294,6 +1446,15 @@ if (currentView === 'home') {
                       <div className="text-4xl mb-2">🏅</div>
                       <h3 className="text-xl font-bold">Badges</h3>
                       <p className="text-purple-100 text-sm">Voir tous les badges</p>
+                    </button>
+                    
+                    <button
+                      onClick={() => setCurrentView('teacher-graphs')}
+                      className="bg-gradient-to-r from-pink-600 to-pink-800 hover:from-pink-500 hover:to-pink-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                    >
+                      <div className="text-4xl mb-2">📊</div>
+                      <h3 className="text-xl font-bold">Graphiques</h3>
+                      <p className="text-pink-100 text-sm">Évolution des scores</p>
                     </button>
                   </div>
 
@@ -1742,6 +1903,76 @@ if (currentView === 'teacher-actions') {
                       Exporte les points, franchises et badges au format CSV pour Excel
                     </p>
                   </div>
+                </div>
+              </div>
+            );
+          }
+
+          // VUE GRAPHIQUES PROFESSEUR
+          if (currentView === 'teacher-graphs') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
+                <div className="max-w-7xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">📊 Évolution des Scores</h1>
+                    <button
+                      onClick={() => setCurrentView('teacher-dashboard')}
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
+                    >
+                      ← Retour Tableau de Bord
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                    {/* Liste des joueurs */}
+                    {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                      const franchisePlayers = getSortedPlayers(franchise);
+                      const avatar = getFranchiseAvatar(franchise);
+                      return (
+                        <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} rounded-xl p-6 franchise-card`}>
+                          <div className="flex items-center justify-center mb-4">
+                            <span className={`franchise-avatar ${avatar.class}`}>
+                              {avatar.emoji}
+                            </span>
+                            <h3 className="text-xl font-bold text-white ml-2">{franchise}</h3>
+                          </div>
+                          <div className="space-y-2">
+                            {franchisePlayers.map(player => (
+                              <button
+                                key={player.name}
+                                onClick={() => {
+                                  setSelectedPlayerForGraph(player.name);
+                                  loadPlayerProgression(player.name);
+                                }}
+                                className={`w-full p-3 rounded-lg transition-all duration-200 text-left ${
+                                  selectedPlayerForGraph === player.name 
+                                    ? 'bg-white text-gray-800 shadow-lg transform scale-105' 
+                                    : 'bg-white/20 text-white hover:bg-white/30'
+                                }`}
+                              >
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium">{player.name}</span>
+                                  <span className="font-bold">{player.score} pts</span>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Graphique du joueur sélectionné */}
+                  {selectedPlayerForGraph && (
+                    <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
+                        📈 Évolution de {selectedPlayerForGraph}
+                      </h2>
+                      <div className="bg-white rounded-lg p-4">
+                        <canvas id="playerChart" width="800" height="400"></canvas>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             );
