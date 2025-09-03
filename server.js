@@ -1839,6 +1839,100 @@ app.post('/api/migrate-existing-data', (req, res) => {
   }
 });
 
+// Export CSV des données
+app.get('/api/export-csv', (req, res) => {
+  try {
+    // Récupérer tous les joueurs avec leurs franchises
+    const players = db.prepare(`
+      SELECT 
+        p.name as Joueur,
+        p.franchise as Franchise,
+        p.score as Score_Total,
+        COALESCE(ps.sport_points, 0) as Points_Sport,
+        COALESCE(ps.academic_points, 0) as Points_Académique,
+        COALESCE(stats.current_streak, 0) as Série_Actuelle,
+        COALESCE(stats.max_streak, 0) as Meilleure_Série,
+        (SELECT COUNT(*) FROM player_badges WHERE player_name = p.name) as Nombre_Badges
+      FROM players p
+      LEFT JOIN player_stats stats ON p.name = stats.player_name
+      LEFT JOIN (
+        SELECT player_name, 
+               SUM(sport_points) as sport_points,
+               SUM(academic_points) as academic_points
+        FROM period_stats
+        WHERE period_type = 'month' 
+          AND period_start = DATE('now', 'start of month')
+        GROUP BY player_name
+      ) ps ON p.name = ps.player_name
+      ORDER BY p.franchise, p.score DESC
+    `).all();
+
+    // Récupérer les totaux par franchise
+    const franchises = db.prepare(`
+      SELECT 
+        franchise as Franchise,
+        SUM(score) as Score_Total,
+        COUNT(*) as Nombre_Joueurs,
+        AVG(score) as Score_Moyen,
+        MAX(score) as Meilleur_Score,
+        MIN(score) as Moins_Bon_Score
+      FROM players
+      GROUP BY franchise
+      ORDER BY Score_Total DESC
+    `).all();
+
+    // Créer le CSV pour les joueurs
+    let csvContent = '\ufeff'; // BOM pour Excel UTF-8
+    csvContent += 'EXPORT DES DONNÉES - ' + new Date().toLocaleString('fr-FR') + '\n\n';
+    
+    // Section Joueurs
+    csvContent += '=== JOUEURS ===\n';
+    if (players.length > 0) {
+      csvContent += Object.keys(players[0]).join(';') + '\n';
+      players.forEach(player => {
+        csvContent += Object.values(player).join(';') + '\n';
+      });
+    }
+    
+    csvContent += '\n\n=== FRANCHISES ===\n';
+    if (franchises.length > 0) {
+      csvContent += Object.keys(franchises[0]).join(';') + '\n';
+      franchises.forEach(franchise => {
+        csvContent += Object.values(franchise).map(v => 
+          typeof v === 'number' && !Number.isInteger(v) ? v.toFixed(1) : v
+        ).join(';') + '\n';
+      });
+    }
+
+    // Ajouter les badges par franchise
+    const franchiseBadges = db.prepare(`
+      SELECT 
+        franchise as Franchise,
+        COUNT(*) as Total_Badges_Collectifs
+      FROM franchise_badges
+      GROUP BY franchise
+    `).all();
+
+    if (franchiseBadges.length > 0) {
+      csvContent += '\n\n=== BADGES COLLECTIFS ===\n';
+      csvContent += 'Franchise;Nombre de Badges\n';
+      franchiseBadges.forEach(fb => {
+        csvContent += `${fb.Franchise};${fb.Total_Badges_Collectifs}\n`;
+      });
+    }
+
+    // Configurer les headers pour le téléchargement
+    const filename = `export_basketball_${new Date().toISOString().split('T')[0]}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csvContent);
+
+  } catch (error) {
+    console.error('Erreur lors de l\'export CSV:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Servir l'application React
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
