@@ -2442,27 +2442,37 @@ if (currentView === 'teacher-actions') {
                           </div>
 
                           <div>
-                            <h4 className="text-lg font-semibold text-green-300 mb-2">⭐ Comment gagner des points ?</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                            <h4 className="text-lg font-semibold text-green-300 mb-2">⚖️ Comment fonctionnent les points ?</h4>
+                            <div className="space-y-3 text-sm">
                               <div>
-                                <p className="text-blue-200 font-medium">📖 Points Académiques :</p>
-                                <ul className="list-disc list-inside ml-4 space-y-1 text-xs">
-                                  <li>Travail bien fait (+3 pts)</li>
-                                  <li>Participation active (+2 pts)</li>
-                                  <li>Progrès remarquable (+5 pts)</li>
-                                  <li>Excellence (+10 pts)</li>
-                                </ul>
+                                <p className="leading-relaxed">
+                                  Les points sont répartis en <span className="font-semibold text-blue-200">📖 Points Académiques</span> (liés au travail scolaire, participation, progrès) 
+                                  et en <span className="font-semibold text-green-200">🏀 Points Sportifs</span> (liés au comportement, effort, fair-play pendant les activités sportives).
+                                </p>
                               </div>
-                              <div>
-                                <p className="text-green-200 font-medium">🏀 Points Sportifs :</p>
-                                <ul className="list-disc list-inside ml-4 space-y-1 text-xs">
-                                  <li>Fair-play (+2 pts)</li>
-                                  <li>Effort et investissement (+3 pts)</li>
-                                  <li>Performance exceptionnelle (+5 pts)</li>
-                                  <li>Leadership (+10 pts)</li>
-                                </ul>
+                              <div className="bg-yellow-500/20 border-l-4 border-yellow-400 pl-3 py-2">
+                                <p className="text-yellow-200 font-medium text-xs">
+                                  ⚠️ <span className="font-semibold">Important :</span> Les élèves peuvent aussi perdre des points en cas de comportement inadéquat 
+                                  ou de manquements aux règles de vie scolaire et sportive.
+                                </p>
                               </div>
                             </div>
+                          </div>
+
+                          <div>
+                            <h4 className="text-lg font-semibold text-cyan-300 mb-2">👥 Qui participe au suivi ?</h4>
+                            <p className="text-sm leading-relaxed mb-2">
+                              Toute la communauté éducative autour de votre enfant contribue à ce système de suivi :
+                            </p>
+                            <div className="flex flex-wrap gap-2 text-xs">
+                              <span className="bg-blue-600/30 px-3 py-1 rounded-full">👨‍🏫 Professeurs</span>
+                              <span className="bg-purple-600/30 px-3 py-1 rounded-full">👮‍♂️ Surveillants</span>
+                              <span className="bg-green-600/30 px-3 py-1 rounded-full">🏃‍♂️ Entraîneurs</span>
+                              <span className="bg-orange-600/30 px-3 py-1 rounded-full">🏫 Équipe pédagogique</span>
+                            </div>
+                            <p className="text-xs text-white/70 mt-2 italic">
+                              Cette approche collaborative permet un suivi global et bienveillant de chaque élève.
+                            </p>
                           </div>
 
                           <div>
