@@ -252,7 +252,7 @@ const getTrimesterBounds = (date = new Date()) => {
   const year = d.getFullYear();
   const month = d.getMonth() + 1;
   
-  if (month >= 9 || month <= 12) {
+  if (month >= 9 && month <= 12) {
     // Trimestre 1: septembre à décembre
     return {
       start: new Date(year, 8, 1).toISOString(), // 1er septembre
@@ -712,12 +712,7 @@ const checkIndividualBadges = (playerName) => {
     }
   }
   
-  // Back to School (septembre)
-  if (month === 8) {
-    if (stats.monthly_actions >= 10) {
-      awardPlayerBadge(playerName, BADGES.individual.back_to_school);
-    }
-  }
+  // Note: back_to_school badge removed - not defined in BADGES object
 };
 
 // Fonction pour recalculer tous les badges d'un joueur lors d'une annulation
@@ -825,15 +820,7 @@ const checkFranchiseRankings = () => {
       `);
       updateStats.run(new Date().toISOString(), topFranchise);
       
-      // Franchise Royalty (1 mois au top)
-      if (stats.best_rank_duration >= 30) {
-        awardFranchiseBadge(topFranchise, BADGES.collective.franchise_royalty);
-      }
-      
-      // Dynasty (3 mois au top)
-      if (stats.best_rank_duration >= 90) {
-        awardFranchiseBadge(topFranchise, BADGES.collective.dynasty);
-      }
+      // Note: franchise_royalty and dynasty badges removed - not defined in BADGES object
     }
   }
 };
