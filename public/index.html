@@ -9,6 +9,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     
     <style>
         /* === THÈMES DYNAMIQUES PAR FRANCHISE === */
@@ -1198,6 +1199,11 @@ if (!hofData) {
               return;
             }
             
+            if (!teacherName.trim()) {
+              setLoginError('Veuillez renseigner votre nom');
+              return;
+            }
+            
             try {
               const response = await fetch('/api/verify-teacher', {
                 method: 'POST',
@@ -1702,7 +1708,7 @@ if (currentView === 'home') {
                   <div className="space-y-6">
                     <div>
                       <label className="block text-white text-sm font-bold mb-2">
-                        Nom (optionnel)
+                        Nom <span className="text-red-400">*</span>
                       </label>
                       <input
                         type="text"
@@ -1710,6 +1716,7 @@ if (currentView === 'home') {
                         onChange={(e) => setTeacherName(e.target.value)}
                         className="w-full px-3 py-2 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white/70 focus:outline-none"
                         placeholder="Votre nom..."
+                        required
                       />
                     </div>
                     
@@ -2419,9 +2426,30 @@ if (currentView === 'teacher-actions') {
                     </button>
                   </div>
 
+                  {/* Affichage du message du jour s'il existe */}
+                  {studentPageMessage && (
+                    <div className="mb-6 bg-gradient-to-r from-green-500/20 to-blue-500/20 border-l-4 border-green-400 p-6 rounded-lg shadow-lg">
+                      <div className="flex items-start gap-3">
+                        <span className="text-3xl">📢</span>
+                        <div className="flex-1">
+                          <h3 className="text-xl font-bold text-white mb-2">Message du jour</h3>
+                          <p className="text-white/90 text-lg leading-relaxed">
+                            {studentPageMessage}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <button
-                      onClick={() => setCurrentView('student-search')}
+                      onClick={() => {
+                        setCurrentView('student-search');
+                        // Réinitialiser la recherche quand on clique sur "Mon Score"
+                        setSearchName('');
+                        setFoundPlayer(null);
+                        setSearchHistory([]);
+                      }}
                       className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
                     >
                       <div className="text-4xl mb-2">🔍</div>
@@ -2672,8 +2700,429 @@ if (currentView === 'teacher-actions') {
                             </div>
                           </div>
                           <div className="text-5xl font-bold text-white">{foundPlayer.score} points</div>
+                          
+                          {/* Bouton pour nouvelle recherche */}
+                          <div className="mt-4">
+                            <button
+                              onClick={() => {
+                                setFoundPlayer(null);
+                                setSearchHistory([]);
+                                setSearchName('');
+                              }}
+                              className="bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 text-white px-6 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 mx-auto"
+                            >
+                              🔍 Nouvelle recherche
+                            </button>
+                          </div>
                         </div>
                       </div>
+
+                      {/* === STATISTIQUES AVANCÉES === */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        
+                        {/* Statistiques de base */}
+                        <div className="theme-card p-6">
+                          <h3 className="text-2xl font-bold theme-text-glow mb-4 flex items-center gap-2">
+                            📊 Mes Statistiques
+                          </h3>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-white/10 rounded-lg p-4 text-center">
+                              <div className="text-2xl mb-1">🔥</div>
+                              <div className="text-2xl font-bold text-orange-300">
+                                {(() => {
+                                  let streak = 0;
+                                  const recent = searchHistory.slice().reverse();
+                                  for (let entry of recent) {
+                                    if (entry.points > 0) streak++;
+                                    else break;
+                                  }
+                                  return streak;
+                                })()}
+                              </div>
+                              <div className="text-xs text-white/70">Série actuelle</div>
+                            </div>
+                            
+                            <div className="bg-white/10 rounded-lg p-4 text-center">
+                              <div className="text-2xl mb-1">🏆</div>
+                              <div className="text-2xl font-bold text-yellow-300">
+                                {(() => {
+                                  let maxStreak = 0, currentStreak = 0;
+                                  searchHistory.forEach(entry => {
+                                    if (entry.points > 0) {
+                                      currentStreak++;
+                                      maxStreak = Math.max(maxStreak, currentStreak);
+                                    } else {
+                                      currentStreak = 0;
+                                    }
+                                  });
+                                  return maxStreak;
+                                })()}
+                              </div>
+                              <div className="text-xs text-white/70">Record série</div>
+                            </div>
+
+                            <div className="bg-white/10 rounded-lg p-4 text-center">
+                              <div className="text-2xl mb-1">⚡</div>
+                              <div className="text-2xl font-bold text-blue-300">
+                                {searchHistory.length > 0 ? 
+                                  (searchHistory.reduce((sum, entry) => sum + entry.points, 0) / searchHistory.length).toFixed(1)
+                                  : '0.0'
+                                }
+                              </div>
+                              <div className="text-xs text-white/70">Moyenne/action</div>
+                            </div>
+
+                            <div className="bg-white/10 rounded-lg p-4 text-center">
+                              <div className="text-2xl mb-1">📅</div>
+                              <div className="text-2xl font-bold text-green-300">
+                                {(() => {
+                                  const last30Days = new Date();
+                                  last30Days.setDate(last30Days.getDate() - 30);
+                                  return searchHistory.filter(entry => 
+                                    new Date(entry.timestamp) >= last30Days
+                                  ).length;
+                                })()}
+                              </div>
+                              <div className="text-xs text-white/70">Actions 30j</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Répartition Sport vs Académique */}
+                        <div className="theme-card p-6">
+                          <h3 className="text-2xl font-bold theme-text-glow mb-4 flex items-center gap-2">
+                            🎯 Répartition Points
+                          </h3>
+                          {(() => {
+                            const sportPoints = searchHistory.filter(entry => 
+                              entry.category === 'sport' && entry.points > 0
+                            ).reduce((sum, entry) => sum + entry.points, 0);
+                            
+                            const academicPoints = searchHistory.filter(entry => 
+                              entry.category === 'academic' && entry.points > 0
+                            ).reduce((sum, entry) => sum + entry.points, 0);
+                            
+                            const total = sportPoints + academicPoints || 1;
+                            const sportPercent = (sportPoints / total * 100);
+                            const academicPercent = (academicPoints / total * 100);
+                            
+                            return (
+                              <div className="space-y-4">
+                                <div>
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className="flex items-center gap-2 text-white">
+                                      🏀 <span>Sport</span>
+                                    </span>
+                                    <span className="text-white font-bold">
+                                      {sportPoints} pts ({sportPercent.toFixed(1)}%)
+                                    </span>
+                                  </div>
+                                  <div className="h-3 bg-white/20 rounded-full overflow-hidden">
+                                    <div 
+                                      className="h-full bg-gradient-to-r from-orange-400 to-red-500 transition-all duration-1000"
+                                      style={{ width: `${sportPercent}%` }}
+                                    />
+                                  </div>
+                                </div>
+                                
+                                <div>
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className="flex items-center gap-2 text-white">
+                                      📚 <span>Académique</span>
+                                    </span>
+                                    <span className="text-white font-bold">
+                                      {academicPoints} pts ({academicPercent.toFixed(1)}%)
+                                    </span>
+                                  </div>
+                                  <div className="h-3 bg-white/20 rounded-full overflow-hidden">
+                                    <div 
+                                      className="h-full bg-gradient-to-r from-blue-400 to-purple-500 transition-all duration-1000"
+                                      style={{ width: `${academicPercent}%` }}
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="text-center text-white/80 text-sm mt-4">
+                                  {sportPercent > academicPercent ? 
+                                    "🏀 Tu excelles en sport !" : 
+                                    academicPercent > sportPercent ?
+                                    "📚 Tu es fort en académique !" :
+                                    "⚖️ Parfaitement équilibré !"
+                                  }
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
+                      {/* === PROGRESSION VERS LES BADGES === */}
+                      <div className="theme-card p-6">
+                        <h3 className="text-2xl font-bold theme-text-glow mb-4 flex items-center gap-2">
+                          🎖️ Progression des Badges
+                        </h3>
+                        <div className="space-y-4">
+                          {(() => {
+                            const currentStreak = (() => {
+                              let streak = 0;
+                              const recent = searchHistory.slice().reverse();
+                              for (let entry of recent) {
+                                if (entry.points > 0) streak++;
+                                else break;
+                              }
+                              return streak;
+                            })();
+
+                            const progressBadges = [
+                              { 
+                                name: 'Hot Streak', 
+                                emoji: '🔥', 
+                                current: currentStreak, 
+                                target: 5,
+                                description: '5 actions positives d\'affilée'
+                              },
+                              { 
+                                name: 'Tsunami', 
+                                emoji: '🌊', 
+                                current: currentStreak, 
+                                target: 10,
+                                description: '10 actions positives d\'affilée'
+                              },
+                              { 
+                                name: 'Starting Five', 
+                                emoji: '⭐', 
+                                current: foundPlayer.score, 
+                                target: 50,
+                                description: 'Atteindre 50 points'
+                              },
+                              { 
+                                name: 'All-Star', 
+                                emoji: '🌟', 
+                                current: foundPlayer.score, 
+                                target: 100,
+                                description: 'Atteindre 100 points'
+                              },
+                              { 
+                                name: 'Marathon Runner', 
+                                emoji: '🏃', 
+                                current: (() => {
+                                  const last7Days = new Date();
+                                  last7Days.setDate(last7Days.getDate() - 7);
+                                  return searchHistory.filter(entry => 
+                                    new Date(entry.timestamp) >= last7Days && entry.points > 0
+                                  ).length;
+                                })(), 
+                                target: 5,
+                                description: '5 actions positives en 7 jours'
+                              }
+                            ];
+
+                            return progressBadges.map((badge, index) => {
+                              const progress = Math.min((badge.current / badge.target) * 100, 100);
+                              const isCompleted = badge.current >= badge.target;
+                              const remaining = Math.max(badge.target - badge.current, 0);
+                              
+                              return (
+                                <div key={index} className={`p-4 rounded-lg ${isCompleted ? 'bg-green-500/20 border border-green-500/40' : 'bg-white/10'}`}>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-2xl">{badge.emoji}</span>
+                                      <div>
+                                        <div className={`font-bold ${isCompleted ? 'text-green-300' : 'text-white'}`}>
+                                          {badge.name}
+                                          {isCompleted && <span className="ml-2">✅</span>}
+                                        </div>
+                                        <div className="text-xs text-white/70">{badge.description}</div>
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className={`font-bold ${isCompleted ? 'text-green-300' : 'text-white'}`}>
+                                        {badge.current}/{badge.target}
+                                      </div>
+                                      {!isCompleted && remaining > 0 && (
+                                        <div className="text-xs text-orange-300">
+                                          Plus que {remaining} !
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                                    <div 
+                                      className={`h-full transition-all duration-1000 ${
+                                        isCompleted 
+                                          ? 'bg-gradient-to-r from-green-400 to-green-600' 
+                                          : 'bg-gradient-to-r from-yellow-400 to-orange-500'
+                                      }`}
+                                      style={{ width: `${progress}%` }}
+                                    />
+                                  </div>
+                                  
+                                  {!isCompleted && (
+                                    <div className="mt-2 text-xs text-white/60">
+                                      {progress.toFixed(1)}% complété
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
+                      </div>
+
+                      {/* === GRAPHIQUE D'ÉVOLUTION === */}
+                      <div className="theme-card p-6">
+                        <h3 className="text-2xl font-bold theme-text-glow mb-4 flex items-center gap-2">
+                          📈 Évolution des Points
+                        </h3>
+                        <div className="h-64 relative">
+                          <canvas 
+                            id={`evolutionChart-${foundPlayer.name.replace(/\s+/g, '')}`}
+                            className="w-full h-full"
+                          />
+                        </div>
+                        {(() => {
+                          // Créer le graphique avec Chart.js
+                          setTimeout(() => {
+                            const canvas = document.getElementById(`evolutionChart-${foundPlayer.name.replace(/\s+/g, '')}`);
+                            if (!canvas) return;
+                            
+                            const ctx = canvas.getContext('2d');
+                            
+                            // Préparer les données d'évolution
+                            const evolutionData = [];
+                            let runningTotal = 0;
+                            
+                            // Trier l'historique par date et créer les points d'évolution
+                            const sortedHistory = [...searchHistory].sort((a, b) => {
+                              const dateA = new Date(a.timestamp);
+                              const dateB = new Date(b.timestamp);
+                              return dateA - dateB;
+                            });
+                            
+                            // Commencer avec le score initial (0)
+                            if (sortedHistory.length > 0) {
+                              const firstDate = new Date(sortedHistory[0].timestamp);
+                              evolutionData.push({
+                                x: new Date(firstDate.getTime() - 86400000).toISOString(), // Jour précédent
+                                y: 0,
+                                points: 0,
+                                action: 'Point de départ'
+                              });
+                            }
+                            
+                            sortedHistory.forEach((entry, index) => {
+                              runningTotal = parseInt(entry.new_total) || (runningTotal + entry.points);
+                              evolutionData.push({
+                                x: entry.timestamp,
+                                y: runningTotal,
+                                points: entry.points,
+                                action: entry.action,
+                                teacher: entry.teacher_name
+                              });
+                            });
+                            
+                            // Fallback si pas d'historique
+                            if (evolutionData.length === 0) {
+                              evolutionData.push({
+                                x: new Date().toISOString(),
+                                y: foundPlayer.score,
+                                points: foundPlayer.score,
+                                action: 'Score actuel',
+                                teacher: 'N/A'
+                              });
+                            }
+                            
+                            new Chart(ctx, {
+                              type: 'line',
+                              data: {
+                                datasets: [{
+                                  label: 'Points totaux',
+                                  data: evolutionData,
+                                  borderColor: 'rgba(59, 130, 246, 1)',
+                                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                  borderWidth: 3,
+                                  fill: true,
+                                  tension: 0.4,
+                                  pointBackgroundColor: evolutionData.map(point => 
+                                    point.points > 0 ? '#10B981' : point.points < 0 ? '#EF4444' : '#6B7280'
+                                  ),
+                                  pointBorderColor: '#FFFFFF',
+                                  pointBorderWidth: 2,
+                                  pointRadius: 6,
+                                  pointHoverRadius: 8
+                                }]
+                              },
+                              options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: {
+                                  intersect: false,
+                                  mode: 'index'
+                                },
+                                plugins: {
+                                  legend: {
+                                    display: false
+                                  },
+                                  tooltip: {
+                                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                    titleColor: '#FFFFFF',
+                                    bodyColor: '#FFFFFF',
+                                    borderColor: 'rgba(59, 130, 246, 1)',
+                                    borderWidth: 1,
+                                    callbacks: {
+                                      title: function(context) {
+                                        return new Date(context[0].parsed.x).toLocaleDateString('fr-FR');
+                                      },
+                                      label: function(context) {
+                                        const point = evolutionData[context.dataIndex];
+                                        const labels = [
+                                          `Total: ${point.y} points`,
+                                          `Action: ${point.action}`,
+                                          `Points: ${point.points > 0 ? '+' : ''}${point.points}`
+                                        ];
+                                        if (point.teacher && point.teacher !== 'N/A') {
+                                          labels.push(`Par: ${point.teacher}`);
+                                        }
+                                        return labels;
+                                      }
+                                    }
+                                  }
+                                },
+                                scales: {
+                                  x: {
+                                    type: 'time',
+                                    time: {
+                                      unit: 'day',
+                                      displayFormats: {
+                                        day: 'DD/MM'
+                                      }
+                                    },
+                                    grid: {
+                                      color: 'rgba(255, 255, 255, 0.1)'
+                                    },
+                                    ticks: {
+                                      color: 'rgba(255, 255, 255, 0.7)'
+                                    }
+                                  },
+                                  y: {
+                                    beginAtZero: true,
+                                    grid: {
+                                      color: 'rgba(255, 255, 255, 0.1)'
+                                    },
+                                    ticks: {
+                                      color: 'rgba(255, 255, 255, 0.7)'
+                                    }
+                                  }
+                                }
+                              }
+                            });
+                          }, 100);
+                          
+                          return null;
+                        })()}
+                      </div>
+
 {foundPlayer.badges && foundPlayer.badges.length > 0 && (
   <div className="mt-6 bg-white/10 backdrop-blur-sm rounded-xl p-6">
     <h4 className="text-2xl font-bold text-white mb-4 text-center">
@@ -2701,14 +3150,27 @@ if (currentView === 'teacher-actions') {
                             searchHistory.map((entry, index) => (
                               <div key={index} className="bg-white/20 p-4 rounded-lg">
                                 <div className="flex justify-between items-start">
-                                  <div>
-                                    <div className="font-semibold text-white">{entry.action}</div>
-                                    <div className="text-sm text-white/80">{entry.timestamp}</div>
-                                    {entry.teacher_name && entry.teacher_name !== 'Anonyme' && (
-                                      <div className="text-xs text-white/60">Par: {entry.teacher_name}</div>
+                                  <div className="flex-1">
+                                    <div className="font-semibold text-white mb-1">{entry.action}</div>
+                                    <div className="text-sm text-white/80 mb-1">{entry.timestamp}</div>
+                                    {entry.teacher_name && entry.teacher_name !== 'Anonyme' ? (
+                                      <div className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 rounded-full text-xs text-white/90">
+                                        <span className="text-blue-300">👨‍🏫</span>
+                                        <span className="font-medium">{entry.teacher_name}</span>
+                                      </div>
+                                    ) : entry.teacher_name === 'Système' ? (
+                                      <div className="inline-flex items-center gap-1 px-2 py-1 bg-purple-500/20 rounded-full text-xs text-purple-300">
+                                        <span>🤖</span>
+                                        <span className="font-medium">Système</span>
+                                      </div>
+                                    ) : (
+                                      <div className="inline-flex items-center gap-1 px-2 py-1 bg-gray-500/20 rounded-full text-xs text-gray-300">
+                                        <span>❓</span>
+                                        <span className="font-medium">Anonyme</span>
+                                      </div>
                                     )}
                                   </div>
-                                  <div className="text-right">
+                                  <div className="text-right ml-4">
                                     <div className={`text-lg font-bold ${entry.points > 0 ? 'text-green-300' : 'text-red-300'}`}>
                                       {entry.points > 0 ? '+' : ''}{entry.points}
                                     </div>
@@ -3168,16 +3630,31 @@ if (currentView === 'grades') {
                       {playerHistory.length > 0 ? (
                         playerHistory.map((entry, index) => (
                           <div key={index} className="border-l-4 border-blue-500 pl-3 py-2">
-                            <div className="font-semibold">{entry.action}</div>
-                            <div className="text-sm text-gray-600">
-                              {entry.points > 0 ? '+' : ''}{entry.points} points
+                            <div className="flex justify-between items-start mb-1">
+                              <div className="font-semibold flex-1">{entry.action}</div>
+                              <div className={`text-sm font-bold ml-2 ${entry.points > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {entry.points > 0 ? '+' : ''}{entry.points} pts
+                              </div>
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-xs text-gray-500 mb-2">
                               {entry.timestamp} • Total: {entry.new_total} pts
-                              {entry.teacher_name && entry.teacher_name !== 'Anonyme' && (
-                                <span> • Par: {entry.teacher_name}</span>
-                              )}
                             </div>
+                            {entry.teacher_name && entry.teacher_name !== 'Anonyme' ? (
+                              <div className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 border border-blue-200 rounded-full text-xs text-blue-700">
+                                <span>👨‍🏫</span>
+                                <span className="font-medium">{entry.teacher_name}</span>
+                              </div>
+                            ) : entry.teacher_name === 'Système' ? (
+                              <div className="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 border border-purple-200 rounded-full text-xs text-purple-700">
+                                <span>🤖</span>
+                                <span className="font-medium">Système</span>
+                              </div>
+                            ) : (
+                              <div className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 border border-gray-200 rounded-full text-xs text-gray-600">
+                                <span>❓</span>
+                                <span className="font-medium">Anonyme</span>
+                              </div>
+                            )}
                           </div>
                         ))
                       ) : (
