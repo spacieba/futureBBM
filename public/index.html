@@ -11,6 +11,239 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
+        /* === THÈMES DYNAMIQUES PAR FRANCHISE === */
+        
+        :root {
+            --transition-theme: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* === THÈME MINOTAURS === */
+        .theme-minotaurs {
+            --primary-color: #DC2626;
+            --secondary-color: #991B1B;
+            --accent-color: #FEF3C7;
+            --bg-gradient-1: #1F1111;
+            --bg-gradient-2: #3F1515;
+            --text-primary: #FFFFFF;
+            --text-secondary: #FCA5A5;
+            --glow-color: rgba(220, 38, 38, 0.6);
+        }
+
+        .theme-minotaurs body {
+            background: linear-gradient(135deg, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 50%, #000000 100%);
+            background-attachment: fixed;
+            position: relative;
+        }
+
+        .theme-minotaurs::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(220, 38, 38, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(153, 27, 27, 0.2) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+            animation: fireGlow 4s ease-in-out infinite;
+        }
+
+        @keyframes fireGlow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* === THÈME KRAKENS === */
+        .theme-krakens {
+            --primary-color: #0891B2;
+            --secondary-color: #0C4A6E;
+            --accent-color: #67E8F9;
+            --bg-gradient-1: #042F3E;
+            --bg-gradient-2: #064E6B;
+            --text-primary: #FFFFFF;
+            --text-secondary: #7DD3C0;
+            --glow-color: rgba(8, 145, 178, 0.6);
+        }
+
+        .theme-krakens body {
+            background: linear-gradient(180deg, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 50%, #001E2E 100%);
+            background-attachment: fixed;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .theme-krakens::after {
+            content: '';
+            position: fixed;
+            bottom: 0;
+            left: -100%;
+            width: 300%;
+            height: 200px;
+            background: linear-gradient(90deg,
+                transparent,
+                rgba(103, 232, 249, 0.1),
+                transparent,
+                rgba(8, 145, 178, 0.1)
+            );
+            animation: wave 10s cubic-bezier(0.36, 0.45, 0.63, 0.53) infinite;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes wave {
+            0% { transform: translateX(0) translateZ(0) scaleY(1); }
+            50% { transform: translateX(-25%) translateZ(0) scaleY(0.8); }
+            100% { transform: translateX(-50%) translateZ(0) scaleY(1); }
+        }
+
+        /* === THÈME PHOENIX === */
+        .theme-phoenix {
+            --primary-color: #EA580C;
+            --secondary-color: #DC2626;
+            --accent-color: #FCD34D;
+            --bg-gradient-1: #451A03;
+            --bg-gradient-2: #78350F;
+            --text-primary: #FFFFFF;
+            --text-secondary: #FED7AA;
+            --glow-color: rgba(234, 88, 12, 0.6);
+        }
+
+        .theme-phoenix body {
+            background: 
+                radial-gradient(ellipse at top, var(--bg-gradient-2), transparent 60%),
+                linear-gradient(180deg, var(--bg-gradient-1) 0%, #1F0F00 100%);
+            background-attachment: fixed;
+            position: relative;
+        }
+
+        .theme-phoenix::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            right: -50%;
+            bottom: -50%;
+            background: radial-gradient(circle, rgba(252, 211, 77, 0.1) 2px, transparent 2px);
+            background-size: 50px 50px;
+            animation: rise 20s linear infinite;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes rise {
+            0% { transform: translateY(100%) rotate(0deg); }
+            100% { transform: translateY(-100%) rotate(360deg); }
+        }
+
+        /* === THÈME WEREWOLVES === */
+        .theme-werewolves {
+            --primary-color: #16A34A;
+            --secondary-color: #15803D;
+            --accent-color: #BBF7D0;
+            --bg-gradient-1: #0A1F0F;
+            --bg-gradient-2: #14532D;
+            --text-primary: #FFFFFF;
+            --text-secondary: #86EFAC;
+            --glow-color: rgba(22, 163, 74, 0.6);
+        }
+
+        .theme-werewolves body {
+            background: 
+                linear-gradient(135deg, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 50%, #052E16 100%);
+            background-attachment: fixed;
+            position: relative;
+        }
+
+        .theme-werewolves::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 30% 30%, rgba(187, 247, 208, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 70% 70%, rgba(22, 163, 74, 0.05) 0%, transparent 50%);
+            animation: moonGlow 6s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes moonGlow {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
+        /* === STYLES COMMUNS ADAPTÉS AUX THÈMES === */
+        
+        /* Cartes avec effet glassmorphism adapté au thème */
+        .theme-card {
+            background: linear-gradient(135deg, 
+                rgba(var(--card-rgb, 255, 255, 255), 0.1),
+                rgba(var(--card-rgb, 255, 255, 255), 0.05)
+            );
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(var(--card-rgb, 255, 255, 255), 0.2);
+            box-shadow: 
+                0 8px 32px 0 rgba(0, 0, 0, 0.37),
+                inset 0 0 12px var(--glow-color);
+            transition: var(--transition-theme);
+            position: relative;
+            z-index: 10;
+        }
+
+        .theme-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 
+                0 12px 40px 0 var(--glow-color),
+                inset 0 0 20px var(--glow-color);
+        }
+
+        /* Boutons thématiques */
+        .theme-button {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: var(--transition-theme);
+            box-shadow: 0 4px 15px var(--glow-color);
+            position: relative;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        .theme-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .theme-button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        /* Textes avec glow thématique */
+        .theme-text-glow {
+            color: var(--text-primary);
+            text-shadow: 
+                0 0 10px var(--glow-color),
+                0 0 20px var(--glow-color),
+                0 0 30px var(--primary-color);
+        }
+
         /* === AVATARS ANIMÉS DES FRANCHISES === */
 
         /* Minotaurs - Taureau qui charge */
@@ -20,6 +253,11 @@
             animation: charge 2s ease-in-out infinite;
             filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.5));
         }
+        
+        .theme-minotaurs .minotaur-avatar {
+            filter: drop-shadow(0 0 20px var(--primary-color)) drop-shadow(0 0 40px var(--secondary-color));
+        }
+        
         @keyframes charge {
             0%, 100% { transform: translateX(0) rotate(0deg); }
             50% { transform: translateX(-3px) rotate(-2deg); }
@@ -31,6 +269,10 @@
             font-size: 3rem;
             animation: tentacles 3s ease-in-out infinite;
             filter: drop-shadow(0 0 10px rgba(0, 100, 255, 0.5));
+        }
+        
+        .theme-krakens .kraken-avatar {
+            filter: drop-shadow(0 0 20px var(--primary-color)) drop-shadow(0 0 40px var(--accent-color));
         }
 
         @keyframes tentacles {
@@ -46,6 +288,10 @@
             animation: flames 2s ease-in-out infinite;
             filter: drop-shadow(0 0 15px rgba(255, 165, 0, 0.7));
         }
+        
+        .theme-phoenix .phoenix-avatar {
+            filter: drop-shadow(0 0 25px var(--primary-color)) drop-shadow(0 0 50px var(--accent-color));
+        }
 
         @keyframes flames {
             0%, 100% { transform: translateY(0px) scale(1); }
@@ -59,6 +305,10 @@
             font-size: 3rem;
             animation: glow 4s ease-in-out infinite;
             filter: drop-shadow(0 0 10px rgba(0, 255, 0, 0.4));
+        }
+        
+        .theme-werewolves .werewolf-avatar {
+            filter: drop-shadow(0 0 20px var(--primary-color)) drop-shadow(0 0 40px var(--accent-color));
         }
 
         @keyframes glow {
@@ -95,6 +345,16 @@
         @keyframes sparkle {
             0% { transform: translate(0, 0) rotate(0deg); }
             100% { transform: translate(-20px, -20px) rotate(360deg); }
+        }
+
+        /* Effet de transition entre thèmes */
+        .theme-transition {
+            animation: themeChange 0.5s ease-in-out;
+        }
+
+        @keyframes themeChange {
+            0% { opacity: 0.7; filter: blur(5px); }
+            100% { opacity: 1; filter: blur(0); }
         }
     </style>
 </head>
@@ -661,7 +921,88 @@ if (!hofData) {
           const [notifications, setNotifications] = useState([]);
           const [activeTab, setActiveTab] = useState('general');
           const [selectedPeriod, setSelectedPeriod] = useState('week');
+          // État pour le thème actuel
+          const [currentTheme, setCurrentTheme] = useState('');
+          const [selectedFranchiseView, setSelectedFranchiseView] = useState(null);
           
+          // === GESTION DES THÈMES DYNAMIQUES ===
+          
+          // Fonction pour obtenir le nom du thème selon la franchise
+          const getThemeClass = (franchise) => {
+            const themeMap = {
+              'Minotaurs': 'theme-minotaurs',
+              'Krakens': 'theme-krakens', 
+              'Phoenix': 'theme-phoenix',
+              'Werewolves': 'theme-werewolves'
+            };
+            return themeMap[franchise] || '';
+          };
+
+          // Fonction pour changer le thème de l'application
+          const changeTheme = (franchise) => {
+            const body = document.body;
+            const html = document.documentElement;
+            
+            // Retirer tous les thèmes existants
+            body.className = body.className.replace(/theme-\w+/g, '');
+            html.className = html.className.replace(/theme-\w+/g, '');
+            
+            if (franchise) {
+              const themeClass = getThemeClass(franchise);
+              if (themeClass) {
+                // Ajouter l'animation de transition
+                body.classList.add('theme-transition');
+                html.classList.add('theme-transition');
+                
+                // Appliquer le nouveau thème
+                setTimeout(() => {
+                  body.classList.add(themeClass);
+                  html.classList.add(themeClass);
+                  setCurrentTheme(themeClass);
+                }, 50);
+                
+                // Retirer l'animation après la transition
+                setTimeout(() => {
+                  body.classList.remove('theme-transition');
+                  html.classList.remove('theme-transition');
+                }, 550);
+              }
+            }
+          };
+
+          // Fonction pour obtenir la franchise dominante
+          const getDominantFranchise = () => {
+            if (!players || players.length === 0) return null;
+            
+            const franchiseScores = {};
+            players.forEach(player => {
+              if (!franchiseScores[player.franchise]) {
+                franchiseScores[player.franchise] = 0;
+              }
+              franchiseScores[player.franchise] += player.score;
+            });
+            
+            return Object.keys(franchiseScores).reduce((a, b) => 
+              franchiseScores[a] > franchiseScores[b] ? a : b
+            );
+          };
+
+          // Effet pour changer automatiquement le thème selon la franchise sélectionnée ou dominante
+          useEffect(() => {
+            let franchiseToUse = selectedFranchiseView;
+            
+            if (!franchiseToUse && currentView === 'home') {
+              franchiseToUse = getDominantFranchise();
+            }
+            
+            changeTheme(franchiseToUse);
+          }, [selectedFranchiseView, currentView, players]);
+
+          // Fonction pour gérer le clic sur une carte de franchise
+          const handleFranchiseClick = (franchise) => {
+            setSelectedFranchiseView(selectedFranchiseView === franchise ? null : franchise);
+          };
+
           // Fonction pour obtenir le grade basketball selon le score
           const getBadge = (score) => {
             // Grade Ultime
@@ -1215,12 +1556,42 @@ if (currentView === 'home') {
             
             {/* No Pain No Gain - Citation principale */}
             <div className="mb-6">
-              <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-pink-500 to-orange-600 mb-2 tracking-tight">
+              <h1 className="text-4xl md:text-6xl lg:text-7xl font-black theme-text-glow mb-2 tracking-tight">
                 "NO PAIN NO GAIN"
               </h1>
                <p className="text-lg md:text-xl text-white/90 font-semibold">
                 Année 2025/2026
               </p>
+            </div>
+            
+            {/* Sélecteur de thème */}
+            <div className="mb-6">
+              <div className="flex flex-wrap justify-center gap-3 mb-4">
+                <button 
+                  className={`theme-button px-4 py-2 rounded-full text-sm ${!selectedFranchiseView ? 'opacity-50' : ''}`}
+                  onClick={() => setSelectedFranchiseView(null)}
+                >
+                  🌈 Thème Auto
+                </button>
+                {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                  const avatar = getFranchiseAvatar(franchise);
+                  return (
+                    <button 
+                      key={franchise}
+                      className={`theme-button px-4 py-2 rounded-full text-sm flex items-center gap-2 ${selectedFranchiseView === franchise ? 'ring-2 ring-white' : ''}`}
+                      onClick={() => handleFranchiseClick(franchise)}
+                    >
+                      <span className="text-lg">{avatar.emoji}</span>
+                      {franchise}
+                    </button>
+                  );
+                })}
+              </div>
+              {currentTheme && (
+                <p className="text-sm text-white/70">
+                  Thème actuel: {currentTheme.replace('theme-', '').charAt(0).toUpperCase() + currentTheme.replace('theme-', '').slice(1)}
+                </p>
+              )}
             </div>
             
             {/* Citation du jour */}
@@ -1466,15 +1837,24 @@ if (currentView === 'home') {
                         const totalPoints = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
                         const avatar = getFranchiseAvatar(franchise);
                         return (
-                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg text-center franchise-card`}>
+                          <div 
+                            key={franchise} 
+                            className={`theme-card cursor-pointer transform transition-all duration-300 p-4 rounded-lg text-center franchise-card hover:scale-105 ${selectedFranchiseView === franchise ? 'ring-4 ring-white/50' : ''}`}
+                            onClick={() => handleFranchiseClick(franchise)}
+                          >
                             <div className="flex items-center justify-center mb-2">
                               <span className={`franchise-avatar ${avatar.class}`}>
                                 {avatar.emoji}
                               </span>
                             </div>
-                            <h4 className="font-bold text-white">{franchise}</h4>
-                            <div className="text-2xl font-bold text-white">{totalPoints}</div>
-                            <div className="text-sm text-white/80">{franchisePlayers.length} élèves</div>
+                            <h4 className="font-bold theme-text-glow text-lg">{franchise}</h4>
+                            <div className="text-3xl font-bold theme-text-glow">{totalPoints}</div>
+                            <div className="text-sm opacity-80">{franchisePlayers.length} élèves</div>
+                            {selectedFranchiseView === franchise && (
+                              <div className="mt-2 text-xs text-center opacity-75">
+                                🎨 Thème actif
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -2044,15 +2424,24 @@ if (currentView === 'teacher-actions') {
                         const totalPoints = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
                         const avatar = getFranchiseAvatar(franchise);
                         return (
-                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg text-center franchise-card`}>
+                          <div 
+                            key={franchise} 
+                            className={`theme-card cursor-pointer transform transition-all duration-300 p-4 rounded-lg text-center franchise-card hover:scale-105 ${selectedFranchiseView === franchise ? 'ring-4 ring-white/50' : ''}`}
+                            onClick={() => handleFranchiseClick(franchise)}
+                          >
                             <div className="flex items-center justify-center mb-2">
                               <span className={`franchise-avatar ${avatar.class}`}>
                                 {avatar.emoji}
                               </span>
                             </div>
-                            <h4 className="font-bold text-white text-lg">{franchise}</h4>
-                            <div className="text-2xl font-bold text-white">{totalPoints}</div>
-                            <div className="text-sm text-white/80">{franchisePlayers.length} élèves</div>
+                            <h4 className="font-bold theme-text-glow text-lg">{franchise}</h4>
+                            <div className="text-3xl font-bold theme-text-glow">{totalPoints}</div>
+                            <div className="text-sm opacity-80">{franchisePlayers.length} élèves</div>
+                            {selectedFranchiseView === franchise && (
+                              <div className="mt-2 text-xs text-center opacity-75">
+                                🎨 Thème actif
+                              </div>
+                            )}
                           </div>
                         );
                       })}
