@@ -2423,6 +2423,83 @@ if (currentView === 'teacher-actions') {
                     </div>
                   )}
 
+                  {/* Notice explicative pour les élèves et parents */}
+                  <div className="mb-8 bg-gradient-to-r from-blue-900/30 to-purple-900/30 backdrop-blur-sm border border-white/20 rounded-2xl p-6 shadow-2xl">
+                    <div className="flex items-start gap-4">
+                      <div className="text-4xl">📚</div>
+                      <div className="flex-1">
+                        <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                          ℹ️ Guide du Basketball Manager - GP
+                        </h3>
+                        
+                        <div className="space-y-4 text-white/90">
+                          <div>
+                            <h4 className="text-lg font-semibold text-yellow-300 mb-2">🎯 Qu'est-ce que le système de points ?</h4>
+                            <p className="text-sm leading-relaxed">
+                              Le Basketball Manager est un système de motivation et de récompense qui permet aux élèves de gagner des points 
+                              pour leurs efforts académiques et sportifs. Chaque action positive est récompensée !
+                            </p>
+                          </div>
+
+                          <div>
+                            <h4 className="text-lg font-semibold text-green-300 mb-2">⭐ Comment gagner des points ?</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                              <div>
+                                <p className="text-blue-200 font-medium">📖 Points Académiques :</p>
+                                <ul className="list-disc list-inside ml-4 space-y-1 text-xs">
+                                  <li>Travail bien fait (+3 pts)</li>
+                                  <li>Participation active (+2 pts)</li>
+                                  <li>Progrès remarquable (+5 pts)</li>
+                                  <li>Excellence (+10 pts)</li>
+                                </ul>
+                              </div>
+                              <div>
+                                <p className="text-green-200 font-medium">🏀 Points Sportifs :</p>
+                                <ul className="list-disc list-inside ml-4 space-y-1 text-xs">
+                                  <li>Fair-play (+2 pts)</li>
+                                  <li>Effort et investissement (+3 pts)</li>
+                                  <li>Performance exceptionnelle (+5 pts)</li>
+                                  <li>Leadership (+10 pts)</li>
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div>
+                            <h4 className="text-lg font-semibold text-purple-300 mb-2">🏆 Système de Franchises</h4>
+                            <p className="text-sm mb-2">Chaque élève appartient à une franchise avec ses propres couleurs et thème :</p>
+                            <div className="flex flex-wrap gap-2 text-xs">
+                              <span className="bg-red-600/30 px-2 py-1 rounded">🐂 Minotaurs (Rouge)</span>
+                              <span className="bg-blue-600/30 px-2 py-1 rounded">🐙 Krakens (Bleu)</span>
+                              <span className="bg-orange-600/30 px-2 py-1 rounded">🔥 Phoenix (Orange)</span>
+                              <span className="bg-green-600/30 px-2 py-1 rounded">🐺 Werewolves (Vert)</span>
+                            </div>
+                          </div>
+
+                          <div>
+                            <h4 className="text-lg font-semibold text-orange-300 mb-2">🏅 Badges et Récompenses</h4>
+                            <p className="text-sm leading-relaxed">
+                              En accumulant des points, les élèves débloquent différents badges et grades : 
+                              <span className="font-semibold"> Rookie → Starter → All-Star → MVP → Legend</span>.
+                              Des badges spéciaux récompensent l'assiduité, les séries de réussite et l'esprit d'équipe !
+                            </p>
+                          </div>
+
+                          <div className="bg-white/10 p-4 rounded-lg">
+                            <h4 className="text-lg font-semibold text-yellow-300 mb-2">👨‍👩‍👧‍👦 Message aux Parents</h4>
+                            <p className="text-sm leading-relaxed">
+                              Ce système encourage la motivation intrinsèque de votre enfant en valorisant ses efforts quotidiens. 
+                              Vous pouvez consulter ses progrès dans la section "Mon Score" pour suivre son évolution académique et sportive.
+                              <span className="block mt-2 font-medium text-green-200">
+                                💡 Encouragez votre enfant à viser les prochains objectifs et félicitez-le pour ses efforts !
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <button
                       onClick={() => {
