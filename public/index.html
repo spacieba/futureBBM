@@ -2498,21 +2498,29 @@ if (currentView === 'teacher-actions') {
           // RECHERCHE ÉLÈVE
           if (currentView === 'student-search') {
             
-            const searchPlayer = async () => {
-              if (!searchName.trim()) {
-                alert('Veuillez entrer votre nom');
+            // Filtrer les joueurs en fonction de la recherche
+            const filteredPlayers = players.filter(player =>
+              player.name.toLowerCase().includes(searchName.toLowerCase())
+            );
+
+            const searchPlayer = async (selectedPlayerName = null) => {
+              const playerName = selectedPlayerName || searchName.trim();
+              
+              if (!playerName) {
+                alert('Veuillez sélectionner ou entrer votre nom');
                 return;
               }
 
               try {
-                const response = await fetch(`/api/player/${encodeURIComponent(searchName.trim())}`);
+                const response = await fetch(`/api/player/${encodeURIComponent(playerName)}`);
                 if (response.ok) {
                   const player = await response.json();
                   setFoundPlayer(player);
                   
-                  const historyResponse = await fetch(`/api/history/${encodeURIComponent(searchName.trim())}`);
+                  const historyResponse = await fetch(`/api/history/${encodeURIComponent(playerName)}`);
                   const history = await historyResponse.json();
                   setSearchHistory(history);
+                  setSearchName(playerName); // Mettre à jour le champ avec le nom sélectionné
                 } else {
                   setFoundPlayer(null);
                   setSearchHistory([]);
@@ -2536,26 +2544,109 @@ if (currentView === 'teacher-actions') {
                     </button>
                   </div>
 
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
-                    <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                      Entrez votre nom complet
+                  <div className="theme-card p-6 mb-8">
+                    <h2 className="text-2xl font-bold theme-text-glow mb-6 text-center">
+                      🔍 Trouvez votre profil
                     </h2>
-                    <div className="flex space-x-4">
-                      <input
-                        type="text"
-                        value={searchName}
-                        onChange={(e) => setSearchName(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && searchPlayer()}
-                        className="flex-1 px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white/70 focus:outline-none text-lg"
-                        placeholder="Votre prénom et nom..."
-                      />
-                      <button
-                        onClick={searchPlayer}
-                        className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg transition-colors font-bold"
-                      >
-                        🔍 Rechercher
-                      </button>
+                    
+                    {/* Barre de recherche améliorée */}
+                    <div className="relative mb-4">
+                      <div className="flex space-x-4">
+                        <div className="flex-1 relative">
+                          <input
+                            type="text"
+                            value={searchName}
+                            onChange={(e) => setSearchName(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && searchPlayer()}
+                            className="w-full px-4 py-3 pl-12 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white/70 focus:outline-none text-lg"
+                            placeholder="Tapez votre prénom ou nom..."
+                          />
+                          <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/60 text-xl">
+                            👤
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => searchPlayer()}
+                          className="theme-button px-8 py-3 rounded-lg font-bold flex items-center gap-2"
+                        >
+                          🔍 Rechercher
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Suggestions de recherche */}
+                    {searchName && filteredPlayers.length > 0 && !foundPlayer && (
+                      <div className="bg-white/10 rounded-lg p-4 mb-4">
+                        <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+                          💡 Suggestions ({filteredPlayers.length})
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-40 overflow-y-auto">
+                          {filteredPlayers.slice(0, 9).map(player => {
+                            const avatar = getFranchiseAvatar(player.franchise);
+                            return (
+                              <button
+                                key={player.id}
+                                onClick={() => searchPlayer(player.name)}
+                                className="flex items-center gap-3 p-3 rounded-lg bg-white/10 hover:bg-white/20 transition-all duration-200 text-left group"
+                              >
+                                <span className={`franchise-avatar ${avatar.class} text-2xl`}>
+                                  {avatar.emoji}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-white font-medium text-sm group-hover:text-blue-200 truncate">
+                                    {player.name}
+                                  </div>
+                                  <div className="text-white/60 text-xs">
+                                    {player.franchise} • {player.score} pts
+                                  </div>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {filteredPlayers.length > 9 && (
+                          <p className="text-white/60 text-xs mt-2 text-center">
+                            +{filteredPlayers.length - 9} autres résultats...
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Navigation rapide par franchise */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                        const franchisePlayers = players.filter(p => p.franchise === franchise);
+                        const avatar = getFranchiseAvatar(franchise);
+                        return (
+                          <div key={franchise} className="bg-white/5 rounded-lg p-3 text-center">
+                            <div className="flex items-center justify-center mb-2">
+                              <span className={`franchise-avatar ${avatar.class} text-3xl`}>
+                                {avatar.emoji}
+                              </span>
+                            </div>
+                            <div className="text-white font-semibold text-sm mb-1">{franchise}</div>
+                            <div className="text-white/60 text-xs">{franchisePlayers.length} élèves</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Message d'aide */}
+                    {!searchName && (
+                      <div className="bg-blue-500/20 border border-blue-400/30 rounded-lg p-4 mt-4">
+                        <div className="flex items-start gap-3">
+                          <span className="text-2xl">💡</span>
+                          <div className="text-white text-sm">
+                            <p className="font-semibold mb-1">Comment rechercher ?</p>
+                            <ul className="text-white/80 text-xs space-y-1">
+                              <li>• Tapez votre prénom ou nom dans la barre de recherche</li>
+                              <li>• Cliquez sur une suggestion pour sélectionner rapidement</li>
+                              <li>• Utilisez la touche Entrée pour rechercher</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {foundPlayer && (
