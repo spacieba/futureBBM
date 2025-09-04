@@ -916,6 +916,8 @@ if (!hofData) {
           // État pour le thème actuel
           const [currentTheme, setCurrentTheme] = useState('');
           const [selectedFranchiseView, setSelectedFranchiseView] = useState(null);
+          // Message personnalisé pour la page élèves
+          const [studentPageMessage, setStudentPageMessage] = useState('');
           
           // === GESTION DES THÈMES DYNAMIQUES ===
           
@@ -2128,6 +2130,55 @@ if (currentView === 'teacher-actions') {
                     >
                       ← Retour Tableau de Bord
                     </button>
+                  </div>
+
+                  {/* Espace pour message personnalisé */}
+                  <div className="mb-6">
+                    <div className="theme-card p-4 rounded-xl border-2 border-dashed border-white/30 hover:border-white/50 transition-all duration-300">
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-2xl">💬</span>
+                        <h3 className="text-lg font-semibold text-white">Message du jour</h3>
+                      </div>
+                      
+                      {studentPageMessage ? (
+                        <div className="bg-white/10 rounded-lg p-4 mb-3">
+                          <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">
+                            {studentPageMessage}
+                          </p>
+                          <button 
+                            onClick={() => setStudentPageMessage('')}
+                            className="text-red-300 hover:text-red-100 text-xs mt-2 underline"
+                          >
+                            Effacer le message
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-white/70 text-sm italic mb-3">
+                          Aucun message configuré pour le moment
+                        </p>
+                      )}
+                      
+                      <div className="flex gap-2">
+                        <textarea
+                          placeholder="Écrivez votre message ici... (instructions, rappels, informations importantes)"
+                          className="flex-1 px-3 py-2 rounded-lg bg-white/20 text-white placeholder-white/60 border border-white/30 focus:border-white/70 focus:outline-none text-sm resize-none"
+                          rows="2"
+                          value={studentPageMessage}
+                          onChange={(e) => setStudentPageMessage(e.target.value)}
+                        />
+                        <button
+                          onClick={() => {
+                            // Le message est déjà mis à jour via onChange
+                            if (studentPageMessage.trim()) {
+                              alert('Message mis à jour !');
+                            }
+                          }}
+                          className="theme-button px-4 py-2 rounded-lg text-sm whitespace-nowrap"
+                        >
+                          ✅ Publier
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
