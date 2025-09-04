@@ -97,14 +97,14 @@
 
         /* === THÈME PHOENIX === */
         .theme-phoenix {
-            --primary-color: #EA580C;
-            --secondary-color: #DC2626;
-            --accent-color: #FCD34D;
-            --bg-gradient-1: #451A03;
-            --bg-gradient-2: #78350F;
+            --primary-color: #7C3AED;
+            --secondary-color: #5B21B6;
+            --accent-color: #DDD6FE;
+            --bg-gradient-1: #1E1B4B;
+            --bg-gradient-2: #312E81;
             --text-primary: #FFFFFF;
-            --text-secondary: #FED7AA;
-            --glow-color: rgba(234, 88, 12, 0.6);
+            --text-secondary: #DDD6FE;
+            --glow-color: rgba(124, 58, 237, 0.6);
         }
 
         .theme-phoenix body {
@@ -188,10 +188,199 @@
         }
 
         .theme-card:hover {
-            transform: translateY(-5px) scale(1.02);
+            transform: translateY(-3px) scale(1.01);
             box-shadow: 
                 0 12px 40px 0 var(--glow-color),
                 inset 0 0 20px var(--glow-color);
+        }
+        
+        /* === PERSONNALISATIONS AVANCÉES PAR FRANCHISE === */
+        
+        /* Minotaurs - Thème Guerre/Force */
+        .theme-minotaurs .theme-card {
+            background: linear-gradient(135deg, rgba(220, 38, 38, 0.15), rgba(153, 27, 27, 0.1));
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            box-shadow: 
+                0 8px 32px 0 rgba(0, 0, 0, 0.4),
+                inset 0 0 15px rgba(220, 38, 38, 0.2),
+                0 0 30px rgba(220, 38, 38, 0.15);
+        }
+        
+        .theme-minotaurs .theme-text-glow {
+            text-shadow: 
+                0 0 15px rgba(220, 38, 38, 0.9),
+                0 0 30px rgba(153, 27, 27, 0.6),
+                0 2px 4px rgba(0, 0, 0, 0.8);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        
+        .theme-minotaurs .theme-button {
+            background: linear-gradient(135deg, #DC2626, #991B1B, #7F1D1D);
+            box-shadow: 
+                0 6px 20px rgba(220, 38, 38, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 800;
+        }
+        
+        /* Krakens - Thème Océan/Mystique */
+        .theme-krakens .theme-card {
+            background: linear-gradient(135deg, rgba(8, 145, 178, 0.15), rgba(12, 74, 110, 0.1));
+            border: 1px solid rgba(8, 145, 178, 0.3);
+            box-shadow: 
+                0 8px 32px 0 rgba(0, 30, 46, 0.5),
+                inset 0 0 15px rgba(8, 145, 178, 0.2),
+                0 0 40px rgba(103, 232, 249, 0.1);
+        }
+        
+        .theme-krakens .theme-text-glow {
+            text-shadow: 
+                0 0 20px rgba(8, 145, 178, 0.9),
+                0 0 40px rgba(103, 232, 249, 0.5),
+                0 2px 8px rgba(0, 30, 46, 0.8);
+        }
+        
+        .theme-krakens .theme-button {
+            background: linear-gradient(135deg, #0891B2, #0C4A6E, #164E63);
+            box-shadow: 
+                0 8px 25px rgba(8, 145, 178, 0.3),
+                inset 0 1px 0 rgba(103, 232, 249, 0.3);
+        }
+        
+        /* Phoenix - Thème Magie/Mystère */
+        .theme-phoenix .theme-card {
+            background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(91, 33, 182, 0.1));
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            box-shadow: 
+                0 8px 32px 0 rgba(30, 27, 75, 0.5),
+                inset 0 0 15px rgba(124, 58, 237, 0.2),
+                0 0 50px rgba(221, 214, 254, 0.1);
+        }
+        
+        .theme-phoenix .theme-text-glow {
+            text-shadow: 
+                0 0 25px rgba(124, 58, 237, 0.9),
+                0 0 50px rgba(221, 214, 254, 0.6),
+                0 2px 6px rgba(30, 27, 75, 0.8);
+            font-style: italic;
+            font-weight: 600;
+        }
+        
+        .theme-phoenix .theme-button {
+            background: linear-gradient(135deg, #7C3AED, #5B21B6, #4C1D95);
+            box-shadow: 
+                0 10px 30px rgba(124, 58, 237, 0.4),
+                inset 0 1px 0 rgba(221, 214, 254, 0.3);
+        }
+        
+        /* Werewolves - Thème Nature/Sauvage */
+        .theme-werewolves .theme-card {
+            background: linear-gradient(135deg, rgba(22, 163, 74, 0.15), rgba(21, 128, 61, 0.1));
+            border: 1px solid rgba(22, 163, 74, 0.3);
+            box-shadow: 
+                0 8px 32px 0 rgba(5, 46, 22, 0.5),
+                inset 0 0 15px rgba(22, 163, 74, 0.2),
+                0 0 35px rgba(187, 247, 208, 0.1);
+        }
+        
+        .theme-werewolves .theme-text-glow {
+            text-shadow: 
+                0 0 18px rgba(22, 163, 74, 0.9),
+                0 0 35px rgba(187, 247, 208, 0.5),
+                0 2px 5px rgba(5, 46, 22, 0.8);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        .theme-werewolves .theme-button {
+            background: linear-gradient(135deg, #16A34A, #15803D, #166534);
+            box-shadow: 
+                0 7px 22px rgba(22, 163, 74, 0.3),
+                inset 0 1px 0 rgba(187, 247, 208, 0.2);
+        }
+        
+        /* === EFFETS SPÉCIAUX DE BACKGROUND PAR FRANCHISE === */
+        
+        /* Minotaurs - Particules de lave subtiles */
+        .theme-minotaurs::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 80%, rgba(220, 38, 38, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(153, 27, 27, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        /* Krakens - Vagues océaniques */
+        .theme-krakens::after {
+            content: '';
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 30%;
+            background: linear-gradient(0deg, rgba(8, 145, 178, 0.08) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        /* Phoenix - Aura mystique */
+        .theme-phoenix::after {
+            content: '';
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 80%;
+            height: 80%;
+            background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.08) 0%, transparent 70%);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        /* Werewolves - Brume de forêt */
+        .theme-werewolves::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 30% 40%, rgba(22, 163, 74, 0.06) 0%, transparent 60%),
+                radial-gradient(circle at 70% 60%, rgba(21, 128, 61, 0.06) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        /* === PERSONNALISATION DES TITRES === */
+        
+        .theme-minotaurs h1, .theme-minotaurs h2, .theme-minotaurs h3 {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            text-transform: uppercase;
+        }
+        
+        .theme-krakens h1, .theme-krakens h2, .theme-krakens h3 {
+            font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+            letter-spacing: 0.5px;
+        }
+        
+        .theme-phoenix h1, .theme-phoenix h2, .theme-phoenix h3 {
+            font-family: 'Book Antiqua', 'Palatino', serif;
+            font-style: italic;
+        }
+        
+        .theme-werewolves h1, .theme-werewolves h2, .theme-werewolves h3 {
+            font-family: 'Impact', 'Arial Black', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         /* Boutons thématiques */
@@ -761,7 +950,7 @@ if (!franchiseData.franchise_stats || franchiseData.franchise_stats.length === 0
           const franchiseColors = {
             Minotaurs: 'from-red-600 to-red-800',
             Krakens: 'from-blue-600 to-blue-800',
-            Phoenix: 'from-orange-600 to-orange-800',
+            Phoenix: 'from-purple-600 to-purple-800',
             Werewolves: 'from-green-600 to-green-800'
           };
 
@@ -1163,7 +1352,7 @@ if (!hofData) {
           const franchiseColors = {
             Minotaurs: 'from-red-600 to-red-800',
             Krakens: 'from-blue-600 to-blue-800',
-            Phoenix: 'from-orange-600 to-orange-800',
+            Phoenix: 'from-purple-600 to-purple-800',
             Werewolves: 'from-green-600 to-green-800'
           };
 
@@ -2424,7 +2613,7 @@ if (currentView === 'teacher-actions') {
                   )}
 
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
                     <button
                       onClick={() => {
                         setCurrentView('student-search');
@@ -2449,14 +2638,23 @@ if (currentView === 'teacher-actions') {
                       <p className="text-purple-100 text-sm">Découvrir les badges</p>
                     </button>
 
-                      <button
-  onClick={() => setCurrentView('grades')}
-  className="bg-gradient-to-r from-orange-600 to-orange-800 hover:from-orange-500 hover:to-orange-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
->
-  <div className="text-4xl mb-2">🏀</div>
-  <h3 className="text-xl font-bold">Grades</h3>
-  <p className="text-orange-100 text-sm">Découvrir les grades</p>
-</button>
+                    <button
+                      onClick={() => setCurrentView('grades')}
+                      className="bg-gradient-to-r from-orange-600 to-orange-800 hover:from-orange-500 hover:to-orange-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                    >
+                      <div className="text-4xl mb-2">🏀</div>
+                      <h3 className="text-xl font-bold">Grades</h3>
+                      <p className="text-orange-100 text-sm">Découvrir les grades</p>
+                    </button>
+
+                    <button
+                      onClick={() => setCurrentView('rankings')}
+                      className="bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
+                    >
+                      <div className="text-4xl mb-2">🏆</div>
+                      <h3 className="text-xl font-bold">Classement</h3>
+                      <p className="text-amber-100 text-sm">Voir les résultats</p>
+                    </button>
 
                     <button
                       onClick={() => setCurrentView('guide')}
