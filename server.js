@@ -1,3063 +1,2004 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GP Basketball Manager</title>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <style>
-        /* === THÈMES DYNAMIQUES PAR FRANCHISE === */
-        
-        :root {
-            --transition-theme: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+const express = require('express');
+const Database = require('better-sqlite3');
+const cors = require('cors');
+const path = require('path');
+const fs = require('fs'); 
 
-        /* === THÈME MINOTAURS === */
-        .theme-minotaurs {
-            --primary-color: #DC2626;
-            --secondary-color: #991B1B;
-            --accent-color: #FEF3C7;
-            --bg-gradient-1: #1F1111;
-            --bg-gradient-2: #3F1515;
-            --text-primary: #FFFFFF;
-            --text-secondary: #FCA5A5;
-            --glow-color: rgba(220, 38, 38, 0.6);
-        }
+const app = express();
+const port = process.env.PORT || 3000;
 
-        .theme-minotaurs body {
-            background: linear-gradient(135deg, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 50%, #000000 100%);
-            background-attachment: fixed;
-            position: relative;
-        }
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
 
-        .theme-minotaurs::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: 
-                radial-gradient(circle at 20% 50%, rgba(220, 38, 38, 0.2) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(153, 27, 27, 0.2) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: 1;
-            animation: fireGlow 4s ease-in-out infinite;
-        }
+// 🔒 MOT DE PASSE PROFESSEUR - MODIFIABLE ICI
+const TEACHER_PASSWORD = 'GPwinner2026';
 
-        @keyframes fireGlow {
-            0%, 100% { opacity: 0.5; }
-            50% { opacity: 1; }
-        }
+// Initialiser la base de données
+const dataDir = process.env.NODE_ENV === 'production' ? '/tmp' : path.join(__dirname, 'data');
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
 
-        /* === THÈME KRAKENS === */
-        .theme-krakens {
-            --primary-color: #0891B2;
-            --secondary-color: #0C4A6E;
-            --accent-color: #67E8F9;
-            --bg-gradient-1: #042F3E;
-            --bg-gradient-2: #064E6B;
-            --text-primary: #FFFFFF;
-            --text-secondary: #7DD3C0;
-            --glow-color: rgba(8, 145, 178, 0.6);
-        }
+const dbPath = path.join(dataDir, 'teams.db');
+console.log('📁 Dossier de données:', dataDir);
+console.log('🗄️ Base de données:', dbPath);
 
-        .theme-krakens body {
-            background: linear-gradient(180deg, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 50%, #001E2E 100%);
-            background-attachment: fixed;
-            position: relative;
-            overflow-x: hidden;
-        }
+const db = new Database(dbPath);
 
-        .theme-krakens::after {
-            content: '';
-            position: fixed;
-            bottom: 0;
-            left: -100%;
-            width: 300%;
-            height: 200px;
-            background: linear-gradient(90deg,
-                transparent,
-                rgba(103, 232, 249, 0.1),
-                transparent,
-                rgba(8, 145, 178, 0.1)
-            );
-            animation: wave 10s cubic-bezier(0.36, 0.45, 0.63, 0.53) infinite;
-            pointer-events: none;
-            z-index: 1;
-        }
+// Configuration SQLite
+db.pragma('journal_mode = WAL');
+db.pragma('synchronous = NORMAL');
 
-        @keyframes wave {
-            0% { transform: translateX(0) translateZ(0) scaleY(1); }
-            50% { transform: translateX(-25%) translateZ(0) scaleY(0.8); }
-            100% { transform: translateX(-50%) translateZ(0) scaleY(1); }
-        }
+// Créer les tables
+db.exec(`
+  CREATE TABLE IF NOT EXISTS players (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    franchise TEXT NOT NULL,
+    score INTEGER DEFAULT 0
+  );
 
-        /* === THÈME PHOENIX === */
-        .theme-phoenix {
-            --primary-color: #EA580C;
-            --secondary-color: #DC2626;
-            --accent-color: #FCD34D;
-            --bg-gradient-1: #451A03;
-            --bg-gradient-2: #78350F;
-            --text-primary: #FFFFFF;
-            --text-secondary: #FED7AA;
-            --glow-color: rgba(234, 88, 12, 0.6);
-        }
+  CREATE TABLE IF NOT EXISTS history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_name TEXT NOT NULL,
+    action TEXT NOT NULL,
+    points INTEGER NOT NULL,
+    timestamp TEXT NOT NULL,
+    new_total INTEGER NOT NULL,
+    teacher_name TEXT DEFAULT 'Anonyme',
+    category TEXT DEFAULT 'unknown',
+    FOREIGN KEY (player_name) REFERENCES players (name)
+  );
 
-        .theme-phoenix body {
-            background: 
-                radial-gradient(ellipse at top, var(--bg-gradient-2), transparent 60%),
-                linear-gradient(180deg, var(--bg-gradient-1) 0%, #1F0F00 100%);
-            background-attachment: fixed;
-            position: relative;
-        }
+  CREATE TABLE IF NOT EXISTS player_badges (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_name TEXT NOT NULL,
+    badge_id TEXT NOT NULL,
+    badge_name TEXT NOT NULL,
+    badge_emoji TEXT,
+    points INTEGER DEFAULT 0,
+    rarity TEXT,
+    date_earned TEXT NOT NULL,
+    FOREIGN KEY (player_name) REFERENCES players (name),
+    UNIQUE(player_name, badge_id)
+  );
 
-        .theme-phoenix::before {
-            content: '';
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            right: -50%;
-            bottom: -50%;
-            background: radial-gradient(circle, rgba(252, 211, 77, 0.1) 2px, transparent 2px);
-            background-size: 50px 50px;
-            animation: rise 20s linear infinite;
-            pointer-events: none;
-            z-index: 1;
-        }
+  CREATE TABLE IF NOT EXISTS franchise_badges (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    franchise TEXT NOT NULL,
+    badge_id TEXT NOT NULL,
+    badge_name TEXT NOT NULL,
+    badge_emoji TEXT,
+    points INTEGER DEFAULT 0,
+    rarity TEXT,
+    date_earned TEXT NOT NULL,
+    UNIQUE(franchise, badge_id)
+  );
 
-        @keyframes rise {
-            0% { transform: translateY(100%) rotate(0deg); }
-            100% { transform: translateY(-100%) rotate(360deg); }
-        }
+  CREATE TABLE IF NOT EXISTS player_stats (
+    player_name TEXT PRIMARY KEY,
+    current_streak INTEGER DEFAULT 0,
+    max_streak INTEGER DEFAULT 0,
+    consecutive_days TEXT DEFAULT '[]',
+    felicitations_count INTEGER DEFAULT 0,
+    hardworker_count INTEGER DEFAULT 0,
+    hardworker_dates TEXT DEFAULT '[]',
+    last_action_date TEXT,
+    lowest_score INTEGER DEFAULT 0,
+    weekly_actions INTEGER DEFAULT 0,
+    monthly_actions INTEGER DEFAULT 0,
+    FOREIGN KEY (player_name) REFERENCES players (name)
+  );
 
-        /* === THÈME WEREWOLVES === */
-        .theme-werewolves {
-            --primary-color: #16A34A;
-            --secondary-color: #15803D;
-            --accent-color: #BBF7D0;
-            --bg-gradient-1: #0A1F0F;
-            --bg-gradient-2: #14532D;
-            --text-primary: #FFFFFF;
-            --text-secondary: #86EFAC;
-            --glow-color: rgba(22, 163, 74, 0.6);
-        }
+  CREATE TABLE IF NOT EXISTS franchise_stats (
+    franchise TEXT PRIMARY KEY,
+    weekly_points INTEGER DEFAULT 0,
+    monthly_points INTEGER DEFAULT 0,
+    last_negative_date TEXT,
+    consecutive_positive_weeks INTEGER DEFAULT 0,
+    best_rank_duration INTEGER DEFAULT 0,
+    last_rank_check TEXT
+  );
+`);
 
-        .theme-werewolves body {
-            background: 
-                linear-gradient(135deg, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 50%, #052E16 100%);
-            background-attachment: fixed;
-            position: relative;
-        }
+db.exec(`
+  -- Table pour les records permanents du Hall of Fame
+  CREATE TABLE IF NOT EXISTS hall_of_fame (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    record_type TEXT NOT NULL, -- 'first_50', 'first_100', 'first_150', 'highest_score'
+    player_name TEXT NOT NULL,
+    franchise TEXT NOT NULL,
+    score INTEGER NOT NULL,
+    date_achieved TEXT NOT NULL,
+    weeks_held INTEGER DEFAULT 1,
+    is_current INTEGER DEFAULT 1, -- 1 si record actuel, 0 si dépassé
+    UNIQUE(record_type, player_name, date_achieved)
+  );
 
-        .theme-werewolves::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: 
-                radial-gradient(circle at 30% 30%, rgba(187, 247, 208, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 70% 70%, rgba(22, 163, 74, 0.05) 0%, transparent 50%);
-            animation: moonGlow 6s ease-in-out infinite;
-            pointer-events: none;
-            z-index: 1;
-        }
+  -- Table pour l'historique des MVP
+  CREATE TABLE IF NOT EXISTS mvp_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    period_type TEXT NOT NULL, -- 'week', 'month', 'trimester'
+    period_start TEXT NOT NULL,
+    period_end TEXT NOT NULL,
+    mvp_type TEXT NOT NULL, -- 'academic', 'sport', 'overall', 'progression'
+    player_name TEXT NOT NULL,
+    franchise TEXT NOT NULL,
+    points_earned INTEGER NOT NULL,
+    total_score INTEGER NOT NULL,
+    date_awarded TEXT NOT NULL
+  );
 
-        @keyframes moonGlow {
-            0%, 100% { opacity: 0.3; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.1); }
-        }
+  -- Table pour les statistiques par période et catégorie
+  CREATE TABLE IF NOT EXISTS period_stats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_name TEXT NOT NULL,
+    franchise TEXT NOT NULL,
+    period_type TEXT NOT NULL, -- 'week', 'month', 'trimester'
+    period_start TEXT NOT NULL,
+    period_end TEXT NOT NULL,
+    sport_points INTEGER DEFAULT 0,
+    academic_points INTEGER DEFAULT 0,
+    total_points INTEGER DEFAULT 0,
+    actions_count INTEGER DEFAULT 0,
+    date_updated TEXT NOT NULL,
+    FOREIGN KEY (player_name) REFERENCES players (name),
+    UNIQUE(player_name, period_type, period_start)
+  );
 
-        /* === STYLES COMMUNS ADAPTÉS AUX THÈMES === */
-        
-        /* Cartes avec effet glassmorphism adapté au thème */
-        .theme-card {
-            background: linear-gradient(135deg, 
-                rgba(var(--card-rgb, 255, 255, 255), 0.1),
-                rgba(var(--card-rgb, 255, 255, 255), 0.05)
-            );
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(var(--card-rgb, 255, 255, 255), 0.2);
-            box-shadow: 
-                0 8px 32px 0 rgba(0, 0, 0, 0.37),
-                inset 0 0 12px var(--glow-color);
-            transition: var(--transition-theme);
-            position: relative;
-            z-index: 10;
-        }
+  -- Table pour suivre les positions des franchises dans le temps
+  CREATE TABLE IF NOT EXISTS franchise_rankings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    franchise TEXT NOT NULL,
+    date_recorded TEXT NOT NULL,
+    position INTEGER NOT NULL, -- 1, 2, 3, 4
+    total_points INTEGER NOT NULL,
+    sport_points INTEGER DEFAULT 0,
+    academic_points INTEGER DEFAULT 0,
+    UNIQUE(franchise, date_recorded)
+  );
+`);
 
-        .theme-card:hover {
-            transform: translateY(-5px) scale(1.02);
-            box-shadow: 
-                0 12px 40px 0 var(--glow-color),
-                inset 0 0 20px var(--glow-color);
-        }
+// Index pour optimiser les requêtes
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_history_category ON history(category);
+  CREATE INDEX IF NOT EXISTS idx_history_date ON history(DATE(timestamp));
+  CREATE INDEX IF NOT EXISTS idx_period_stats_period ON period_stats(period_type, period_start);
+`);
 
-        /* Boutons thématiques */
-        .theme-button {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: var(--transition-theme);
-            box-shadow: 0 4px 15px var(--glow-color);
-            position: relative;
-            overflow: hidden;
-            z-index: 10;
-        }
+// FONCTIONS UTILITAIRES
 
-        .theme-button::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-
-        .theme-button:hover::before {
-            width: 300px;
-            height: 300px;
-        }
-
-        /* Textes avec glow thématique */
-        .theme-text-glow {
-            color: var(--text-primary);
-            text-shadow: 
-                0 0 10px var(--glow-color),
-                0 0 20px var(--glow-color),
-                0 0 30px var(--primary-color);
-        }
-
-        /* === AVATARS ANIMÉS DES FRANCHISES === */
-
-        /* Minotaurs - Taureau qui charge */
-        .minotaur-avatar {
-            display: inline-block;
-            font-size: 3rem;
-            animation: charge 2s ease-in-out infinite;
-            filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.5));
-        }
-        
-        .theme-minotaurs .minotaur-avatar {
-            filter: drop-shadow(0 0 20px var(--primary-color)) drop-shadow(0 0 40px var(--secondary-color));
-        }
-        
-        @keyframes charge {
-            0%, 100% { transform: translateX(0) rotate(0deg); }
-            50% { transform: translateX(-3px) rotate(-2deg); }
-        }
-
-        /* Krakens - Tentacules qui ondulent */
-        .kraken-avatar {
-            display: inline-block;
-            font-size: 3rem;
-            animation: tentacles 3s ease-in-out infinite;
-            filter: drop-shadow(0 0 10px rgba(0, 100, 255, 0.5));
-        }
-        
-        .theme-krakens .kraken-avatar {
-            filter: drop-shadow(0 0 20px var(--primary-color)) drop-shadow(0 0 40px var(--accent-color));
-        }
-
-        @keyframes tentacles {
-            0%, 100% { transform: rotate(0deg) scale(1); }
-            33% { transform: rotate(2deg) scale(1.05); }
-            66% { transform: rotate(-2deg) scale(0.95); }
-        }
-
-        /* Phoenix - Flammes qui dansent */
-        .phoenix-avatar {
-            display: inline-block;
-            font-size: 3rem;
-            animation: flames 2s ease-in-out infinite;
-            filter: drop-shadow(0 0 15px rgba(255, 165, 0, 0.7));
-        }
-        
-        .theme-phoenix .phoenix-avatar {
-            filter: drop-shadow(0 0 25px var(--primary-color)) drop-shadow(0 0 50px var(--accent-color));
-        }
-
-        @keyframes flames {
-            0%, 100% { transform: translateY(0px) scale(1); }
-            25% { transform: translateY(-2px) scale(1.1); }
-            75% { transform: translateY(1px) scale(0.9); }
-        }
-
-        /* Werewolves - Yeux qui brillent */
-        .werewolf-avatar {
-            display: inline-block;
-            font-size: 3rem;
-            animation: glow 4s ease-in-out infinite;
-            filter: drop-shadow(0 0 10px rgba(0, 255, 0, 0.4));
-        }
-        
-        .theme-werewolves .werewolf-avatar {
-            filter: drop-shadow(0 0 20px var(--primary-color)) drop-shadow(0 0 40px var(--accent-color));
-        }
-
-        @keyframes glow {
-            0%, 100% { filter: drop-shadow(0 0 10px rgba(0, 255, 0, 0.4)); }
-            50% { filter: drop-shadow(0 0 20px rgba(0, 255, 0, 0.8)) brightness(1.2); }
-        }
-
-        /* Effet de hover pour tous les avatars */
-        .franchise-avatar:hover {
-            transform: scale(1.2);
-            transition: transform 0.3s ease;
-            cursor: pointer;
-        }
-
-        /* Particules de fond optionnelles */
-        .franchise-card {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .franchise-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
-            background-size: 20px 20px;
-            animation: sparkle 10s linear infinite;
-            pointer-events: none;
-        }
-
-        @keyframes sparkle {
-            0% { transform: translate(0, 0) rotate(0deg); }
-            100% { transform: translate(-20px, -20px) rotate(360deg); }
-        }
-
-        /* Effet de transition entre thèmes */
-        .theme-transition {
-            animation: themeChange 0.5s ease-in-out;
-        }
-
-        @keyframes themeChange {
-            0% { opacity: 0.7; filter: blur(5px); }
-            100% { opacity: 1; filter: blur(0); }
-        }
-    </style>
-</head>
-<body>
-    <div id="root"></div>
-    
-    <script type="text/babel">
-        const { useState, useEffect } = React;
-
-        // Définition des badges individuels
-        // Remplacez les définitions de badges dans le frontend par celles-ci :
-const individualBadges = {
-  // === SÉRIES (4 badges) ===
-  hot_streak: {
-    id: 'hot_streak',
-    name: 'Hot Streak',
-    emoji: '🔥',
-    description: '5 actions positives d\'affilée',
-    points: 5,
-    rarity: 'bronze'
-  },
-  tsunami: {
-    id: 'tsunami',
-    name: 'Tsunami',
-    emoji: '🌊',
-    description: '10 actions positives d\'affilée',
-    points: 10,
-    rarity: 'argent'
-  },
-  unstoppable: {
-    id: 'unstoppable',
-    name: 'Unstoppable',
-    emoji: '🚀',
-    description: '15 actions positives d\'affilée',
-    points: 20,
-    rarity: 'or'
-  },
-  on_fire: {
-    id: 'on_fire',
-    name: 'On Fire',
-    emoji: '💪',
-    description: '2 Hardworker en 2 semaines',
-    points: 10,
-    rarity: 'argent'
-  },
+// Fonction pour déterminer la catégorie d'une action
+const getActionCategory = (action) => {
+  const actionLower = action.toLowerCase();
   
-  // === PERSÉVÉRANCE (2 badges) ===
-  phoenix: {
-    id: 'phoenix',
-    name: 'Phoenix',
-    emoji: '🦅',
-    description: 'Remonter de -50 à +50 points',
-    points: 20,
-    rarity: 'or'
-  },
-  marathon_runner: {
-    id: 'marathon_runner',
-    name: 'Marathon Runner',
-    emoji: '🏃',
-    description: 'Actions positives 5 jours consécutifs',
-    points: 5,
-    rarity: 'bronze'
-  },
-  
-  // === SOCIAUX/ÉQUIPE (3 badges) ===
-  team_captain: {
-    id: 'team_captain',
-    name: 'Team Captain',
-    emoji: '👑',
-    description: 'Meilleur de sa franchise pendant 1 semaine',
-    points: 10,
-    rarity: 'argent'
-  },
-  veteran: {
-    id: 'veteran',
-    name: 'Veteran',
-    emoji: '🎖️',
-    description: 'Top 3 de sa franchise pendant 2 mois',
-    points: 20,
-    rarity: 'or'
-  },
-  team_player: {
-    id: 'team_player',
-    name: 'Team Player',
-    emoji: '🤝',
-    description: 'Sa franchise gagne le + de points en 1 semaine',
-    points: 5,
-    rarity: 'bronze'
-  },
-  
-  // === SPÉCIAUX & RARES (3 badges) ===
-  showtime: {
-    id: 'showtime',
-    name: 'Showtime',
-    emoji: '🎪',
-    description: 'Recevoir Félicitations 3 fois',
-    points: 35,
-    rarity: 'diamant'
-  },
-  halloween_spirit: {
-    id: 'halloween_spirit',
-    name: 'Halloween Spirit',
-    emoji: '🎃',
-    description: '3 Actions positives semaine Halloween',
-    points: 50,
-    rarity: 'legendaire'
-  },
-  christmas_magic: {
-    id: 'christmas_magic',
-    name: 'Christmas Magic',
-    emoji: '🎄',
-    description: 'Actions positives pendant les fêtes',
-    points: 50,
-    rarity: 'legendaire'
+  // Sport - Vérifier d'abord les mots-clés spécifiques
+  if (action.includes('🏀') || 
+      actionLower.includes('hardworker') ||
+      actionLower.includes('entrainement') ||
+      actionLower.includes('basket') ||
+      actionLower.includes('victoire') ||
+      actionLower.includes('défaite') ||
+      actionLower.includes('weekend') ||
+      actionLower.includes('tournoi') ||
+      actionLower.includes('sélection') ||
+      actionLower.includes('arbitrage') ||
+      actionLower.includes('table de marque') ||
+      actionLower.includes('bonus sport') ||
+      actionLower.includes('pénalité sport')) {
+    return 'sport';
   }
-};
-       const collectiveBadges = {
-
-  // === PERFORMANCES (4 badges) ===
-  rocketLaunch: {
-    id: 'rocket_launch',
-    name: 'Rocket Launch',
-    emoji: '🚀',
-    description: '+80 points collectifs en 1 semaine',
-    points: 20,
-    rarity: 'bronze'
-  },
-  tidalWave: {
-    id: 'tidal_wave',
-    name: 'Tidal Wave',
-    emoji: '🌊',
-    description: '+200 points collectifs en 1 mois',
-    points: 100,
-    rarity: 'or'
-  },
-  lightningStrike: {
-    id: 'lightning_strike',
-    name: 'Lightning Strike',
-    emoji: '⚡',
-    description: 'Tous les membres gagnent points même jour',
-    points: 20,
-    rarity: 'bronze'
-  },
-  houseOnFire: {
-    id: 'house_on_fire',
-    name: 'House on Fire',
-    emoji: '🔥',
-    description: '80% membres actions positives en 1 semaine',
-    points: 50,
-    rarity: 'argent'
-  },
   
-  // === SOLIDARITÉ (4 badges) ===
-  unitedWeStand: {
-    id: 'united_we_stand',
-    name: 'United We Stand',
-    emoji: '🤝',
-    description: 'Aucun membre négatif pendant 2 semaines',
-    points: 50,
-    rarity: 'argent'
-  },
-  perfectBalance: {
-    id: 'perfect_balance',
-    name: 'Perfect Balance',
-    emoji: '⚖️',
-    description: 'Tous membres entre 25-75 points',
-    points: 100,
-    rarity: 'or'
-  },
-  harmony: {
-    id: 'harmony',
-    name: 'Harmony',
-    emoji: '🌈',
-    description: 'Écart <50 points entre 1er et dernier',
-    points: 50,
-    rarity: 'argent'
+  // Académique
+  if (action.includes('📚') || 
+      actionLower.includes('scolaire') ||
+      actionLower.includes('classe') ||
+      actionLower.includes('observation') ||
+      actionLower.includes('félicitations') ||
+      actionLower.includes('compliments') ||
+      actionLower.includes('encouragements') ||
+      actionLower.includes('exclusion') ||
+      actionLower.includes('travail') ||
+      actionLower.includes('retard') ||
+      actionLower.includes('absence') ||
+      actionLower.includes('délégué') ||
+      actionLower.includes('sentinelle') ||
+      actionLower.includes('devoirs') ||
+      actionLower.includes('bonus scolaire') ||
+      actionLower.includes('pénalité scolaire')) {
+    return 'academic';
+  }
+  
+  console.log(`⚠️ Catégorie inconnue pour: "${action}"`);
+  return 'unknown';
+};
+
+// Fonction pour obtenir les dates de début/fin de semaine (lundi à dimanche)
+const getWeekBounds = (date = new Date()) => {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Lundi = début
+  
+  const monday = new Date(d.setDate(diff));
+  monday.setHours(0, 0, 0, 0);
+  
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  
+  return {
+    start: monday.toISOString(),
+    end: sunday.toISOString()
+  };
+};
+
+// Fonction pour obtenir les dates de début/fin de mois
+const getMonthBounds = (date = new Date()) => {
+  const d = new Date(date);
+  const start = new Date(d.getFullYear(), d.getMonth(), 1);
+  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+  
+  return {
+    start: start.toISOString(),
+    end: end.toISOString()
+  };
+};
+
+// Fonction pour obtenir les dates de trimestre scolaire
+const getTrimesterBounds = (date = new Date()) => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = d.getMonth() + 1;
+  
+  if (month >= 9 && month <= 12) {
+    // Trimestre 1: septembre à décembre
+    return {
+      start: new Date(year, 8, 1).toISOString(), // 1er septembre
+      end: new Date(year, 11, 31, 23, 59, 59, 999).toISOString() // 31 décembre
+    };
+  } else if (month >= 1 && month <= 3) {
+    // Trimestre 2: janvier à mars
+    return {
+      start: new Date(year, 0, 1).toISOString(), // 1er janvier
+      end: new Date(year, 2, 31, 23, 59, 59, 999).toISOString() // 31 mars
+    };
+  } else {
+    // Trimestre 3: avril à juin
+    return {
+      start: new Date(year, 3, 1).toISOString(), // 1er avril
+      end: new Date(year, 5, 30, 23, 59, 59, 999).toISOString() // 30 juin
+    };
   }
 };
 
-        // Fonction pour obtenir la couleur selon la rareté
-        const getRarityColor = (rarity) => {
-          switch(rarity) {
-            case 'common': return 'border-gray-400';
-            case 'rare': return 'border-blue-400';
-            case 'epic': return 'border-purple-400';
-            case 'legendary': return 'border-yellow-400';
-            default: return 'border-gray-400';
-          }
+// Fonction pour mettre à jour les statistiques par période
+const updatePeriodStats = (playerName, points, action) => {
+  const category = getActionCategory(action);
+  const now = new Date();
+  
+  // Mettre à jour stats hebdomadaires
+  const weekBounds = getWeekBounds(now);
+  updatePlayerPeriodStat(playerName, 'week', weekBounds.start, weekBounds.end, points, category);
+  
+  // Mettre à jour stats mensuelles
+  const monthBounds = getMonthBounds(now);
+  updatePlayerPeriodStat(playerName, 'month', monthBounds.start, monthBounds.end, points, category);
+  
+  // Mettre à jour stats trimestrielles
+  const trimesterBounds = getTrimesterBounds(now);
+  updatePlayerPeriodStat(playerName, 'trimester', trimesterBounds.start, trimesterBounds.end, points, category);
+};
+
+const updatePlayerPeriodStat = (playerName, periodType, periodStart, periodEnd, points, category) => {
+  const player = db.prepare('SELECT franchise FROM players WHERE name = ?').get(playerName);
+  if (!player) {
+    console.log(`⚠️ Joueur ${playerName} non trouvé`);
+    return;
+  }
+  
+  console.log(`📊 Mise à jour stats: ${playerName}, période: ${periodType}, catégorie: ${category}, points: ${points}`);
+  
+  // Vérifier si l'enregistrement existe
+  const existing = db.prepare(`
+    SELECT * FROM period_stats 
+    WHERE player_name = ? AND period_type = ? AND period_start = ?
+  `).get(playerName, periodType, periodStart);
+  
+  const now = new Date().toISOString();
+  
+  if (existing) {
+    // Mise à jour
+    const updateStmt = db.prepare(`
+      UPDATE period_stats SET
+        sport_points = sport_points + CASE WHEN ? = 'sport' THEN ? ELSE 0 END,
+        academic_points = academic_points + CASE WHEN ? = 'academic' THEN ? ELSE 0 END,
+        total_points = total_points + ?,
+        actions_count = actions_count + 1,
+        date_updated = ?
+      WHERE player_name = ? AND period_type = ? AND period_start = ?
+    `);
+    
+    updateStmt.run(
+      category, points,
+      category, points,
+      points,
+      now,
+      playerName, periodType, periodStart
+    );
+    console.log(`✅ Stats mises à jour pour ${playerName}`);
+  } else {
+    // Insertion
+    const insertStmt = db.prepare(`
+      INSERT INTO period_stats (
+        player_name, franchise, period_type, period_start, period_end,
+        sport_points, academic_points, total_points, actions_count, date_updated
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    insertStmt.run(
+      playerName,
+      player.franchise,
+      periodType,
+      periodStart,
+      periodEnd,
+      category === 'sport' ? points : 0,
+      category === 'academic' ? points : 0,
+      points,
+      1,
+      now
+    );
+    console.log(`✅ Nouvelles stats créées pour ${playerName}`);
+  }
+};
+
+// Définition des badges (même structure que dans le front)
+const BADGES = {
+  individual: {
+    // === SÉRIES (4 badges) ===
+    hot_streak: {
+      id: 'hot_streak',
+      name: 'Hot Streak',
+      emoji: '🔥',
+      description: '5 actions positives d\'affilée',
+      points: 5,
+      rarity: 'bronze',
+      condition: (stats) => stats.current_streak >= 5
+    },
+    tsunami: {
+      id: 'tsunami',
+      name: 'Tsunami',
+      emoji: '🌊',
+      description: '10 actions positives d\'affilée',
+      points: 10,
+      rarity: 'argent',
+      condition: (stats) => stats.current_streak >= 10
+    },
+    unstoppable: {
+      id: 'unstoppable',
+      name: 'Unstoppable',
+      emoji: '🚀',
+      description: '15 actions positives d\'affilée',
+      points: 20,
+      rarity: 'or',
+      condition: (stats) => stats.current_streak >= 15
+    },
+    on_fire: {
+      id: 'on_fire',
+      name: 'On Fire',
+      emoji: '💪',
+      description: '2 Hardworker en 2 semaines',
+      points: 10,
+      rarity: 'argent',
+      condition: (stats) => {
+        // Vérifier qu'il y a au moins 2 Hardworker comptés
+        if (stats.hardworker_count < 2) return false;
+        
+        const dates = JSON.parse(stats.hardworker_dates || '[]');
+        if (dates.length < 2) return false;
+        
+        const twoWeeksAgo = new Date();
+        twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+        const recentCount = dates.filter(d => new Date(d) > twoWeeksAgo).length;
+        return recentCount >= 2;
+      }
+    },
+    
+    // === PERSÉVÉRANCE (2 badges) ===
+    phoenix: {
+      id: 'phoenix',
+      name: 'Phoenix',
+      emoji: '🦅',
+      description: 'Remonter de -50 à +50 points',
+      points: 20,
+      rarity: 'or',
+      condition: (stats, player) => stats.lowest_score <= -50 && player.score >= 50
+    },
+    marathon_runner: {
+      id: 'marathon_runner',
+      name: 'Marathon Runner',
+      emoji: '🏃',
+      description: 'Actions positives 5 jours consécutifs',
+      points: 5,
+      rarity: 'bronze',
+      condition: (stats) => {
+        const days = JSON.parse(stats.consecutive_days || '[]');
+        if (days.length < 5) return false;
+        
+        // Vérifier que les 5 derniers jours sont consécutifs
+        const lastDays = days.slice(-5);
+        const dates = lastDays.map(d => new Date(d));
+        
+        for (let i = 1; i < dates.length; i++) {
+          const diff = (dates[i] - dates[i-1]) / (1000 * 60 * 60 * 24);
+          if (diff > 1.5) return false; // Plus d'un jour d'écart
+        }
+        return true;
+      }
+    },
+    
+    // === SOCIAUX/ÉQUIPE (3 badges) ===
+    team_captain: {
+      id: 'team_captain',
+      name: 'Team Captain',
+      emoji: '👑',
+      description: 'Meilleur de sa franchise pendant 1 semaine',
+      points: 10,
+      rarity: 'argent',
+      condition: null // Vérifié séparément avec une fonction spéciale
+    },
+    veteran: {
+      id: 'veteran',
+      name: 'Veteran',
+      emoji: '🎖️',
+      description: 'Top 3 de sa franchise pendant 2 mois',
+      points: 20,
+      rarity: 'or',
+      condition: null // Vérifié séparément avec une fonction spéciale
+    },
+    team_player: {
+      id: 'team_player',
+      name: 'Team Player',
+      emoji: '🤝',
+      description: 'Sa franchise gagne le + de points en 1 semaine',
+      points: 5,
+      rarity: 'bronze',
+      condition: null // Vérifié séparément avec une fonction spéciale
+    },
+    
+    // === SPÉCIAUX & RARES (3 badges) ===
+    showtime: {
+      id: 'showtime',
+      name: 'Showtime',
+      emoji: '🎪',
+      description: 'Recevoir Félicitations 3 fois',
+      points: 35,
+      rarity: 'diamant',
+      condition: (stats) => stats.felicitations_count >= 3
+    },
+    halloween_spirit: {
+      id: 'halloween_spirit',
+      name: 'Halloween Spirit',
+      emoji: '🎃',
+      description: '3 Actions positives semaine Halloween',
+      points: 50,
+      rarity: 'legendaire',
+      condition: null // Vérifié dans checkIndividualBadges avec la date
+    },
+    christmas_magic: {
+      id: 'christmas_magic',
+      name: 'Christmas Magic',
+      emoji: '🎄',
+      description: 'Actions positives pendant les fêtes',
+      points: 50,
+      rarity: 'legendaire',
+      condition: null // Vérifié dans checkIndividualBadges avec la date
+    }
+  },
+  
+  collective: {
+    // === PERFORMANCES (4 badges) ===
+    rocket_launch: {
+      id: 'rocket_launch',
+      name: 'Rocket Launch',
+      emoji: '🚀',
+      description: '+80 points collectifs en 1 semaine',
+      points: 20,
+      rarity: 'bronze'
+    },
+    tidal_wave: {
+      id: 'tidal_wave',
+      name: 'Tidal Wave',
+      emoji: '🌊',
+      description: '+200 points collectifs en 1 mois',
+      points: 100,
+      rarity: 'or'
+    },
+    lightning_strike: {
+      id: 'lightning_strike',
+      name: 'Lightning Strike',
+      emoji: '⚡',
+      description: 'Tous les membres gagnent points même jour',
+      points: 20,
+      rarity: 'bronze'
+    },
+    house_on_fire: {
+      id: 'house_on_fire',
+      name: 'House on Fire',
+      emoji: '🔥',
+      description: '80% membres actions positives en 1 semaine',
+      points: 50,
+      rarity: 'argent'
+    },
+    
+    // === SOLIDARITÉ (3 badges) ===
+    united_we_stand: {
+      id: 'united_we_stand',
+      name: 'United We Stand',
+      emoji: '🤝',
+      description: 'Aucun membre négatif pendant 2 semaines',
+      points: 50,
+      rarity: 'argent'
+    },
+    perfect_balance: {
+      id: 'perfect_balance',
+      name: 'Perfect Balance',
+      emoji: '⚖️',
+      description: 'Tous membres entre 25-75 points',
+      points: 100,
+      rarity: 'or'
+    },
+    harmony: {
+      id: 'harmony',
+      name: 'Harmony',
+      emoji: '🌈',
+      description: 'Écart <50 points entre 1er et dernier',
+      points: 50,
+      rarity: 'argent'
+    }
+  }
+};
+
+// Données initiales des franchises
+const initialFranchises = {
+  Minotaurs: ['Leny', 'Lyam', 'Augustin', 'Lino', 'Lina D', 'Djilane', 'Talia'],
+  Krakens: ['Swan', 'Nolann', 'Enery', 'Marie', 'Seyma Nur', 'Willow'],
+  Phoenix: ['Mahé', 'Narcisse', 'Daniella', 'Matis.B', 'Jamila'],
+  Werewolves: ['Assia', 'Ethaniel', 'Russy', 'Youssef', 'Lisa L', 'Noa', 'Lenny K']
+};
+
+// Initialiser les joueurs et stats
+const initDatabase = () => {
+  const existingPlayers = db.prepare('SELECT COUNT(*) as count FROM players').get();
+  
+  if (existingPlayers.count === 0) {
+    const insertPlayer = db.prepare('INSERT INTO players (name, franchise, score) VALUES (?, ?, ?)');
+    const insertStats = db.prepare('INSERT INTO player_stats (player_name) VALUES (?)');
+    
+    Object.entries(initialFranchises).forEach(([franchise, players]) => {
+      players.forEach(player => {
+        insertPlayer.run(player, franchise, 0);
+        insertStats.run(player);
+      });
+    });
+  }
+  
+  // Initialiser les stats de franchise
+  const franchises = ['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'];
+  const insertFranchiseStats = db.prepare('INSERT OR IGNORE INTO franchise_stats (franchise) VALUES (?)');
+  franchises.forEach(f => insertFranchiseStats.run(f));
+};
+
+initDatabase();
+
+// === FONCTIONS DE VÉRIFICATION DES BADGES ===
+
+// Attribuer un badge individuel
+const awardPlayerBadge = (playerName, badge) => {
+  const existing = db.prepare(`
+    SELECT * FROM player_badges 
+    WHERE player_name = ? AND badge_id = ?
+  `).get(playerName, badge.id);
+  
+  if (!existing) {
+    const insertBadge = db.prepare(`
+      INSERT INTO player_badges (player_name, badge_id, badge_name, badge_emoji, points, rarity, date_earned)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    insertBadge.run(
+      playerName, 
+      badge.id, 
+      badge.name, 
+      badge.emoji,
+      badge.points, 
+      badge.rarity,
+      new Date().toISOString()
+    );
+    
+    // Ajouter les points bonus
+    if (badge.points > 0) {
+      db.prepare('UPDATE players SET score = score + ? WHERE name = ?').run(badge.points, playerName);
+      
+      // Ajouter à l'historique
+      const insertHistory = db.prepare(`
+        INSERT INTO history (player_name, action, points, timestamp, new_total, teacher_name, category)
+        VALUES (?, ?, ?, ?, (SELECT score FROM players WHERE name = ?), ?, ?)
+      `);
+      const timestamp = new Date().toLocaleString('fr-FR');
+      insertHistory.run(playerName, `Badge débloqué: ${badge.name}`, badge.points, timestamp, playerName, 'Système', 'unknown');
+    }
+    
+    console.log(`🏅 Badge attribué: ${badge.name} à ${playerName}`);
+    return true;
+  }
+  return false;
+};
+
+// Attribuer un badge collectif
+const awardFranchiseBadge = (franchise, badge) => {
+  const existing = db.prepare(`
+    SELECT * FROM franchise_badges 
+    WHERE franchise = ? AND badge_id = ?
+  `).get(franchise, badge.id);
+  
+  if (!existing) {
+    const insertBadge = db.prepare(`
+      INSERT INTO franchise_badges (franchise, badge_id, badge_name, badge_emoji, points, rarity, date_earned)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    insertBadge.run(
+      franchise,
+      badge.id,
+      badge.name,
+      badge.emoji,
+      badge.points,
+      badge.rarity,
+      new Date().toISOString()
+    );
+    
+    console.log(`🏆 Badge collectif attribué: ${badge.name} à ${franchise}`);
+    return true;
+  }
+  return false;
+};
+
+// Vérifier les badges individuels
+const checkIndividualBadges = (playerName) => {
+  const player = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
+  const stats = db.prepare('SELECT * FROM player_stats WHERE player_name = ?').get(playerName);
+  
+  if (!player || !stats) return;
+  
+  // Vérifier chaque badge
+  Object.values(BADGES.individual).forEach(badge => {
+    if (badge.condition && badge.condition(stats, player)) {
+      awardPlayerBadge(playerName, badge);
+    }
+  });
+  
+  // Vérifications spéciales pour badges temporels
+  const now = new Date();
+  const month = now.getMonth();
+  const day = now.getDate();
+  
+  // Halloween (dernière semaine d'octobre)
+  if (month === 9 && day >= 25) {
+    const halloweenActions = db.prepare(`
+      SELECT COUNT(*) as count FROM history 
+      WHERE player_name = ? 
+      AND points > 0 
+      AND DATE(timestamp) >= DATE('now', '-7 days')
+    `).get(playerName);
+    
+    if (halloweenActions.count > 0) {
+      awardPlayerBadge(playerName, BADGES.individual.halloween_spirit);
+    }
+  }
+  
+  // Noël (20-31 décembre)
+  if (month === 11 && day >= 20) {
+    const christmasActions = db.prepare(`
+      SELECT COUNT(*) as count FROM history 
+      WHERE player_name = ? 
+      AND points > 0 
+      AND DATE(timestamp) >= DATE('now', '-10 days')
+    `).get(playerName);
+    
+    if (christmasActions.count > 0) {
+      awardPlayerBadge(playerName, BADGES.individual.christmas_magic);
+    }
+  }
+  
+  // Note: back_to_school badge removed - not defined in BADGES object
+};
+
+// Fonction pour recalculer tous les badges d'un joueur lors d'une annulation
+const recalculatePlayerBadges = (playerName) => {
+  const player = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
+  const stats = db.prepare('SELECT * FROM player_stats WHERE player_name = ?').get(playerName);
+  
+  if (!player || !stats) return;
+  
+  // Supprimer tous les badges existants
+  db.prepare('DELETE FROM player_badges WHERE player_name = ?').run(playerName);
+  
+  // Recalculer selon les conditions actuelles
+  Object.values(BADGES.individual).forEach(badge => {
+    if (badge.condition && badge.condition(stats, player)) {
+      // Réattribuer le badge SANS ajouter les points
+      const insertBadge = db.prepare(`
+        INSERT INTO player_badges (player_name, badge_id, badge_name, badge_emoji, points, rarity, date_earned)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+      
+      insertBadge.run(
+        playerName, 
+        badge.id, 
+        badge.name, 
+        badge.emoji,
+        0, // 0 points car on ne veut pas re-ajouter les points
+        badge.rarity,
+        new Date().toISOString()
+      );
+    }
+  });
+  
+  console.log(`♻️ Badges recalculés pour ${playerName}`);
+};
+
+// Vérifier les badges collectifs
+const checkCollectiveBadges = (franchise) => {
+  const players = db.prepare('SELECT * FROM players WHERE franchise = ?').all(franchise);
+  const franchiseStats = db.prepare('SELECT * FROM franchise_stats WHERE franchise = ?').get(franchise);
+  
+  if (!franchiseStats) return;
+  
+  // Rocket Launch (+80 points en 1 semaine)
+  if (franchiseStats.weekly_points >= 80) {
+    awardFranchiseBadge(franchise, BADGES.collective.rocket_launch);
+  }
+  
+  // Tidal Wave (+200 points en 1 mois)
+  if (franchiseStats.monthly_points >= 200) {
+    awardFranchiseBadge(franchise, BADGES.collective.tidal_wave);
+  }
+  
+  // Lightning Strike (tous gagnent des points le même jour)
+  const todayActions = db.prepare(`
+    SELECT COUNT(DISTINCT player_name) as count 
+    FROM history 
+    WHERE player_name IN (SELECT name FROM players WHERE franchise = ?)
+    AND DATE(timestamp) = DATE('now')
+    AND points > 0
+  `).get(franchise);
+  
+  if (todayActions.count === players.length && players.length > 0) {
+    awardFranchiseBadge(franchise, BADGES.collective.lightning_strike);
+  }
+  
+  // United We Stand (aucun négatif pendant 2 semaines)
+  const hasNegative = players.some(p => p.score < 0);
+  if (!hasNegative) {
+    const lastNegative = new Date(franchiseStats.last_negative_date || '2000-01-01');
+    const twoWeeksAgo = new Date();
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+    
+    if (lastNegative < twoWeeksAgo) {
+      awardFranchiseBadge(franchise, BADGES.collective.united_we_stand);
+    }
+  }
+  
+  // Perfect Balance (tous entre 25-75 points)
+  const allInRange = players.every(p => p.score >= 25 && p.score <= 75);
+  if (allInRange && players.length > 0) {
+    awardFranchiseBadge(franchise, BADGES.collective.perfect_balance);
+  }
+};
+
+// Vérifier le classement des franchises
+const checkFranchiseRankings = () => {
+  const franchiseScores = db.prepare(`
+    SELECT franchise, SUM(score) as total 
+    FROM players 
+    GROUP BY franchise 
+    ORDER BY total DESC
+  `).all();
+  
+  if (franchiseScores.length > 0) {
+    const topFranchise = franchiseScores[0].franchise;
+    const stats = db.prepare('SELECT * FROM franchise_stats WHERE franchise = ?').get(topFranchise);
+    
+    if (stats) {
+      const updateStats = db.prepare(`
+        UPDATE franchise_stats 
+        SET best_rank_duration = best_rank_duration + 1,
+            last_rank_check = ?
+        WHERE franchise = ?
+      `);
+      updateStats.run(new Date().toISOString(), topFranchise);
+      
+      // Note: franchise_royalty and dynasty badges removed - not defined in BADGES object
+    }
+  }
+};
+
+// Fonction pour mettre à jour les records du Hall of Fame
+const updateHallOfFame = (playerName, newScore) => {
+  const player = db.prepare('SELECT franchise FROM players WHERE name = ?').get(playerName);
+  if (!player) return;
+  
+  const milestones = [50, 100, 150, 200, 250];
+  
+  milestones.forEach(milestone => {
+    // Vérifier si ce joueur a atteint ce palier
+    const previousScore = db.prepare(`
+      SELECT new_total - points as previous_score 
+      FROM history 
+      WHERE player_name = ? 
+      ORDER BY id DESC 
+      LIMIT 1
+    `).get(playerName);
+    
+    const prevScore = previousScore ? previousScore.previous_score : 0;
+    
+    if (prevScore < milestone && newScore >= milestone) {
+      // Premier à atteindre ce palier ?
+      const existing = db.prepare(`
+        SELECT * FROM hall_of_fame 
+        WHERE record_type = ? AND is_current = 1
+      `).get(`first_${milestone}`);
+      
+      if (!existing) {
+        // Premier à atteindre ce palier
+        db.prepare(`
+          INSERT INTO hall_of_fame 
+          (record_type, player_name, franchise, score, date_achieved, weeks_held, is_current)
+          VALUES (?, ?, ?, ?, ?, 1, 1)
+        `).run(`first_${milestone}`, playerName, player.franchise, newScore, new Date().toISOString());
+      }
+    }
+  });
+  
+  // Mettre à jour le record absolu
+  const currentHighest = db.prepare(`
+    SELECT * FROM hall_of_fame 
+    WHERE record_type = 'highest_score' AND is_current = 1
+  `).get();
+  
+  if (!currentHighest || newScore > currentHighest.score) {
+    // Marquer l'ancien record comme dépassé
+    if (currentHighest) {
+      db.prepare(`
+        UPDATE hall_of_fame 
+        SET is_current = 0 
+        WHERE id = ?
+      `).run(currentHighest.id);
+    }
+    
+    // Nouveau record
+    db.prepare(`
+      INSERT INTO hall_of_fame 
+      (record_type, player_name, franchise, score, date_achieved, weeks_held, is_current)
+      VALUES ('highest_score', ?, ?, ?, ?, 1, 1)
+    `).run(playerName, player.franchise, newScore, new Date().toISOString());
+  }
+};
+
+// === ROUTES API ===
+
+// Vérification du mot de passe professeur
+app.post('/api/verify-teacher', (req, res) => {
+  const { password } = req.body;
+  if (password === TEACHER_PASSWORD) {
+    res.json({ success: true });
+  } else {
+    res.json({ success: false });
+  }
+});
+
+// Récupérer tous les joueurs avec leurs badges
+app.get('/api/players', (req, res) => {
+  try {
+    const players = db.prepare('SELECT * FROM players ORDER BY score DESC').all();
+    
+    // Ajouter les badges à chaque joueur
+    const playersWithBadges = players.map(player => {
+      const badges = db.prepare(`
+        SELECT badge_id, badge_name, badge_emoji, rarity 
+        FROM player_badges 
+        WHERE player_name = ?
+      `).all(player.name);
+      
+      return { ...player, badges };
+    });
+    
+    res.json(playersWithBadges);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Récupérer un joueur spécifique
+app.get('/api/player/:playerName', (req, res) => {
+  try {
+    const player = db.prepare('SELECT * FROM players WHERE name = ?').get(req.params.playerName);
+    if (player) {
+      const badges = db.prepare(`
+        SELECT * FROM player_badges 
+        WHERE player_name = ?
+      `).all(req.params.playerName);
+      
+      res.json({ ...player, badges });
+    } else {
+      res.status(404).json({ error: 'Joueur non trouvé' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Récupérer l'historique d'un joueur
+app.get('/api/history/:playerName', (req, res) => {
+  try {
+    const history = db.prepare(`
+      SELECT * FROM history 
+      WHERE player_name = ? 
+      ORDER BY id DESC 
+      LIMIT 50
+    `).all(req.params.playerName);
+    res.json(history);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Ajouter des points avec vérification automatique des badges
+app.post('/api/add-points', (req, res) => {
+  try {
+    const { playerName, points, action, teacherName } = req.body;
+    console.log(`🎯 Ajout de points: ${playerName}, ${points} pts, action: ${action}`);
+    
+    const transaction = db.transaction(() => {
+      // Récupérer l'ancien score
+      const oldPlayer = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
+      if (!oldPlayer) throw new Error('Joueur non trouvé');
+      
+      // Mettre à jour le score
+      db.prepare('UPDATE players SET score = score + ? WHERE name = ?').run(points, playerName);
+      
+      // Récupérer le nouveau score
+      const player = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
+      
+      // Déterminer la catégorie AVANT l'insertion
+      const category = getActionCategory(action);
+      console.log(`📌 Catégorie détectée: ${category} pour l'action: ${action}`);
+      
+      // Ajouter à l'historique avec la catégorie
+      const timestamp = new Date().toLocaleString('fr-FR');
+      const insertHistory = db.prepare(`
+        INSERT INTO history (player_name, action, points, timestamp, new_total, teacher_name, category) 
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+      insertHistory.run(playerName, action, points, timestamp, player.score, teacherName || 'Anonyme', category);
+      
+      // IMPORTANT: Appeler updatePeriodStats ICI
+      updatePeriodStats(playerName, points, action);
+      
+      // Mettre à jour les records du Hall of Fame
+      updateHallOfFame(playerName, player.score);
+      
+      // Mettre à jour les statistiques
+      const stats = db.prepare('SELECT * FROM player_stats WHERE player_name = ?').get(playerName);
+      
+      if (stats) {
+        let updates = {
+          current_streak: stats.current_streak,
+          max_streak: stats.max_streak,
+          felicitations_count: stats.felicitations_count,
+          hardworker_count: stats.hardworker_count,
+          hardworker_dates: JSON.parse(stats.hardworker_dates || '[]'),
+          lowest_score: stats.lowest_score,
+          weekly_actions: stats.weekly_actions,
+          monthly_actions: stats.monthly_actions
         };
-
-        // Composant BadgeDisplay corrigé
-const BadgeDisplay = ({ badges }) => {
-  if (!badges || badges.length === 0) return null;
-  
-  return (
-    <div className="flex flex-wrap gap-1 mt-2">
-      {badges.map((badge, index) => {
-        // Gérer les différents formats de badges
-        const badgeId = badge.badge_id || badge.id;
-        const badgeName = badge.badge_name || badge.name;
-        const badgeEmoji = badge.badge_emoji || badge.emoji;
-        const badgeDescription = badge.description || '';
-        const badgePoints = badge.points || 0;
         
-        return (
-          <span 
-            key={badgeId || index} 
-            className="text-xl cursor-help" 
-            title={`${badgeName} - ${badgeDescription} (+${badgePoints} pts)`}
-          >
-            {badgeEmoji || '🏅'}
-          </span>
+        // Gérer les streaks
+        if (points > 0) {
+          updates.current_streak++;
+          updates.max_streak = Math.max(updates.current_streak, updates.max_streak);
+          updates.weekly_actions++;
+          updates.monthly_actions++;
+        } else {
+          updates.current_streak = 0;
+        }
+        
+        // Tracker le score le plus bas
+        if (player.score < updates.lowest_score) {
+          updates.lowest_score = player.score;
+        }
+        
+        // Compter les actions spéciales
+        if (action.includes('Félicitations')) {
+          updates.felicitations_count++;
+        }
+        if (action.includes('Hardworker')) {
+          updates.hardworker_count++;
+          updates.hardworker_dates.push(new Date().toISOString());
+        }
+        
+        // Mettre à jour les consecutive_days
+        const today = new Date().toDateString();
+        const consecutiveDays = JSON.parse(stats.consecutive_days || '[]');
+        if (!consecutiveDays.includes(today) && points > 0) {
+          consecutiveDays.push(today);
+          // Garder seulement les 7 derniers jours
+          if (consecutiveDays.length > 7) {
+            consecutiveDays.shift();
+          }
+        }
+        
+        // Sauvegarder les stats
+        db.prepare(`
+          UPDATE player_stats 
+          SET current_streak = ?, 
+              max_streak = ?, 
+              felicitations_count = ?,
+              hardworker_count = ?,
+              hardworker_dates = ?,
+              lowest_score = ?,
+              weekly_actions = ?,
+              monthly_actions = ?,
+              consecutive_days = ?,
+              last_action_date = ?
+          WHERE player_name = ?
+        `).run(
+          updates.current_streak,
+          updates.max_streak,
+          updates.felicitations_count,
+          updates.hardworker_count,
+          JSON.stringify(updates.hardworker_dates),
+          updates.lowest_score,
+          updates.weekly_actions,
+          updates.monthly_actions,
+          JSON.stringify(consecutiveDays),
+          new Date().toISOString(),
+          playerName
         );
-      })}
-    </div>
-  );
-};
+      }
+      
+      // Mettre à jour les stats de franchise
+      const franchise = oldPlayer.franchise;
+      const franchiseStats = db.prepare('SELECT * FROM franchise_stats WHERE franchise = ?').get(franchise);
+      
+      if (franchiseStats && points > 0) {
+        db.prepare(`
+          UPDATE franchise_stats 
+          SET weekly_points = weekly_points + ?,
+              monthly_points = monthly_points + ?
+          WHERE franchise = ?
+        `).run(points, points, franchise);
+      }
+      
+      if (points < 0 && player.score < 0) {
+        db.prepare(`
+          UPDATE franchise_stats 
+          SET last_negative_date = ?
+          WHERE franchise = ?
+        `).run(new Date().toISOString(), franchise);
+      }
+      
+      return { player, franchise };
+    });
+    
+    const result = transaction();
+    
+    // Vérifier les badges après la transaction
+    checkIndividualBadges(playerName);
+    checkCollectiveBadges(result.franchise);
+    
+    // Récupérer les badges du joueur
+    const badges = db.prepare(`
+      SELECT badge_id, badge_name, badge_emoji, rarity 
+      FROM player_badges 
+      WHERE player_name = ?
+    `).all(playerName);
+    
+    console.log(`✅ Points ajoutés avec succès pour ${playerName}`);
+    res.json({ 
+      success: true, 
+      newScore: result.player.score,
+      badges: badges
+    });
+    
+  } catch (error) {
+    console.error('❌ Erreur lors de l\'ajout de points:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
-        // Composant NotificationSystem
-        const NotificationSystem = ({ notifications }) => {
-          if (!notifications || notifications.length === 0) return null;
+// Annuler la dernière action
+app.delete('/api/undo-last/:playerName', (req, res) => {
+  try {
+    const playerName = req.params.playerName;
+    
+    const transaction = db.transaction(() => {
+      const lastAction = db.prepare(`
+        SELECT * FROM history 
+        WHERE player_name = ? 
+        ORDER BY id DESC 
+        LIMIT 1
+      `).get(playerName);
+      
+      if (!lastAction) {
+        throw new Error('Aucune action à annuler');
+      }
+      
+      // Inverser les points
+      db.prepare('UPDATE players SET score = score - ? WHERE name = ?')
+        .run(lastAction.points, playerName);
+      
+      // Supprimer de l'historique
+      db.prepare('DELETE FROM history WHERE id = ?').run(lastAction.id);
+      
+      // Ajuster les stats si nécessaire
+      if (lastAction.points > 0) {
+        db.prepare(`
+          UPDATE player_stats 
+          SET current_streak = CASE WHEN current_streak > 0 THEN current_streak - 1 ELSE 0 END
+          WHERE player_name = ?
+        `).run(playerName);
+      }
+      
+      // Si on annule un Hardworker, décrémenter le compteur
+      if (lastAction.action.includes('Hardworker')) {
+        const stats = db.prepare('SELECT * FROM player_stats WHERE player_name = ?').get(playerName);
+        if (stats) {
+          const hardworkerDates = JSON.parse(stats.hardworker_dates || '[]');
           
-          return (
-            <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
-              {notifications.map((notif, index) => (
-                <div
-                  key={index}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg shadow-2xl animate-pulse"
-                >
-                  {notif}
-                </div>
-              ))}
-            </div>
-          );
-        };
-// Composant MVP Section
-const MVPSection = ({ period = 'week' }) => {
-  const [mvpData, setMvpData] = useState(null);
-  const [loading, setLoading] = useState(true);
+          // Supprimer la dernière date Hardworker
+          if (hardworkerDates.length > 0) {
+            hardworkerDates.pop();
+          }
+          
+          db.prepare(`
+            UPDATE player_stats 
+            SET hardworker_count = CASE WHEN hardworker_count > 0 THEN hardworker_count - 1 ELSE 0 END,
+                hardworker_dates = ?
+            WHERE player_name = ?
+          `).run(JSON.stringify(hardworkerDates), playerName);
+        }
+      }
+      
+      const player = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
+      // Recalculer les badges après annulation
+      recalculatePlayerBadges(playerName);
+      return player.score;
+    });
+    
+    const newScore = transaction();
+    res.json({ success: true, newScore });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-  const loadMVPData = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/mvp/current?period=${period}`);
-      const data = await response.json();
-      setMvpData(data);
-    } catch (error) {
-      console.error('Erreur lors du chargement des MVP:', error);
+// Ajouter un nouvel élève
+app.post('/api/add-student', (req, res) => {
+  try {
+    const { name, franchise } = req.body;
+    
+    const existing = db.prepare('SELECT * FROM players WHERE name = ?').get(name);
+    if (existing) {
+      return res.status(400).json({ error: 'Un élève avec ce nom existe déjà' });
     }
-    setLoading(false);
-  };
+    
+    const transaction = db.transaction(() => {
+      db.prepare('INSERT INTO players (name, franchise, score) VALUES (?, ?, ?)')
+        .run(name, franchise, 0);
+      
+      db.prepare('INSERT INTO player_stats (player_name) VALUES (?)')
+        .run(name);
+    });
+    
+    transaction();
+    res.json({ success: true });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-  useEffect(() => {
-    loadMVPData();
-  }, [period]);
+// Supprimer un élève
+app.delete('/api/remove-student/:playerName', (req, res) => {
+  try {
+    const playerName = req.params.playerName;
+    
+    const transaction = db.transaction(() => {
+      db.prepare('DELETE FROM history WHERE player_name = ?').run(playerName);
+      db.prepare('DELETE FROM player_badges WHERE player_name = ?').run(playerName);
+      db.prepare('DELETE FROM player_stats WHERE player_name = ?').run(playerName);
+      const result = db.prepare('DELETE FROM players WHERE name = ?').run(playerName);
+      return result.changes > 0;
+    });
+    
+    const success = transaction();
+    if (success) {
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'Élève non trouvé' });
+    }
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-  if (loading) return (
-    <div className="text-center text-white">
-      <div className="text-2xl">Chargement des MVP...</div>
-    </div>
-  );
+// Récupérer tous les badges
+app.get('/api/badges/all', (req, res) => {
+  try {
+    const playerBadges = db.prepare(`
+      SELECT pb.*, p.franchise 
+      FROM player_badges pb
+      JOIN players p ON pb.player_name = p.name
+      ORDER BY pb.date_earned DESC
+    `).all();
+    
+    const franchiseBadges = db.prepare(`
+      SELECT * FROM franchise_badges 
+      ORDER BY date_earned DESC
+    `).all();
+    
+    res.json({ 
+      playerBadges, 
+      franchiseBadges,
+      definitions: BADGES 
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-  if (!mvpData) return (
-    <div className="text-center text-white">
-      <div className="text-xl text-gray-400">Pas encore de données pour cette période</div>
-    </div>
-  );
+// Récupérer les stats d'un joueur
+app.get('/api/stats/:playerName', (req, res) => {
+  try {
+    const stats = db.prepare('SELECT * FROM player_stats WHERE player_name = ?')
+      .get(req.params.playerName);
+    res.json(stats || {});
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-  const getPeriodLabel = (period) => {
+// Récupérer les stats de franchise
+app.get('/api/franchise-stats/:franchise', (req, res) => {
+  try {
+    const stats = db.prepare('SELECT * FROM franchise_stats WHERE franchise = ?')
+      .get(req.params.franchise);
+      
+    const badges = db.prepare('SELECT * FROM franchise_badges WHERE franchise = ?')
+      .all(req.params.franchise);
+    
+    res.json({ stats, badges });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Vérification périodique des classements (à appeler régulièrement)
+app.post('/api/check-rankings', (req, res) => {
+  try {
+    checkFranchiseRankings();
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Reset hebdomadaire des stats
+app.post('/api/reset-weekly', (req, res) => {
+  try {
+    db.prepare('UPDATE franchise_stats SET weekly_points = 0').run();
+    db.prepare('UPDATE player_stats SET weekly_actions = 0').run();
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Reset mensuel des stats
+app.post('/api/reset-monthly', (req, res) => {
+  try {
+    db.prepare('UPDATE franchise_stats SET monthly_points = 0').run();
+    db.prepare('UPDATE player_stats SET monthly_actions = 0').run();
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Récupérer les données de progression d'un joueur
+app.get('/api/progression/:playerName', (req, res) => {
+  try {
+    const { playerName } = req.params;
+    const { days = 30 } = req.query; // Par défaut 30 jours
+    
+    // Récupérer l'historique sur la période demandée
+    let query;
+    let params;
+    
+    if (days === 'all') {
+      // Tout l'historique
+      query = `
+        SELECT 
+          DATE(timestamp) as date,
+          SUM(points) as daily_points,
+          MAX(new_total) as end_score,
+          COUNT(*) as actions_count,
+          SUM(CASE WHEN points > 0 THEN points ELSE 0 END) as positive_points,
+          SUM(CASE WHEN points < 0 THEN points ELSE 0 END) as negative_points
+        FROM history 
+        WHERE player_name = ?
+        GROUP BY DATE(timestamp)
+        ORDER BY date ASC
+      `;
+      params = [playerName];
+    } else {
+      // Période spécifique
+      query = `
+        SELECT 
+          DATE(timestamp) as date,
+          SUM(points) as daily_points,
+          MAX(new_total) as end_score,
+          COUNT(*) as actions_count,
+          SUM(CASE WHEN points > 0 THEN points ELSE 0 END) as positive_points,
+          SUM(CASE WHEN points < 0 THEN points ELSE 0 END) as negative_points
+        FROM history 
+        WHERE player_name = ? 
+          AND DATE(timestamp) >= DATE('now', '-' || ? || ' days')
+        GROUP BY DATE(timestamp)
+        ORDER BY date ASC
+      `;
+      params = [playerName, days];
+    }
+    
+    const progressionData = db.prepare(query).all(...params);
+    
+    // Obtenir le score initial (premier score avant la période)
+    let initialScore = 0;
+    if (days !== 'all' && progressionData.length > 0) {
+      const firstDateQuery = `
+        SELECT new_total - points as initial_score
+        FROM history
+        WHERE player_name = ?
+          AND DATE(timestamp) = ?
+        ORDER BY id ASC
+        LIMIT 1
+      `;
+      const firstEntry = db.prepare(firstDateQuery).get(playerName, progressionData[0].date);
+      if (firstEntry) {
+        initialScore = firstEntry.initial_score;
+      }
+    }
+    
+    // Calculer les scores cumulés
+    let cumulativeScore = initialScore;
+    const processedData = progressionData.map(day => {
+      cumulativeScore += day.daily_points;
+      return {
+        ...day,
+        cumulative_score: cumulativeScore
+      };
+    });
+    
+    // Ajouter les dates manquantes pour avoir une ligne continue
+    if (processedData.length > 0 && days !== 'all') {
+      const filledData = [];
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - parseInt(days));
+      
+      let currentScore = initialScore;
+      for (let d = new Date(startDate); d <= new Date(); d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        const existingData = processedData.find(item => item.date === dateStr);
+        
+        if (existingData) {
+          filledData.push(existingData);
+          currentScore = existingData.cumulative_score;
+        } else {
+          // Jour sans activité
+          filledData.push({
+            date: dateStr,
+            daily_points: 0,
+            end_score: currentScore,
+            cumulative_score: currentScore,
+            actions_count: 0,
+            positive_points: 0,
+            negative_points: 0
+          });
+        }
+      }
+      
+      res.json({
+        playerName,
+        period: days,
+        initialScore,
+        data: filledData,
+        summary: {
+          totalPoints: filledData[filledData.length - 1]?.cumulative_score - initialScore || 0,
+          totalActions: filledData.reduce((sum, d) => sum + d.actions_count, 0),
+          activeDays: filledData.filter(d => d.actions_count > 0).length
+        }
+      });
+    } else {
+      res.json({
+        playerName,
+        period: days,
+        initialScore,
+        data: processedData,
+        summary: {
+          totalPoints: processedData[processedData.length - 1]?.cumulative_score - initialScore || 0,
+          totalActions: processedData.reduce((sum, d) => sum + d.actions_count, 0),
+          activeDays: processedData.filter(d => d.actions_count > 0).length
+        }
+      });
+    }
+    
+  } catch (error) {
+    console.error('Erreur lors de la récupération de la progression:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 1. MVP actuels (semaine/mois/trimestre)
+app.get('/api/mvp/current', (req, res) => {
+  try {
+    const { period = 'week' } = req.query; // 'week', 'month', 'trimester'
+    
+    let bounds;
     switch(period) {
-      case 'week': return 'de la Semaine';
-      case 'month': return 'du Mois';
-      case 'trimester': return 'du Trimestre';
-      default: return 'de la Période';
+      case 'week': bounds = getWeekBounds(); break;
+      case 'month': bounds = getMonthBounds(); break;
+      case 'trimester': bounds = getTrimesterBounds(); break;
+      default: bounds = getWeekBounds();
     }
-  };
+    
+    // MVP Académique
+    const academicMVP = db.prepare(`
+      SELECT ps.player_name, ps.franchise, ps.academic_points, p.score as total_score
+      FROM period_stats ps
+      JOIN players p ON ps.player_name = p.name
+      WHERE ps.period_type = ? AND ps.period_start = ? AND ps.academic_points > 0
+      ORDER BY ps.academic_points DESC
+      LIMIT 1
+    `).get(period, bounds.start);
+    
+    // MVP Sport
+    const sportMVP = db.prepare(`
+      SELECT ps.player_name, ps.franchise, ps.sport_points, p.score as total_score
+      FROM period_stats ps
+      JOIN players p ON ps.player_name = p.name
+      WHERE ps.period_type = ? AND ps.period_start = ? AND ps.sport_points > 0
+      ORDER BY ps.sport_points DESC
+      LIMIT 1
+    `).get(period, bounds.start);
+    
+    // MVP Progression (qui a gagné le plus de points total)
+    const progressionMVP = db.prepare(`
+      SELECT ps.player_name, ps.franchise, ps.total_points, p.score as total_score
+      FROM period_stats ps
+      JOIN players p ON ps.player_name = p.name
+      WHERE ps.period_type = ? AND ps.period_start = ? AND ps.total_points > 0
+      ORDER BY ps.total_points DESC
+      LIMIT 1
+    `).get(period, bounds.start);
+    
+    // Top 5 Académique
+    const top5Academic = db.prepare(`
+      SELECT ps.player_name, ps.franchise, ps.academic_points, p.score as total_score
+      FROM period_stats ps
+      JOIN players p ON ps.player_name = p.name
+      WHERE ps.period_type = ? AND ps.period_start = ? AND ps.academic_points > 0
+      ORDER BY ps.academic_points DESC
+      LIMIT 5
+    `).all(period, bounds.start);
+    
+    // Top 5 Sport
+    const top5Sport = db.prepare(`
+      SELECT ps.player_name, ps.franchise, ps.sport_points, p.score as total_score
+      FROM period_stats ps
+      JOIN players p ON ps.player_name = p.name
+      WHERE ps.period_type = ? AND ps.period_start = ? AND ps.sport_points > 0
+      ORDER BY ps.sport_points DESC
+      LIMIT 5
+    `).all(period, bounds.start);
+    
+    res.json({
+      period,
+      period_bounds: bounds,
+      mvps: {
+        academic: academicMVP,
+        sport: sportMVP,
+        progression: progressionMVP
+      },
+      rankings: {
+        top5_academic: top5Academic,
+        top5_sport: top5Sport
+      }
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* MVP Académique */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-6 shadow-2xl">
-          <h3 className="text-2xl font-bold text-white mb-4 text-center">
-            MVP Académique {getPeriodLabel(period)}
-          </h3>
-          {mvpData.mvps.academic ? (
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white mb-2">
-                {mvpData.mvps.academic.player_name}
-              </div>
-              <div className="text-blue-200 text-lg mb-2">
-                {mvpData.mvps.academic.franchise}
-              </div>
-              <div className="bg-black/30 rounded-lg p-3">
-                <div className="text-2xl font-bold text-white">
-                  +{mvpData.mvps.academic.academic_points} pts
-                </div>
-                <div className="text-blue-200 text-sm">
-                  Total: {mvpData.mvps.academic.total_score} pts
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center text-blue-200">
-              Aucun MVP académique cette période
-            </div>
-          )}
-        </div>
-
-        {/* MVP Sport */}
-        <div className="bg-gradient-to-r from-orange-600 to-red-600 rounded-xl p-6 shadow-2xl">
-          <h3 className="text-2xl font-bold text-white mb-4 text-center">
-            MVP Sport {getPeriodLabel(period)}
-          </h3>
-          {mvpData.mvps.sport ? (
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white mb-2">
-                {mvpData.mvps.sport.player_name}
-              </div>
-              <div className="text-orange-200 text-lg mb-2">
-                {mvpData.mvps.sport.franchise}
-              </div>
-              <div className="bg-black/30 rounded-lg p-3">
-                <div className="text-2xl font-bold text-white">
-                  +{mvpData.mvps.sport.sport_points} pts
-                </div>
-                <div className="text-orange-200 text-sm">
-                  Total: {mvpData.mvps.sport.total_score} pts
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center text-orange-200">
-              Aucun MVP sport cette période
-            </div>
-          )}
-        </div>
-
-        {/* MVP Progression */}
-        <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-xl p-6 shadow-2xl">
-          <h3 className="text-2xl font-bold text-white mb-4 text-center">
-            MVP Progression {getPeriodLabel(period)}
-          </h3>
-          {mvpData.mvps.progression ? (
-            <div className="text-center">
-              <div className="text-3xl font-bold text-white mb-2">
-                {mvpData.mvps.progression.player_name}
-              </div>
-              <div className="text-green-200 text-lg mb-2">
-                {mvpData.mvps.progression.franchise}
-              </div>
-              <div className="bg-black/30 rounded-lg p-3">
-                <div className="text-2xl font-bold text-white">
-                  +{mvpData.mvps.progression.total_points} pts
-                </div>
-                <div className="text-green-200 text-sm">
-                  Total: {mvpData.mvps.progression.total_score} pts
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center text-green-200">
-              Aucun MVP progression cette période
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Composant Franchise Stats
-const FranchiseStatsSection = ({ period = 'week' }) => {
-  const [franchiseData, setFranchiseData] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const loadFranchiseData = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/stats/franchise-breakdown?period=${period}`);
-      const data = await response.json();
-      setFranchiseData(data);
-    } catch (error) {
-      console.error('Erreur lors du chargement des stats franchises:', error);
+// 2. Historique des MVP
+app.get('/api/mvp/history', (req, res) => {
+  try {
+    const { period = 'week', mvp_type = 'all', limit = 20 } = req.query;
+    
+    let whereClause = '';
+    let params = [];
+    
+    if (period !== 'all') {
+      whereClause += ' WHERE period_type = ?';
+      params.push(period);
     }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadFranchiseData();
-  }, [period]);
-
-  if (loading) return <div className="text-center text-white text-xl">Chargement...</div>;
-
-// Vérification plus robuste
-if (!franchiseData) {
-  return <div className="text-center text-white text-xl">Erreur de chargement des données</div>;
-}
-
-if (!franchiseData.franchise_stats || franchiseData.franchise_stats.length === 0) {
-  return (
-    <div className="text-center text-white">
-      <div className="text-xl mb-4">Pas encore de données pour cette période</div>
-      <div className="text-gray-400">Ajoutez des points aux élèves pour voir les statistiques apparaître</div>
-    </div>
-  );
-}
-
-  return (
-    <div className="space-y-6">
-      {franchiseData.most_balanced && (
-        <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-6 text-center">
-          <h3 className="text-2xl font-bold text-white mb-2">Franchise la Plus Équilibrée</h3>
-          <div className="text-3xl font-bold text-white">{franchiseData.most_balanced.franchise}</div>
-          <div className="text-purple-200">
-            Sport: {franchiseData.most_balanced.sport_percentage}% | 
-            Académique: {franchiseData.most_balanced.academic_percentage}%
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {franchiseData.franchise_stats.map((franchise, index) => {
-          const franchiseColors = {
-            Minotaurs: 'from-red-600 to-red-800',
-            Krakens: 'from-blue-600 to-blue-800',
-            Phoenix: 'from-orange-600 to-orange-800',
-            Werewolves: 'from-green-600 to-green-800'
-          };
-
-          return (
-            <div key={franchise.franchise} className={`bg-gradient-to-r ${franchiseColors[franchise.franchise]} rounded-xl p-6`}>
-              <h3 className="text-2xl font-bold text-white mb-4 text-center">
-                {franchise.franchise}
-              </h3>
-              
-              <div className="space-y-3">
-                <div className="bg-black/30 rounded-lg p-3 text-center">
-                  <div className="text-3xl font-bold text-white">{franchise.total_points}</div>
-                  <div className="text-white/80">Points Total</div>
-                </div>
-
-                <div className="bg-black/30 rounded-lg p-3">
-                  <div className="flex justify-between mb-2">
-                    <span className="text-white">Sport</span>
-                    <span className="text-white font-bold">{franchise.total_sport} pts ({franchise.sport_percentage}%)</span>
-                  </div>
-                  <div className="w-full bg-white/20 rounded-full h-3 mb-3">
-                    <div 
-                      className="bg-orange-400 h-3 rounded-full" 
-                      style={{width: `${franchise.sport_percentage}%`}}
-                    ></div>
-                  </div>
-                  
-                  <div className="flex justify-between mb-2">
-                    <span className="text-white">Académique</span>
-                    <span className="text-white font-bold">{franchise.total_academic} pts ({franchise.academic_percentage}%)</span>
-                  </div>
-                  <div className="w-full bg-white/20 rounded-full h-3">
-                    <div 
-                      className="bg-blue-400 h-3 rounded-full" 
-                      style={{width: `${franchise.academic_percentage}%`}}
-                    ></div>
-                  </div>
-                </div>
-
-                <div className="text-center text-white/80 text-sm">
-                  {franchise.active_players} élève{franchise.active_players > 1 ? 's' : ''} actif{franchise.active_players > 1 ? 's' : ''}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-// Composant Hall of Fame
-const HallOfFameSection = () => {
-  const [hofData, setHofData] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const loadHallOfFame = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/hall-of-fame');
-      const data = await response.json();
-      setHofData(data);
-    } catch (error) {
-      console.error('Erreur lors du chargement du Hall of Fame:', error);
+    
+    if (mvp_type !== 'all') {
+      whereClause += whereClause ? ' AND mvp_type = ?' : ' WHERE mvp_type = ?';
+      params.push(mvp_type);
     }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadHallOfFame();
-  }, []);
-
-    if (loading) return <div className="text-center text-white text-xl">Chargement...</div>;
-
-if (!hofData) {
-  return (
-    <div className="text-center text-white">
-      <div className="text-xl mb-4">Données non disponibles</div>
-      <div className="text-gray-400">Le Hall of Fame se remplira automatiquement quand des élèves atteindront des paliers</div>
-    </div>
-  );
-}
-
-  return (
-    <div className="space-y-6">
-      {hofData.absolute_record && (
-        <div className="bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700 rounded-xl p-6 text-center shadow-2xl">
-          <h2 className="text-3xl font-bold text-white mb-4">RECORD ABSOLU</h2>
-          <div className="text-5xl font-bold text-white mb-2">{hofData.absolute_record.player_name}</div>
-          <div className="text-2xl text-yellow-100 mb-2">{hofData.absolute_record.franchise}</div>
-          <div className="text-6xl font-bold text-white">{hofData.absolute_record.score} points</div>
-        </div>
-      )}
-
-      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-        <h3 className="text-2xl font-bold text-white mb-6 text-center">Records Actuels</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {hofData.current_records && hofData.current_records.map(record => (
-            <div key={record.id} className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-4 text-center">
-              <h4 className="text-white font-bold mb-2">{record.record_type}</h4>
-              <div className="text-2xl font-bold text-white">{record.player_name}</div>
-              <div className="text-purple-200 text-sm">{record.franchise}</div>
-              <div className="text-xl font-bold text-white mt-2">{record.score} pts</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-        const App = () => {
-          const [currentView, setCurrentView] = useState('home');
-          const [userType, setUserType] = useState(null);
-          const [players, setPlayers] = useState([]);
-          const [expandedDropdown, setExpandedDropdown] = useState(null);
-          const [selectedPlayerHistory, setSelectedPlayerHistory] = useState(null);
-          const [playerHistory, setPlayerHistory] = useState([]);
-          const [loading, setLoading] = useState(false);
-          const [password, setPassword] = useState('');
-          const [loginError, setLoginError] = useState('');
-          const [teacherName, setTeacherName] = useState('');
-          const [selectedStudent, setSelectedStudent] = useState('');
-          const [newStudentName, setNewStudentName] = useState('');
-          const [newStudentFranchise, setNewStudentFranchise] = useState('Minotaurs');
-          const [selectedPlayerForGraph, setSelectedPlayerForGraph] = useState(null);
-          const [playerProgressionData, setPlayerProgressionData] = useState(null);
-          const [currentChart, setCurrentChart] = useState(null);
-          const [searchName, setSearchName] = useState('');
-          const [foundPlayer, setFoundPlayer] = useState(null);
-          const [searchHistory, setSearchHistory] = useState([]);
-          const [showEvolutionChart, setShowEvolutionChart] = useState(false);
-          const [chartData, setChartData] = useState(null);
-          const [chartType, setChartType] = useState('player');
-          // États pour les badges
-          const [playerBadges, setPlayerBadges] = useState({});
-          const [franchiseBadges, setFranchiseBadges] = useState({});
-          const [notifications, setNotifications] = useState([]);
-          const [activeTab, setActiveTab] = useState('general');
-          const [selectedPeriod, setSelectedPeriod] = useState('week');
-          // État pour le thème actuel
-          const [currentTheme, setCurrentTheme] = useState('');
-          const [selectedFranchiseView, setSelectedFranchiseView] = useState(null);
-          
-          // === GESTION DES THÈMES DYNAMIQUES ===
-          
-          // Fonction pour obtenir le nom du thème selon la franchise
-          const getThemeClass = (franchise) => {
-            const themeMap = {
-              'Minotaurs': 'theme-minotaurs',
-              'Krakens': 'theme-krakens', 
-              'Phoenix': 'theme-phoenix',
-              'Werewolves': 'theme-werewolves'
-            };
-            return themeMap[franchise] || '';
-          };
-
-          // Fonction pour changer le thème de l'application
-          const changeTheme = (franchise) => {
-            const body = document.body;
-            const html = document.documentElement;
-            
-            // Retirer tous les thèmes existants
-            body.className = body.className.replace(/theme-\w+/g, '');
-            html.className = html.className.replace(/theme-\w+/g, '');
-            
-            if (franchise) {
-              const themeClass = getThemeClass(franchise);
-              if (themeClass) {
-                // Ajouter l'animation de transition
-                body.classList.add('theme-transition');
-                html.classList.add('theme-transition');
-                
-                // Appliquer le nouveau thème
-                setTimeout(() => {
-                  body.classList.add(themeClass);
-                  html.classList.add(themeClass);
-                  setCurrentTheme(themeClass);
-                }, 50);
-                
-                // Retirer l'animation après la transition
-                setTimeout(() => {
-                  body.classList.remove('theme-transition');
-                  html.classList.remove('theme-transition');
-                }, 550);
-              }
-            }
-          };
-
-          // Fonction pour obtenir la franchise dominante
-          const getDominantFranchise = () => {
-            if (!players || players.length === 0) return null;
-            
-            const franchiseScores = {};
-            players.forEach(player => {
-              if (!franchiseScores[player.franchise]) {
-                franchiseScores[player.franchise] = 0;
-              }
-              franchiseScores[player.franchise] += player.score;
-            });
-            
-            return Object.keys(franchiseScores).reduce((a, b) => 
-              franchiseScores[a] > franchiseScores[b] ? a : b
-            );
-          };
-
-          // Effet pour changer automatiquement le thème selon la franchise sélectionnée ou dominante
-          useEffect(() => {
-            let franchiseToUse = selectedFranchiseView;
-            
-            if (!franchiseToUse && currentView === 'home') {
-              franchiseToUse = getDominantFranchise();
-            }
-            
-            changeTheme(franchiseToUse);
-          }, [selectedFranchiseView, currentView, players]);
-
-          // Fonction pour gérer le clic sur une carte de franchise
-          const handleFranchiseClick = (franchise) => {
-            setSelectedFranchiseView(selectedFranchiseView === franchise ? null : franchise);
-          };
-
-          // Fonction pour obtenir le grade basketball selon le score
-          const getBadge = (score) => {
-            // Grade Ultime
-            if (score >= 250) return { 
-              emoji: '🐐', 
-              name: 'GOAT', 
-              fullName: 'Greatest Of All Time',
-              color: 'text-purple-300',
-              bgColor: 'from-purple-600 to-purple-800',
-              description: 'Le plus grand de tous les temps'
-            };
-            
-            // Grades Elite
-            if (score >= 200) return { 
-              emoji: '🏛️', 
-              name: 'Hall of Fame', 
-              fullName: 'Hall of Fame',
-              color: 'text-yellow-300',
-              bgColor: 'from-yellow-500 to-yellow-700',
-              description: 'Légende du sport'
-            };
-            if (score >= 150) return { 
-              emoji: '🔥', 
-              name: 'Superstar', 
-              fullName: 'Superstar',
-              color: 'text-orange-300',
-              bgColor: 'from-orange-500 to-red-600',
-              description: 'Phénomène basketball'
-            };
-            
-            // Grades Confirmés
-            if (score >= 100) return { 
-              emoji: '🌟', 
-              name: 'All-Star', 
-              fullName: 'All-Star',
-              color: 'text-blue-300',
-              bgColor: 'from-blue-500 to-blue-700',
-              description: 'Sélectionné parmi l\'élite'
-            };
-            if (score >= 75) return { 
-              emoji: '💎', 
-              name: 'Franchise Player', 
-              fullName: 'Franchise Player',
-              color: 'text-cyan-300',
-              bgColor: 'from-cyan-500 to-blue-600',
-              description: 'Pilier de l\'équipe'
-            };
-            
-            // Grades Développement
-            if (score >= 50) return { 
-              emoji: '⭐', 
-              name: 'Starting Five', 
-              fullName: 'Starting Five',
-              color: 'text-green-300',
-              bgColor: 'from-green-500 to-green-700',
-              description: 'Titulaire indiscutable'
-            };
-            if (score >= 25) return { 
-              emoji: '🏃', 
-              name: 'Sixth Man', 
-              fullName: 'Sixth Man',
-              color: 'text-emerald-300',
-              bgColor: 'from-emerald-500 to-green-600',
-              description: 'Premier remplaçant de qualité'
-            };
-            
-            // Grades Débutants
-            if (score >= 10) return { 
-              emoji: '🏀', 
-              name: 'Rookie', 
-              fullName: 'Rookie',
-              color: 'text-amber-300',
-              bgColor: 'from-amber-500 to-orange-500',
-              description: 'Débutant prometteur'
-            };
-            if (score >= 0) return { 
-              emoji: '👶', 
-              name: 'Freshman', 
-              fullName: 'Freshman',
-              color: 'text-yellow-300',
-              bgColor: 'from-yellow-400 to-amber-500',
-              description: 'Première année, apprend les bases'
-            };
-            
-            // Grades Négatifs
-            if (score >= -25) return { 
-              emoji: '📉', 
-              name: 'Plot', 
-              fullName: 'Plot',
-              color: 'text-gray-400',
-              bgColor: 'from-gray-500 to-gray-700',
-              description: 'Personnage sans importance'
-            };
-            if (score >= -50) return { 
-              emoji: '🪑', 
-              name: 'Benchwarmer', 
-              fullName: 'Benchwarmer',
-              color: 'text-red-400',
-              bgColor: 'from-red-500 to-red-700',
-              description: 'Cloué sur le banc'
-            };
-            
-            // Pire niveau
-            return { 
-              emoji: '🗑️', 
-              name: 'Scrub', 
-              fullName: 'Scrub',
-              color: 'text-red-600',
-              bgColor: 'from-red-700 to-red-900',
-              description: 'Le pire niveau possible'
-            };
-          };
-
-          // Fonction pour obtenir l'avatar animé de la franchise
-          const getFranchiseAvatar = (franchise) => {
-            const avatars = {
-              Minotaurs: { emoji: '🐂', class: 'minotaur-avatar', name: 'Taureau Enragé' },
-              Krakens: { emoji: '🐙', class: 'kraken-avatar', name: 'Kraken des Profondeurs' },
-              Phoenix: { emoji: '🔥', class: 'phoenix-avatar', name: 'Phoenix Éternel' },
-              Werewolves: { emoji: '🐺', class: 'werewolf-avatar', name: 'Loup-Garou' }
-            };
-            return avatars[franchise] || { emoji: '⚡', class: 'franchise-avatar', name: 'Guerrier' };
-          };
-
-          // Actions positives et négatives
-          const positiveActions = [
-  // ====== CATÉGORIE SPORT ====== 
-  { label: '🏀 Hardworker', points: 6, category: 'sport' },
-  { label: '🏀 Bon entrainement club', points: 4, category: 'sport' },
-  { label: '🏆 Victoire weekend (Région/France)', points: 6, category: 'sport' },
-  { label: '🥈 Défaite weekend (Région/France)', points: 2, category: 'sport' },
-  { label: '🏅 Victoire weekend (Département)', points: 4, category: 'sport' },
-  { label: '🎯 Défaite weekend (Département)', points: 1, category: 'sport' },
-  { label: '⭐ Extra basket (cross, AS...) - Excellent', points: 10, category: 'sport' },
-  { label: '⭐ Extra basket (cross, AS...) - Très bien', points: 6, category: 'sport' },
-  { label: '⭐ Extra basket (cross, AS...) - Bien', points: 3, category: 'sport' },
-  { label: '🎖️ Parcours sélection', points: 10, category: 'sport' },
-  { label: '🌟 Tournoi des étoiles', points: 25, category: 'sport' },
-  { label: '💪 Entrainements facultatifs', points: 3, category: 'sport' },
-  { label: '📊 Table de marque/Arbitrage weekend', points: 5, category: 'sport' },
-  
-  // ====== CATÉGORIE ACADÉMIQUE ======
-  { label: '📚 Observation positive', points: 5, category: 'academic' },
-  { label: '📚 Participation active en classe', points: 4, category: 'academic' },
-  { label: '📚 Travail de qualité (oral/écrit)', points: 4, category: 'academic' },
-  { label: '📚 Activités facultatives (sentinelle)', points: 5, category: 'academic' },
-  { label: '📚 Activités facultatives (ateliers devoirs)', points: 4, category: 'academic' },
-  { label: '📚 Activités facultatives (délégué)', points: 6, category: 'academic' },
-  { label: '📚 Activités facultatives (conseil admin)', points: 8, category: 'academic' },
-  { label: '🏆 Félicitations', points: 25, category: 'academic' },
-  { label: '🎖️ Compliments', points: 15, category: 'academic' },
-  { label: '👍 Encouragements', points: 10, category: 'academic' },
-  
-  // === BONUS FLEXIBLES ===
-  { label: 'Bonus Sport', points: 2, category: 'sport' },
-  { label: 'Bonus Scolaire', points: 2, category: 'academic' },
-  { label: 'Bonus Sport', points: 3, category: 'sport' },
-  { label: 'Bonus Scolaire', points: 3, category: 'academic' },
-  { label: 'Bonus Sport', points: 5, category: 'sport' },
-  { label: 'Bonus Scolaire', points: 5, category: 'academic' },
-  { label: 'Bonus Sport', points: 10, category: 'sport' },
-  { label: 'Bonus Scolaire', points: 10, category: 'academic' }
-];
-          
-              const negativeActions = [
-  // ====== CATÉGORIE SPORT ====== 
-  { label: 'Mauvaise attitude/retard entrainement', points: -4, category: 'sport' },
-  { label: 'Absences répétées/non justifiées club', points: -4, category: 'sport' },
-  
-  // ====== CATÉGORIE ACADÉMIQUE ======
-  { label: 'Observation négative', points: -5, category: 'academic' },
-  { label: 'Exclusion de cours', points: -8, category: 'academic' },
-  { label: 'Exclusion temporaire établissement', points: -15, category: 'academic' },
-  { label: 'Travail non fait', points: -3, category: 'academic' },
-  { label: 'Retard/absence non justifiée', points: -3, category: 'academic' },
-  { label: 'Mauvaise attitude en classe (perturbe)', points: -5, category: 'academic' },
-  
-  // === PÉNALITÉS FLEXIBLES ===
-  { label: 'Pénalité Sport', points: -2, category: 'sport' },
-  { label: 'Pénalité Scolaire', points: -2, category: 'academic' },
-  { label: 'Pénalité Sport', points: -3, category: 'sport' },
-  { label: 'Pénalité Scolaire', points: -3, category: 'academic' },
-  { label: 'Pénalité Sport', points: -5, category: 'sport' },
-  { label: 'Pénalité Scolaire', points: -5, category: 'academic' }
-];
-
-          // Couleurs des franchises
-          const franchiseColors = {
-            Minotaurs: 'from-red-600 to-red-800',
-            Krakens: 'from-blue-600 to-blue-800',
-            Phoenix: 'from-orange-600 to-orange-800',
-            Werewolves: 'from-green-600 to-green-800'
-          };
-
-          // Vérifier le mot de passe professeur
-          const verifyTeacher = async () => {
-            if (!password.trim()) {
-              setLoginError('Veuillez entrer un mot de passe');
-              return;
-            }
-            
-            try {
-              const response = await fetch('/api/verify-teacher', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password })
-              });
-              
-              const data = await response.json();
-              if (data.success) {
-                setUserType('teacher');
-                setCurrentView('teacher-dashboard');
-                setLoginError('');
-              } else {
-                setLoginError('Mot de passe incorrect');
-              }
-            } catch (error) {
-              setLoginError('Erreur de connexion');
-            }
-          };
-
-          // Charger les joueurs
-          const loadPlayers = async () => {
-            try {
-              const response = await fetch('/api/players');
-              const data = await response.json();
-              setPlayers(data);
-            } catch (error) {
-              console.error('Erreur lors du chargement des joueurs:', error);
-            }
-          };
-
-          // Ajouter des points (professeurs uniquement)
-          const addPoints = async (playerName, points, action) => {
-            setLoading(true);
-            try {
-              const response = await fetch('/api/add-points', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ playerName, points, action, teacherName })
-              });
-              
-              if (response.ok) {
-                await loadPlayers();
-                setExpandedDropdown(null);
-              }
-            } catch (error) {
-              console.error('Erreur lors de l\'ajout de points:', error);
-            }
-            setLoading(false);
-          };
-
-          // Charger l'historique d'un joueur
-          const loadPlayerHistory = async (playerName) => {
-            try {
-              const response = await fetch(`/api/history/${encodeURIComponent(playerName)}`);
-              const data = await response.json();
-              setPlayerHistory(data);
-              setSelectedPlayerHistory(playerName);
-            } catch (error) {
-              console.error('Erreur lors du chargement de l\'historique:', error);
-            }
-          };
-
-          // Charger les données de progression d'un joueur
-          const loadPlayerProgression = async (playerName) => {
-            try {
-              const response = await fetch(`/api/progression/${encodeURIComponent(playerName)}?days=all`);
-              const data = await response.json();
-              setPlayerProgressionData(data);
-              
-              // Créer le graphique après un délai pour s'assurer que le canvas existe
-              setTimeout(() => createProgressionChart(data), 100);
-            } catch (error) {
-              console.error('Erreur lors du chargement de la progression:', error);
-            }
-          };
-
-          // Créer le graphique d'évolution avec Chart.js
-          const createProgressionChart = (data) => {
-            const canvas = document.getElementById('playerChart');
-            if (!canvas || !data || !data.data) return;
-
-            const ctx = canvas.getContext('2d');
-            
-            // Détruire le graphique précédent s'il existe
-            if (currentChart) {
-              currentChart.destroy();
-            }
-
-            // Préparer les données pour le graphique
-            const dates = data.data.map((item, index) => {
-              if (item.date && item.date !== null) {
-                const date = new Date(item.date);
-                return date.toLocaleDateString('fr-FR', { 
-                  day: '2-digit', 
-                  month: '2-digit' 
-                });
-              } else {
-                return `Jour ${index + 1}`;
-              }
-            });
-            
-            const scores = data.data.map(item => item.cumulative_score);
-            const dailyPoints = data.data.map(item => item.daily_points);
-
-            // Créer le graphique
-            const chart = new Chart(ctx, {
-              type: 'line',
-              data: {
-                labels: dates,
-                datasets: [
-                  {
-                    label: 'Score Total',
-                    data: scores,
-                    borderColor: 'rgb(59, 130, 246)',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: 'rgb(59, 130, 246)',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointRadius: 5,
-                  },
-                  {
-                    label: 'Points du jour',
-                    data: dailyPoints,
-                    type: 'bar',
-                    backgroundColor: 'rgba(16, 185, 129, 0.6)',
-                    borderColor: 'rgb(16, 185, 129)',
-                    borderWidth: 1,
-                    yAxisID: 'y1',
-                  }
-                ]
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                  mode: 'index',
-                  intersect: false,
-                },
-                plugins: {
-                  title: {
-                    display: true,
-                    text: `Évolution de ${data.playerName}`,
-                    font: {
-                      size: 16,
-                      weight: 'bold'
-                    }
-                  },
-                  legend: {
-                    display: true,
-                    position: 'top'
-                  },
-                  tooltip: {
-                    callbacks: {
-                      title: function(context) {
-                        return `Jour: ${context[0].label}`;
-                      },
-                      label: function(context) {
-                        if (context.datasetIndex === 0) {
-                          return `Score total: ${context.parsed.y} points`;
-                        } else {
-                          return `Points gagnés: ${context.parsed.y > 0 ? '+' : ''}${context.parsed.y} points`;
-                        }
-                      }
-                    }
-                  }
-                },
-                scales: {
-                  x: {
-                    display: true,
-                    title: {
-                      display: true,
-                      text: 'Dates'
-                    },
-                    ticks: {
-                      maxTicksLimit: 10
-                    }
-                  },
-                  y: {
-                    type: 'linear',
-                    display: true,
-                    position: 'left',
-                    title: {
-                      display: true,
-                      text: 'Score Total'
-                    },
-                    grid: {
-                      color: 'rgba(0, 0, 0, 0.1)'
-                    }
-                  },
-                  y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
-                    title: {
-                      display: true,
-                      text: 'Points du Jour'
-                    },
-                    grid: {
-                      drawOnChartArea: false,
-                    },
-                  },
-                }
-              }
-            });
-
-            setCurrentChart(chart);
-          };
-
-          // Annuler la dernière action (professeurs uniquement)
-          const undoLastAction = async (playerName) => {
-            setLoading(true);
-            try {
-              const response = await fetch(`/api/undo-last/${encodeURIComponent(playerName)}`, {
-                method: 'DELETE',
-              });
-              
-              if (response.ok) {
-                await loadPlayers();
-              }
-            } catch (error) {
-              console.error('Erreur lors de l\'annulation:', error);
-            }
-            setLoading(false);
-          };
-
-          // Ajouter un élève (professeurs uniquement)
-          const addStudent = async () => {
-            if (!newStudentName.trim()) {
-              alert('Veuillez entrer un nom');
-              return;
-            }
-            
-            try {
-              const response = await fetch('/api/add-student', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                  name: newStudentName.trim(), 
-                  franchise: newStudentFranchise 
-                })
-              });
-              
-              if (response.ok) {
-                setNewStudentName('');
-                await loadPlayers();
-                alert('Élève ajouté avec succès !');
-              } else {
-                const error = await response.json();
-                alert(error.error || 'Erreur lors de l\'ajout');
-              }
-            } catch (error) {
-              alert('Erreur lors de l\'ajout de l\'élève');
-            }
-          };
-
-          // Supprimer un élève (professeurs uniquement)
-          const removeStudent = async (playerName) => {
-            if (!confirm(`Êtes-vous sûr de vouloir supprimer ${playerName} ? Cette action est irréversible.`)) {
-              return;
-            }
-            
-            try {
-              const response = await fetch(`/api/remove-student/${encodeURIComponent(playerName)}`, {
-                method: 'DELETE'
-              });
-              
-              if (response.ok) {
-                await loadPlayers();
-                alert('Élève supprimé avec succès');
-              }
-            } catch (error) {
-              alert('Erreur lors de la suppression');
-            }
-          };
-
-          useEffect(() => {
-            if (userType) {
-              loadPlayers();
-              const interval = setInterval(loadPlayers, 10000);
-              return () => clearInterval(interval);
-            }
-          }, [userType]);
-
-          // Obtenir les joueurs triés par score pour une franchise
-          const getSortedPlayers = (franchise) => {
-            return players
-              .filter(player => player.franchise === franchise)
-              .sort((a, b) => b.score - a.score);
-          };
-
-          // Obtenir le classement des franchises
-          const getFranchiseRankings = () => {
-            const franchiseScores = {};
-            ['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].forEach(franchise => {
-              franchiseScores[franchise] = players
-                .filter(player => player.franchise === franchise)
-                .reduce((total, player) => total + player.score, 0);
-            });
-            
-            return Object.entries(franchiseScores)
-              .sort(([,a], [,b]) => b - a)
-              .map(([franchise, score], index) => ({ franchise, score, rank: index + 1 }));
-          };
-
-          // Obtenir le classement général des joueurs
-          const getGeneralPlayerRankings = () => {
-            return [...players].sort((a, b) => b.score - a.score);
-          };
-
-          // PAGE D'ACCUEIL - CHOIX DU TYPE D'UTILISATEUR
-          // Page d'accueil avec logo - remplace votre condition if (currentView === 'home')
-if (currentView === 'home') {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden">
-      {/* Particules simplifiées pour mobile */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute bg-white/5 rounded-full animate-pulse"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              width: `${Math.random() * 4 + 1}px`,
-              height: `${Math.random() * 4 + 1}px`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${Math.random() * 2 + 3}s`
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Container principal */}
-      <div className="px-4 py-6 md:px-8 md:py-8 relative z-10">
-        <div className="max-w-4xl mx-auto">
-          
-          {/* Logo centré */}
-          <div className="text-center mb-8">
-            <div className="inline-block mb-6">
-              <img 
-                src="/gp-basketball.png"
-                alt="Gerard Philipe Basketball" 
-                className="w-32 h-32 md:w-48 md:h-48 lg:w-56 lg:h-56 mx-auto drop-shadow-2xl hover:scale-105 transition-transform duration-300"
-              />
-            </div>
-            
-            {/* No Pain No Gain - Citation principale */}
-            <div className="mb-6">
-              <h1 className="text-4xl md:text-6xl lg:text-7xl font-black theme-text-glow mb-2 tracking-tight">
-                "NO PAIN NO GAIN"
-              </h1>
-               <p className="text-lg md:text-xl text-white/90 font-semibold">
-                Année 2025/2026
-              </p>
-            </div>
-            
-            {/* Sélecteur de thème */}
-            <div className="mb-6">
-              <div className="flex flex-wrap justify-center gap-3 mb-4">
-                <button 
-                  className={`theme-button px-4 py-2 rounded-full text-sm ${!selectedFranchiseView ? 'opacity-50' : ''}`}
-                  onClick={() => setSelectedFranchiseView(null)}
-                >
-                  🌈 Thème Auto
-                </button>
-                {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
-                  const avatar = getFranchiseAvatar(franchise);
-                  return (
-                    <button 
-                      key={franchise}
-                      className={`theme-button px-4 py-2 rounded-full text-sm flex items-center gap-2 ${selectedFranchiseView === franchise ? 'ring-2 ring-white' : ''}`}
-                      onClick={() => handleFranchiseClick(franchise)}
-                    >
-                      <span className="text-lg">{avatar.emoji}</span>
-                      {franchise}
-                    </button>
-                  );
-                })}
-              </div>
-              {currentTheme && (
-                <p className="text-sm text-white/70">
-                  Thème actuel: {currentTheme.replace('theme-', '').charAt(0).toUpperCase() + currentTheme.replace('theme-', '').slice(1)}
-                </p>
-              )}
-            </div>
-            
-            {/* Citation du jour */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-8 border border-white/20">
-              <p className="text-sm text-orange-300 font-semibold mb-1">Citation du jour</p>
-              <p className="text-white text-base md:text-lg italic">
-                {(() => {
-                  const quotes = [
-                    "Hard work beats talent when talent refuses to work hard.",
-                    "Every practice is a chance to get closer to your best self.",
-                    "Success looks easy on game day, but it's built behind closed doors in sweat and silence.",
-                    "Discipline is choosing what you want most, over what you want now.",
-                    "Greatness is never given, it's earned in hours nobody sees.",
-                    "Stay humble in victory, stay hungry in defeat.",
-                    "The scoreboard doesn't lie, but neither does the effort you gave to get there.",
-                    "Respect the game, respect your opponents, but never stop believing in your own grind.",
-                    "Confidence comes from preparation, not from talking.",
-                    "The best players never act like they're bigger than the team.",
-                    "Champions are built from resilience, not comfort.",
-                    "Failing is part of learning; quitting is not an option.",
-                    "Pain is temporary, but quitting lasts forever.",
-                    "Pressure is a privilege — it means you've earned the right to compete.",
-                    "If you fall ten times, stand up eleven.",
-                    "Don't chase trophies, chase growth — the trophies will follow.",
-                    "Dreams don't come true without sweat as their foundation.",
-                    "Your body is pulled by fatigue, but your mind decides the limit.",
-                    "Leaders aren't born in the spotlight, they are forged in the unseen grind.",
-                    "Believe in the work you've put in — the results will eventually speak for you."
-                  ];
-                  const today = new Date().getDate();
-                  return quotes[today % quotes.length];
-                })()}
-              </p>
-            </div>
-            
-{/* Sous-titre explicatif */}
-            <p className="text-base md:text-lg text-purple-200 mb-8 max-w-2xl mx-auto">
-              section sportive basketball
-            </p>
-          </div>
-
-          {/* Boutons d'accès redesignés avec glassmorphism */}
-          <div className="space-y-4 md:grid md:grid-cols-2 md:gap-6 md:space-y-0 max-w-3xl mx-auto">
-            
-            {/* Bouton Professeur */}
-            <button
-              onClick={() => setCurrentView('teacher-login')}
-              className="w-full group relative overflow-hidden backdrop-blur-md bg-white/10 border border-white/20 hover:bg-white/15 active:bg-white/20 text-white rounded-2xl shadow-2xl transform active:scale-95 md:hover:scale-105 transition-all duration-300 touch-manipulation"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10 p-6 md:p-8">
-                <div className="flex items-center space-x-4 md:flex-col md:space-x-0 md:space-y-4">
-                  <div className="text-4xl md:text-6xl flex-shrink-0 group-hover:scale-110 transition-transform duration-300">👨‍🏫</div>
-                  <div className="text-left md:text-center">
-                    <h2 className="text-xl md:text-3xl font-bold mb-2 text-emerald-200">PROFESSEUR</h2>
-                    <p className="text-white/80 text-sm md:text-base mb-3">Gestion complète du système</p>
-                    <div className="inline-flex items-center bg-emerald-900/40 backdrop-blur-sm px-4 py-2 rounded-full border border-emerald-500/30">
-                      <span className="text-xs md:text-sm text-emerald-300 font-semibold">🔐 Accès sécurisé</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </button>
-            
-            {/* Bouton Élève */}
-            <button
-              onClick={() => {
-                setUserType('student');
-                setCurrentView('student-dashboard');
-              }}
-              className="w-full group relative overflow-hidden backdrop-blur-md bg-white/10 border border-white/20 hover:bg-white/15 active:bg-white/20 text-white rounded-2xl shadow-2xl transform active:scale-95 md:hover:scale-105 transition-all duration-300 touch-manipulation"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-pink-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10 p-6 md:p-8">
-                <div className="flex items-center space-x-4 md:flex-col md:space-x-0 md:space-y-4">
-                  <div className="text-4xl md:text-6xl flex-shrink-0 group-hover:scale-110 transition-transform duration-300">👨‍🎓</div>
-                  <div className="text-left md:text-center">
-                    <h2 className="text-xl md:text-3xl font-bold mb-2 text-orange-200">ÉLÈVE</h2>
-                    <p className="text-white/80 text-sm md:text-base mb-3">Consultez vos performances</p>
-                    <div className="inline-flex items-center bg-orange-900/40 backdrop-blur-sm px-4 py-2 rounded-full border border-orange-500/30">
-                      <span className="text-xs md:text-sm text-orange-300 font-semibold">👁️ Accès libre</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </button>
-            
-          </div>
-
-          {/* Footer discret */}
-          <div className="mt-12 text-center">
-            <div className="inline-flex items-center bg-white/5 backdrop-blur-sm rounded-full px-4 py-2 border border-white/10">
-              <span className="text-white/60 text-xs">
-                Mis à jour: {new Date().toLocaleDateString('fr-FR')} • Gérard Philipe Basketball
-              </span>
-            </div>
-          </div>
-          
-        </div>
-      </div>
-    </div>
-  );
-}
-
-          // PAGE DE CONNEXION PROFESSEUR
-          if (currentView === 'teacher-login') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8 flex items-center justify-center">
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 max-w-md w-full">
-                  <h2 className="text-3xl font-bold text-white text-center mb-8">
-                    🔐 Connexion Professeur
-                  </h2>
-                  
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-white text-sm font-bold mb-2">
-                        Nom (optionnel)
-                      </label>
-                      <input
-                        type="text"
-                        value={teacherName}
-                        onChange={(e) => setTeacherName(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white/70 focus:outline-none"
-                        placeholder="Votre nom..."
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-white text-sm font-bold mb-2">
-                        Mot de passe *
-                      </label>
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && verifyTeacher()}
-                        className="w-full px-3 py-2 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white/70 focus:outline-none"
-                        placeholder="Mot de passe..."
-                      />
-                    </div>
-                    
-                    {loginError && (
-                      <div className="text-red-300 text-sm text-center">
-                        {loginError}
-                      </div>
-                    )}
-                    
-                    <div className="flex space-x-4">
-                      <button
-                        onClick={() => setCurrentView('home')}
-                        className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 rounded-lg transition-colors"
-                      >
-                        ← Retour
-                      </button>
-                      <button
-                        onClick={verifyTeacher}
-                        className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg transition-colors"
-                      >
-                        Se connecter
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // TABLEAU DE BORD PROFESSEUR
-          if (currentView === 'teacher-dashboard') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-                <div className="max-w-6xl mx-auto">
-                  <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-white">
-                      👨‍🏫 Tableau de Bord Professeur
-                      {teacherName && <span className="text-2xl text-purple-200"> - {teacherName}</span>}
-                    </h1>
-                    <button
-                      onClick={() => {
-                        setCurrentView('home');
-                        setUserType(null);
-                        setPassword('');
-                        setTeacherName('');
-                      }}
-                      className="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-lg transition-colors"
-                    >
-                      🚪 Déconnexion
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
-                    <button
-                      onClick={() => setCurrentView('teacher-players')}
-                      className="bg-gradient-to-r from-emerald-600 to-emerald-800 hover:from-emerald-500 hover:to-emerald-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                    >
-                      <div className="text-4xl mb-2">👥</div>
-                      <h3 className="text-xl font-bold">Gestion des Points</h3>
-                      <p className="text-emerald-100 text-sm">Ajouter/retirer des points</p>
-                    </button>
-                    
-                    <button
-                      onClick={() => setCurrentView('teacher-admin')}
-                      className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                    >
-                      <div className="text-4xl mb-2">⚙️</div>
-                      <h3 className="text-xl font-bold">Administration</h3>
-                      <p className="text-blue-100 text-sm">Gérer les élèves</p>
-                    </button>
-                    
-                    <button
-                      onClick={() => setCurrentView('rankings')}
-                      className="bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                    >
-                      <div className="text-4xl mb-2">🏆</div>
-                      <h3 className="text-xl font-bold">Classements</h3>
-                      <p className="text-amber-100 text-sm">Voir les résultats</p>
-                    </button>
-                    
-                    <button
-                      onClick={() => setCurrentView('badges')}
-                      className="bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                    >
-                      <div className="text-4xl mb-2">🏅</div>
-                      <h3 className="text-xl font-bold">Badges</h3>
-                      <p className="text-purple-100 text-sm">Voir tous les badges</p>
-                    </button>
-                    
-                    <button
-                      onClick={() => setCurrentView('teacher-graphs')}
-                      className="bg-gradient-to-r from-pink-600 to-pink-800 hover:from-pink-500 hover:to-pink-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                    >
-                      <div className="text-4xl mb-2">📊</div>
-                      <h3 className="text-xl font-bold">Graphiques</h3>
-                      <p className="text-pink-100 text-sm">Évolution des scores</p>
-                    </button>
-                  </div>
-
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                    <h3 className="text-2xl font-bold text-white mb-4">📊 Statistiques Rapides</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
-                        const franchisePlayers = getSortedPlayers(franchise);
-                        const totalPoints = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
-                        const avatar = getFranchiseAvatar(franchise);
-                        return (
-                          <div 
-                            key={franchise} 
-                            className={`theme-card cursor-pointer transform transition-all duration-300 p-4 rounded-lg text-center franchise-card hover:scale-105 ${selectedFranchiseView === franchise ? 'ring-4 ring-white/50' : ''}`}
-                            onClick={() => handleFranchiseClick(franchise)}
-                          >
-                            <div className="flex items-center justify-center mb-2">
-                              <span className={`franchise-avatar ${avatar.class}`}>
-                                {avatar.emoji}
-                              </span>
-                            </div>
-                            <h4 className="font-bold theme-text-glow text-lg">{franchise}</h4>
-                            <div className="text-3xl font-bold theme-text-glow">{totalPoints}</div>
-                            <div className="text-sm opacity-80">{franchisePlayers.length} élèves</div>
-                            {selectedFranchiseView === franchise && (
-                              <div className="mt-2 text-xs text-center opacity-75">
-                                🎨 Thème actif
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // GESTION DES POINTS PROFESSEUR
-          if (currentView === 'teacher-players') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4 md:p-8">
-                <div className="max-w-7xl mx-auto">
-                  <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl md:text-4xl font-bold text-white">👥 Gestion des Points</h1>
-                    <div className="flex space-x-2 md:space-x-4">
-                      {loading && <div className="text-white text-sm md:text-base">⏳ Chargement...</div>}
-                      <button
-                        onClick={() => setCurrentView('teacher-dashboard')}
-                        className="bg-gray-600 hover:bg-gray-500 text-white px-3 md:px-6 py-2 md:py-3 rounded-lg transition-colors text-sm md:text-base"
-                      >
-                        ← Retour
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                    {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
-                      const avatar = getFranchiseAvatar(franchise);
-                      return (
-                        <div key={franchise} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 md:p-6 franchise-card">
-                          <h2 className={`text-lg md:text-2xl font-bold text-white mb-4 text-center bg-gradient-to-r ${franchiseColors[franchise]} p-2 md:p-3 rounded-lg flex items-center justify-center space-x-2`}>
-                            <span className={`franchise-avatar ${avatar.class} text-2xl md:text-3xl`}>
-                              {avatar.emoji}
-                            </span>
-                            <span className="text-sm md:text-base">{franchise}</span>
-                          </h2>
-                          <div className="space-y-3">
-                            {getSortedPlayers(franchise).map(player => (
-                              <div key={player.name} className="bg-white/20 rounded-lg p-3">
-                                <div className="flex justify-between items-center mb-2">
-                                  <button
-                                    onClick={() => loadPlayerHistory(player.name)}
-                                    className="text-white font-semibold hover:text-yellow-300 transition-colors flex items-center space-x-1 text-sm md:text-base"
-                                  >
-                                    <span className="truncate max-w-24 md:max-w-none">{player.name}</span>
-                                    <span>📋</span>
-                                  </button>
-                                  <div className="flex items-center space-x-2">
-                                    <div className="flex items-center space-x-1">
-                                      <span className="text-xl md:text-2xl">
-                                        {getBadge(player.score).emoji}
-                                      </span>
-                                      <span className="text-white font-bold text-sm md:text-base">
-                                        {player.score}
-                                      </span>
-                                    </div>
-                                    <button
-                                      onClick={() => undoLastAction(player.name)}
-                                      className="bg-red-500 hover:bg-red-400 text-white px-2 py-1 rounded text-xs"
-                                      title="Annuler dernière action"
-                                    >
-                                      ↺
-                                    </button>
-                                  </div>
-                                </div>
-                                <BadgeDisplay badges={player.badges || []} />
-                                <button
-                                  onClick={() => {
-                                    setSelectedStudent(player.name);
-                                    setCurrentView('teacher-actions');
-                                  }}
-                                  className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded transition-colors font-semibold text-sm md:text-base"
-                                  disabled={loading}
-                                >
-                                  Attribuer des Points
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-         // PAGE D'ATTRIBUTION DES POINTS
-if (currentView === 'teacher-actions') {
-  const selectedPlayerData = players.find(p => p.name === selectedStudent);
-  if (!selectedPlayerData) return null;
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
-      <div className="max-w-4xl mx-auto">
-        {/* En-tête */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 md:p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <button
-              onClick={() => setCurrentView('teacher-players')}
-              className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg transition-colors text-sm md:text-base"
-            >
-              ← Retour
-            </button>
-            {loading && <div className="text-white text-sm">⏳ Attribution...</div>}
-          </div>
-          
-          <div className="text-center">
-            <div className={`bg-gradient-to-r ${franchiseColors[selectedPlayerData.franchise]} p-4 rounded-lg inline-block mb-4`}>
-              <div className="flex items-center space-x-3">
-                <span className={`${getFranchiseAvatar(selectedPlayerData.franchise).class} text-3xl md:text-4xl`}>
-                  {getFranchiseAvatar(selectedPlayerData.franchise).emoji}
-                </span>
-                <div className="text-left">
-                  <h1 className="text-2xl md:text-3xl font-bold text-white">{selectedPlayerData.name}</h1>
-                  <p className="text-white/90">{selectedPlayerData.franchise}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex justify-center items-center space-x-3 mb-2">
-              <span className="text-3xl">{getBadge(selectedPlayerData.score).emoji}</span>
-              <span className="text-2xl font-bold text-white">{selectedPlayerData.score} points</span>
-            </div>
-            <div className="text-lg text-yellow-300 font-semibold">
-              {getBadge(selectedPlayerData.score).name}
-            </div>
-          </div>
-        </div>
-
-        {/* Actions positives */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 md:p-6 mb-6">
-          <h2 className="text-xl md:text-2xl font-bold text-green-400 mb-4 text-center">
-            ✅ Actions Positives
-          </h2>
-          
-          {/* Actions Académiques Positives */}
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-blue-300 mb-3 flex items-center">
-              <span className="mr-2">📚</span> Académique
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {positiveActions.filter(action => action.category === 'academic').map((action, index) => (
-                <button
-                  key={`pos-academic-${index}`}
-                  onClick={() => {
-                    addPoints(selectedPlayerData.name, action.points, action.label);
-                    setCurrentView('teacher-players');
-                  }}
-                  className="bg-blue-600/80 hover:bg-blue-500 text-white p-3 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
-                  disabled={loading}
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="text-left text-sm md:text-base font-medium leading-tight">
-                      {action.label.replace(/^📚/, '').trim()}
-                    </span>
-                    <span className="text-blue-200 font-bold text-lg">
-                      +{action.points}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Actions Sport Positives */}
-          <div>
-            <h3 className="text-lg font-semibold text-orange-300 mb-3 flex items-center">
-              <span className="mr-2">🏀</span> Sport
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {positiveActions.filter(action => action.category === 'sport').map((action, index) => (
-                <button
-                  key={`pos-sport-${index}`}
-                  onClick={() => {
-                    addPoints(selectedPlayerData.name, action.points, action.label);
-                    setCurrentView('teacher-players');
-                  }}
-                  className="bg-green-600/80 hover:bg-green-500 text-white p-3 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
-                  disabled={loading}
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="text-left text-sm md:text-base font-medium leading-tight">
-                      {action.label.replace(/^🏀/, '').trim()}
-                    </span>
-                    <span className="text-green-200 font-bold text-lg">
-                      +{action.points}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Actions négatives */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 md:p-6">
-          <h2 className="text-xl md:text-2xl font-bold text-red-400 mb-4 text-center">
-            ⛔ Actions Négatives
-          </h2>
-          
-          {/* Actions Académiques Négatives */}
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-pink-300 mb-3 flex items-center">
-              <span className="mr-2">📚</span> Académique
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {negativeActions.filter(action => action.category === 'academic').map((action, index) => (
-                <button
-                  key={`neg-academic-${index}`}
-                  onClick={() => {
-                    addPoints(selectedPlayerData.name, action.points, action.label);
-                    setCurrentView('teacher-players');
-                  }}
-                  className="bg-pink-600/80 hover:bg-pink-500 text-white p-3 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
-                  disabled={loading}
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="text-left text-sm md:text-base font-medium leading-tight">
-                      {action.label}
-                    </span>
-                    <span className="text-pink-200 font-bold text-lg">
-                      {action.points}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Actions Sport Négatives */}
-          <div>
-            <h3 className="text-lg font-semibold text-red-300 mb-3 flex items-center">
-              <span className="mr-2">🏀</span> Sport
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {negativeActions.filter(action => action.category === 'sport').map((action, index) => (
-                <button
-                  key={`neg-sport-${index}`}
-                  onClick={() => {
-                    addPoints(selectedPlayerData.name, action.points, action.label);
-                    setCurrentView('teacher-players');
-                  }}
-                  className="bg-red-600/80 hover:bg-red-500 text-white p-3 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
-                  disabled={loading}
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="text-left text-sm md:text-base font-medium leading-tight">
-                      {action.label}
-                    </span>
-                    <span className="text-red-200 font-bold text-lg">
-                      {action.points}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-          
-          // ADMINISTRATION PROFESSEUR
-          if (currentView === 'teacher-admin') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-                <div className="max-w-6xl mx-auto">
-                  <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-white">⚙️ Administration des Élèves</h1>
-                    <button
-                      onClick={() => setCurrentView('teacher-dashboard')}
-                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
-                    >
-                      ← Retour Tableau de Bord
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                        ➕ Ajouter un Élève
-                      </h2>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-white text-sm font-bold mb-2">
-                            Nom de l'élève
-                          </label>
-                          <input
-                            type="text"
-                            value={newStudentName}
-                            onChange={(e) => setNewStudentName(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white/70 focus:outline-none"
-                            placeholder="Prénom Nom..."
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="block text-white text-sm font-bold mb-2">
-                            Franchise
-                          </label>
-                          <select
-                            value={newStudentFranchise}
-                            onChange={(e) => setNewStudentFranchise(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
-                          >
-                            <option value="Minotaurs" className="text-black">Minotaurs</option>
-                            <option value="Krakens" className="text-black">Krakens</option>
-                            <option value="Phoenix" className="text-black">Phoenix</option>
-                            <option value="Werewolves" className="text-black">Werewolves</option>
-                          </select>
-                        </div>
-                        
-                        <button
-                          onClick={addStudent}
-                          className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg transition-colors font-bold"
-                        >
-                          ➕ Ajouter l'Élève
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                        🗑️ Supprimer un Élève
-                      </h2>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-white text-sm font-bold mb-2">
-                            Sélectionner un élève
-                          </label>
-                          <select
-                            value={selectedStudent}
-                            onChange={(e) => setSelectedStudent(e.target.value)}
-                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
-                          >
-                            <option value="" className="text-black">-- Choisir un élève --</option>
-                            {players
-                              .sort((a, b) => a.name.localeCompare(b.name))
-                              .map(player => (
-                                <option key={player.name} value={player.name} className="text-black">
-                                  {player.name} ({player.franchise})
-                                </option>
-                              ))}
-                          </select>
-                        </div>
-                        
-                        <button
-                          onClick={() => selectedStudent && removeStudent(selectedStudent)}
-                          disabled={!selectedStudent}
-                          className="w-full bg-red-600 hover:bg-red-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-lg transition-colors font-bold"
-                        >
-                          🗑️ Supprimer l'Élève
-                        </button>
-                        
-                        <p className="text-red-300 text-sm text-center">
-                          ⚠️ Cette action est irréversible !
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                    <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                      📋 Liste Actuelle des Élèves
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
-                        const avatar = getFranchiseAvatar(franchise);
-                        return (
-                          <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg franchise-card`}>
-                            <div className="flex items-center justify-center mb-3">
-                              <span className={`franchise-avatar ${avatar.class}`}>
-                                {avatar.emoji}
-                              </span>
-                              <h3 className="text-xl font-bold text-white ml-2">{franchise}</h3>
-                            </div>
-                            <div className="space-y-2">
-                              {getSortedPlayers(franchise).map(player => (
-                                <div key={player.name} className="bg-white/20 p-2 rounded text-white text-sm">
-                                  <div className="flex justify-between items-center">
-                                    <span>{player.name}</span>
-                                    <span className="font-bold">{player.score} pts</span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="text-center mt-3 text-white/80 text-sm">
-                              {getSortedPlayers(franchise).length} élève(s)
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                    <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                      📊 Export des Données
-                    </h2>
-                    <div className="flex justify-center">
-                      <button
-                        onClick={() => {
-                          const link = document.createElement('a');
-                          link.href = '/api/export-csv';
-                          link.download = `export_basketball_${new Date().toISOString().split('T')[0]}.csv`;
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                        }}
-                        className="bg-gradient-to-r from-green-600 to-green-800 hover:from-green-500 hover:to-green-700 text-white px-8 py-4 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-xl flex items-center space-x-3"
-                      >
-                        <span className="text-2xl">💾</span>
-                        <div>
-                          <div className="font-bold text-lg">Exporter en CSV</div>
-                          <div className="text-sm text-green-100">Télécharger toutes les données</div>
-                        </div>
-                      </button>
-                    </div>
-                    <p className="text-center text-white/70 mt-4 text-sm">
-                      Exporte les points, franchises et badges au format CSV pour Excel
-                    </p>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // VUE GRAPHIQUES PROFESSEUR
-          if (currentView === 'teacher-graphs') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-                <div className="max-w-7xl mx-auto">
-                  <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-white">📊 Évolution des Scores</h1>
-                    <button
-                      onClick={() => setCurrentView('teacher-dashboard')}
-                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
-                    >
-                      ← Retour Tableau de Bord
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                    {/* Liste des joueurs */}
-                    {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
-                      const franchisePlayers = getSortedPlayers(franchise);
-                      const avatar = getFranchiseAvatar(franchise);
-                      return (
-                        <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} rounded-xl p-6 franchise-card`}>
-                          <div className="flex items-center justify-center mb-4">
-                            <span className={`franchise-avatar ${avatar.class}`}>
-                              {avatar.emoji}
-                            </span>
-                            <h3 className="text-xl font-bold text-white ml-2">{franchise}</h3>
-                          </div>
-                          <div className="space-y-2">
-                            {franchisePlayers.map(player => (
-                              <button
-                                key={player.name}
-                                onClick={() => {
-                                  setSelectedPlayerForGraph(player.name);
-                                  loadPlayerProgression(player.name);
-                                }}
-                                className={`w-full p-3 rounded-lg transition-all duration-200 text-left ${
-                                  selectedPlayerForGraph === player.name 
-                                    ? 'bg-white text-gray-800 shadow-lg transform scale-105' 
-                                    : 'bg-white/20 text-white hover:bg-white/30'
-                                }`}
-                              >
-                                <div className="flex justify-between items-center">
-                                  <span className="font-medium">{player.name}</span>
-                                  <span className="font-bold">{player.score} pts</span>
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Graphique du joueur sélectionné */}
-                  {selectedPlayerForGraph && (
-                    <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                        📈 Évolution de {selectedPlayerForGraph}
-                      </h2>
-                      <div className="bg-white rounded-lg p-4">
-                        <canvas id="playerChart" width="800" height="400"></canvas>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          }
-
-          // TABLEAU DE BORD ÉLÈVE
-          if (currentView === 'student-dashboard') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-                <div className="max-w-4xl mx-auto">
-                  <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-white">👨‍🎓 Espace Élève</h1>
-                    <button
-                      onClick={() => {
-                        setCurrentView('home');
-                        setUserType(null);
-                      }}
-                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
-                    >
-                      ← Retour Accueil
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <button
-                      onClick={() => setCurrentView('student-search')}
-                      className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                    >
-                      <div className="text-4xl mb-2">🔍</div>
-                      <h3 className="text-xl font-bold">Mon Score</h3>
-                      <p className="text-blue-100 text-sm">Voir mon historique personnel</p>
-                    </button>
-
-                    <button
-                      onClick={() => setCurrentView('badges')}
-                      className="bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                    >
-                      <div className="text-4xl mb-2">🏅</div>
-                      <h3 className="text-xl font-bold">Badges</h3>
-                      <p className="text-purple-100 text-sm">Découvrir les badges</p>
-                    </button>
-
-                      <button
-  onClick={() => setCurrentView('grades')}
-  className="bg-gradient-to-r from-orange-600 to-orange-800 hover:from-orange-500 hover:to-orange-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
->
-  <div className="text-4xl mb-2">🏀</div>
-  <h3 className="text-xl font-bold">Grades</h3>
-  <p className="text-orange-100 text-sm">Découvrir les grades</p>
-</button>
-                    
-                    <button
-                      onClick={() => setCurrentView('rankings')}
-                      className="bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300"
-                    >
-                      <div className="text-4xl mb-2">🏆</div>
-                      <h3 className="text-xl font-bold">Classements</h3>
-                      <p className="text-amber-100 text-sm">Voir tous les classements</p>
-                    </button>
-                  </div>
-
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                    <h3 className="text-2xl font-bold text-white mb-6 text-center">
-                      🏠 Les Quatre Franchises
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
-                        const franchisePlayers = getSortedPlayers(franchise);
-                        const totalPoints = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
-                        const avatar = getFranchiseAvatar(franchise);
-                        return (
-                          <div 
-                            key={franchise} 
-                            className={`theme-card cursor-pointer transform transition-all duration-300 p-4 rounded-lg text-center franchise-card hover:scale-105 ${selectedFranchiseView === franchise ? 'ring-4 ring-white/50' : ''}`}
-                            onClick={() => handleFranchiseClick(franchise)}
-                          >
-                            <div className="flex items-center justify-center mb-2">
-                              <span className={`franchise-avatar ${avatar.class}`}>
-                                {avatar.emoji}
-                              </span>
-                            </div>
-                            <h4 className="font-bold theme-text-glow text-lg">{franchise}</h4>
-                            <div className="text-3xl font-bold theme-text-glow">{totalPoints}</div>
-                            <div className="text-sm opacity-80">{franchisePlayers.length} élèves</div>
-                            {selectedFranchiseView === franchise && (
-                              <div className="mt-2 text-xs text-center opacity-75">
-                                🎨 Thème actif
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // RECHERCHE ÉLÈVE
-          if (currentView === 'student-search') {
-            
-            const searchPlayer = async () => {
-              if (!searchName.trim()) {
-                alert('Veuillez entrer votre nom');
-                return;
-              }
-
-              try {
-                const response = await fetch(`/api/player/${encodeURIComponent(searchName.trim())}`);
-                if (response.ok) {
-                  const player = await response.json();
-                  setFoundPlayer(player);
-                  
-                  const historyResponse = await fetch(`/api/history/${encodeURIComponent(searchName.trim())}`);
-                  const history = await historyResponse.json();
-                  setSearchHistory(history);
-                } else {
-                  setFoundPlayer(null);
-                  setSearchHistory([]);
-                  alert('Élève non trouvé. Vérifiez l\'orthographe de votre nom.');
-                }
-              } catch (error) {
-                alert('Erreur lors de la recherche');
-              }
-            };
-
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-                <div className="max-w-4xl mx-auto">
-                  <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-white">🔍 Rechercher Mon Score</h1>
-                    <button
-                      onClick={() => setCurrentView('student-dashboard')}
-                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
-                    >
-                      ← Retour
-                    </button>
-                  </div>
-
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
-                    <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                      Entrez votre nom complet
-                    </h2>
-                    <div className="flex space-x-4">
-                      <input
-                        type="text"
-                        value={searchName}
-                        onChange={(e) => setSearchName(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && searchPlayer()}
-                        className="flex-1 px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white/70 focus:outline-none text-lg"
-                        placeholder="Votre prénom et nom..."
-                      />
-                      <button
-                        onClick={searchPlayer}
-                        className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg transition-colors font-bold"
-                      >
-                        🔍 Rechercher
-                      </button>
-                    </div>
-                  </div>
-
-                  {foundPlayer && (
-                    <div className="space-y-6">
-                      <div className={`bg-gradient-to-r ${franchiseColors[foundPlayer.franchise]} p-6 rounded-xl franchise-card`}>
-                        <div className="text-center">
-                          <h2 className="text-3xl font-bold text-white mb-2">{foundPlayer.name}</h2>
-                          <div className="text-xl text-white/90 mb-4 flex items-center justify-center space-x-3">
-                            <span>Franchise:</span>
-                            <div className="flex items-center space-x-2">
-                              <span className={`franchise-avatar ${getFranchiseAvatar(foundPlayer.franchise).class}`}>
-                                {getFranchiseAvatar(foundPlayer.franchise).emoji}
-                              </span>
-                              <span className="font-bold">{foundPlayer.franchise}</span>
-                            </div>
-                          </div>
-                          <div className="mb-4">
-                            <div className="inline-flex items-center space-x-2 bg-black/30 px-4 py-2 rounded-full">
-                              <span className="text-3xl">{getBadge(foundPlayer.score).emoji}</span>
-                              <span className={`text-xl font-bold ${getBadge(foundPlayer.score).color}`}>
-                                {getBadge(foundPlayer.score).name}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="text-5xl font-bold text-white">{foundPlayer.score} points</div>
-                        </div>
-                      </div>
-{foundPlayer.badges && foundPlayer.badges.length > 0 && (
-  <div className="mt-6 bg-white/10 backdrop-blur-sm rounded-xl p-6">
-    <h4 className="text-2xl font-bold text-white mb-4 text-center">
-      🏅 Mes Badges ({foundPlayer.badges.length})
-    </h4>
-    <div className="flex flex-wrap gap-3 justify-center">
-      {foundPlayer.badges.map((badge, index) => (
-        <div key={index} className="bg-black/30 px-4 py-3 rounded-lg flex items-center gap-2 hover:bg-black/50 transition-colors">
-          <span className="text-3xl">{badge.badge_emoji}</span>
-          <div>
-            <div className="text-white font-bold">{badge.badge_name}</div>
-            <div className="text-yellow-300 text-xs">+{badge.points || 0} pts</div>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
-                      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                        <h3 className="text-2xl font-bold text-white mb-6 text-center">
-                          📋 Mon Historique
-                        </h3>
-                        <div className="space-y-3 max-h-96 overflow-y-auto">
-                          {searchHistory.length > 0 ? (
-                            searchHistory.map((entry, index) => (
-                              <div key={index} className="bg-white/20 p-4 rounded-lg">
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <div className="font-semibold text-white">{entry.action}</div>
-                                    <div className="text-sm text-white/80">{entry.timestamp}</div>
-                                    {entry.teacher_name && entry.teacher_name !== 'Anonyme' && (
-                                      <div className="text-xs text-white/60">Par: {entry.teacher_name}</div>
-                                    )}
-                                  </div>
-                                  <div className="text-right">
-                                    <div className={`text-lg font-bold ${entry.points > 0 ? 'text-green-300' : 'text-red-300'}`}>
-                                      {entry.points > 0 ? '+' : ''}{entry.points}
-                                    </div>
-                                    <div className="text-sm text-white/70">Total: {entry.new_total}</div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-white/70 text-center">Aucun historique disponible</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          }
-
-          // PAGE CLASSEMENTS
-          if (currentView === 'rankings') {
-  
-  const franchiseRankings = getFranchiseRankings();
-  const playerRankings = getGeneralPlayerRankings();
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-white">Classements</h1>
-          <button
-            onClick={() => setCurrentView(userType === 'teacher' ? 'teacher-dashboard' : 'student-dashboard')}
-            className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
-          >
-            ← Retour
-          </button>
-        </div>
-
-        {/* Onglets de navigation */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-2 mb-8">
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setActiveTab('general')}
-              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg transition-colors ${
-                activeTab === 'general'
-                  ? 'bg-white text-purple-900 font-bold'
-                  : 'text-white hover:bg-white/20'
-              }`}
-            >
-              <span>Classements Généraux</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('mvp')}
-              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg transition-colors ${
-                activeTab === 'mvp'
-                  ? 'bg-white text-purple-900 font-bold'
-                  : 'text-white hover:bg-white/20'
-              }`}
-            >
-              <span>MVP & Records</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('franchises')}
-              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg transition-colors ${
-                activeTab === 'franchises'
-                  ? 'bg-white text-purple-900 font-bold'
-                  : 'text-white hover:bg-white/20'
-              }`}
-            >
-              <span>Stats Franchises</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('hall-of-fame')}
-              className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg transition-colors ${
-                activeTab === 'hall-of-fame'
-                  ? 'bg-white text-purple-900 font-bold'
-                  : 'text-white hover:bg-white/20'
-              }`}
-            >
-              <span>Hall of Fame</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Sélecteur de période pour MVP et Stats */}
-        {(activeTab === 'mvp' || activeTab === 'franchises') && (
-          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-8">
-            <div className="flex justify-center space-x-4">
-              <button
-                onClick={() => setSelectedPeriod('week')}
-                className={`px-6 py-2 rounded-lg transition-colors ${
-                  selectedPeriod === 'week'
-                    ? 'bg-blue-600 text-white font-bold'
-                    : 'bg-white/20 text-white hover:bg-white/30'
-                }`}
-              >
-                Cette Semaine
-              </button>
-              <button
-                onClick={() => setSelectedPeriod('month')}
-                className={`px-6 py-2 rounded-lg transition-colors ${
-                  selectedPeriod === 'month'
-                    ? 'bg-blue-600 text-white font-bold'
-                    : 'bg-white/20 text-white hover:bg-white/30'
-                }`}
-              >
-                Ce Mois
-              </button>
-              <button
-                onClick={() => setSelectedPeriod('trimester')}
-                className={`px-6 py-2 rounded-lg transition-colors ${
-                  selectedPeriod === 'trimester'
-                    ? 'bg-blue-600 text-white font-bold'
-                    : 'bg-white/20 text-white hover:bg-white/30'
-                }`}
-              >
-                Ce Trimestre
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Contenu selon l'onglet actif */}
-        {activeTab === 'general' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Classement des Franchises */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-              <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                Classement des Franchises
-              </h2>
-              <div className="space-y-4">
-                {franchiseRankings.map(({ franchise, score, rank }) => {
-                  const avatar = getFranchiseAvatar(franchise);
-                  return (
-                    <div
-                      key={franchise}
-                      className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg flex justify-between items-center shadow-lg franchise-card`}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <span className="text-2xl font-bold text-white">#{rank}</span>
-                        <span className={`franchise-avatar ${avatar.class}`}>
-                          {avatar.emoji}
-                        </span>
-                        <span className="text-xl font-semibold text-white">{franchise}</span>
-                      </div>
-                      <span className="text-2xl font-bold text-white">{score} pts</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Classement Général */}
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-              <h2 className="text-2xl font-bold text-white mb-6 text-center">
-                Classement Général
-              </h2>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {playerRankings.map((player, index) => {
-                  const badge = getBadge(player.score);
-                  return (
-                    <div
-                      key={player.name}
-                      className={`bg-gradient-to-r ${franchiseColors[player.franchise]} p-3 rounded-lg flex justify-between items-center shadow-md`}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <span className="text-lg font-bold text-white">#{index + 1}</span>
-                        <span className="text-2xl">{badge.emoji}</span>
-                        <div>
-                          <span className="text-lg font-semibold text-white">{player.name}</span>
-                          <div className="text-sm text-white/80">{player.franchise}</div>
-                        </div>
-                      </div>
-                      <span className="text-lg font-bold text-white">{player.score} pts</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'mvp' && <MVPSection period={selectedPeriod} />}
-        {activeTab === 'franchises' && <FranchiseStatsSection period={selectedPeriod} />}
-        {activeTab === 'hall-of-fame' && <HallOfFameSection />}
-      </div>
-    </div>
-  );
-}
-          // PAGE DES BADGES
-          if (currentView === 'badges') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-                <div className="max-w-7xl mx-auto">
-                  <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-white">🏅 Collection de Badges</h1>
-                    <button
-                      onClick={() => setCurrentView(userType === 'teacher' ? 'teacher-dashboard' : 'student-dashboard')}
-                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
-                    >
-                      ← Retour
-                    </button>
-                  </div>
-
-                  {/* Badges Individuels */}
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
-                    <h2 className="text-2xl font-bold text-white mb-6 text-center">👤 Badges Individuels</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {Object.values(individualBadges).map(badge => {
-                        // Compter combien de joueurs ont ce badge
-                        const playersWithBadge = Object.entries(playerBadges).filter(([player, badges]) =>
-                          badges?.some(b => b.id === badge.id)
-                        ).map(([player]) => player);
-
-                        return (
-                          <div key={badge.id} className={`rounded-lg p-4 border-2 ${getRarityColor(badge.rarity)}`}>
-                            <div className="flex items-center space-x-3 mb-3">
-                              <span className="text-4xl">{badge.emoji}</span>
-                              <div className="flex-1">
-                                <h3 className="text-white font-bold text-lg">{badge.name}</h3>
-                                <p className="text-white/70 text-sm">{badge.description}</p>
-                                <p className="text-yellow-300 text-xs mt-1">+{badge.points} pts</p>
-                              </div>
-                            </div>
-                            {playersWithBadge.length > 0 && (
-                              <div className="text-white/60 text-xs mt-2 pt-2 border-t border-white/20">
-                                <p>Obtenu par: {playersWithBadge.length} joueur(s)</p>
-                                <p className="truncate">{playersWithBadge.slice(0, 3).join(', ')}{playersWithBadge.length > 3 ? '...' : ''}</p>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Badges Collectifs */}
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                    <h2 className="text-2xl font-bold text-white mb-6 text-center">🏠 Badges Collectifs</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {Object.values(collectiveBadges).map(badge => {
-                        // Compter combien de franchises ont ce badge
-                        const franchisesWithBadge = Object.entries(franchiseBadges).filter(([franchise, badges]) =>
-                          badges?.some(b => b.id === badge.id)
-                        ).map(([franchise]) => franchise);
-
-                        return (
-                          <div key={badge.id} className={`rounded-lg p-4 border-2 ${getRarityColor(badge.rarity)}`}>
-                            <div className="flex items-center space-x-3 mb-3">
-                              <span className="text-4xl">{badge.emoji}</span>
-                              <div className="flex-1">
-                                <h3 className="text-white font-bold text-lg">{badge.name}</h3>
-                                <p className="text-white/70 text-sm">{badge.description}</p>
-                                <p className="text-yellow-300 text-xs mt-1">+{badge.points} pts franchise</p>
-                              </div>
-                            </div>
-                            {franchisesWithBadge.length > 0 && (
-                              <div className="text-white/60 text-xs mt-2 pt-2 border-t border-white/20">
-                                <p>Obtenu par: {franchisesWithBadge.join(', ')}</p>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-// PAGE DES GRADES
-if (currentView === 'grades') {
-  // Définition complète de tous les grades
-  const allGrades = [
-    // GRADES NÉGATIFS
-    { emoji: '🗑️', name: 'Scrub', minScore: -1000, maxScore: -50, color: 'from-red-900 to-red-700', description: 'Le pire niveau possible' },
-    { emoji: '🪑', name: 'Benchwarmer', minScore: -50, maxScore: -25, color: 'from-red-700 to-red-500', description: 'Cloué sur le banc' },
-    { emoji: '📉', name: 'Plot', minScore: -25, maxScore: 0, color: 'from-gray-700 to-gray-500', description: 'Personnage sans importance' },
     
-    // GRADES DÉBUTANTS
-    { emoji: '👶', name: 'Freshman', minScore: 0, maxScore: 10, color: 'from-yellow-600 to-yellow-500', description: 'Première année, apprend les bases' },
-    { emoji: '🏀', name: 'Rookie', minScore: 10, maxScore: 25, color: 'from-amber-600 to-amber-500', description: 'Débutant prometteur' },
+    params.push(parseInt(limit));
     
-    // GRADES DÉVELOPPEMENT
-    { emoji: '🏃', name: 'Sixth Man', minScore: 25, maxScore: 50, color: 'from-green-700 to-green-600', description: 'Premier remplaçant de qualité' },
-    { emoji: '⭐', name: 'Starting Five', minScore: 50, maxScore: 75, color: 'from-green-600 to-green-500', description: 'Titulaire indiscutable' },
+    const history = db.prepare(`
+      SELECT * FROM mvp_history 
+      ${whereClause}
+      ORDER BY date_awarded DESC 
+      LIMIT ?
+    `).all(...params);
     
-    // GRADES CONFIRMÉS
-    { emoji: '💎', name: 'Franchise Player', minScore: 75, maxScore: 100, color: 'from-blue-700 to-blue-600', description: 'Pilier de l\'équipe' },
-    { emoji: '🌟', name: 'All-Star', minScore: 100, maxScore: 150, color: 'from-blue-600 to-blue-500', description: 'Sélectionné parmi l\'élite' },
+    res.json(history);
     
-    // GRADES ÉLITE
-    { emoji: '🔥', name: 'Superstar', minScore: 150, maxScore: 200, color: 'from-orange-600 to-red-500', description: 'Phénomène basketball' },
-    { emoji: '🏛️', name: 'Hall of Fame', minScore: 200, maxScore: 250, color: 'from-yellow-600 to-yellow-500', description: 'Légende du sport' },
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 3. Statistiques des franchises (répartition sport/académique)
+app.get('/api/stats/franchise-breakdown', (req, res) => {
+  try {
+    const { period = 'week' } = req.query;
     
-    // GRADE ULTIME
-    { emoji: '🐐', name: 'GOAT', minScore: 250, maxScore: 9999, color: 'from-purple-600 to-pink-600', description: 'Greatest Of All Time' }
-  ];
-
-  // Compter combien d'élèves ont chaque grade
-  const getPlayersInGrade = (minScore, maxScore) => {
-    return players.filter(p => p.score >= minScore && p.score < maxScore).length;
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-white">🏀 Système de Grades Basketball</h1>
-          <button
-            onClick={() => setCurrentView(userType === 'teacher' ? 'teacher-dashboard' : 'student-dashboard')}
-            className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
-          >
-            ← Retour
-          </button>
-        </div>
-
-        {/* Progression visuelle */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
-          <h2 className="text-2xl font-bold text-white mb-6 text-center">🎯 Échelle de Progression</h2>
-          <div className="relative">
-            {/* Barre de progression */}
-            <div className="absolute left-0 right-0 top-1/2 h-2 bg-white/20 rounded-full transform -translate-y-1/2"></div>
-            
-            {/* Points clés */}
-            <div className="relative flex justify-between mb-8">
-              <div className="text-center">
-                <div className="w-4 h-4 bg-red-500 rounded-full mb-2"></div>
-                <div className="text-white text-xs">-50</div>
-              </div>
-              <div className="text-center">
-                <div className="w-4 h-4 bg-yellow-500 rounded-full mb-2"></div>
-                <div className="text-white text-xs">0</div>
-              </div>
-              <div className="text-center">
-                <div className="w-4 h-4 bg-green-500 rounded-full mb-2"></div>
-                <div className="text-white text-xs">50</div>
-              </div>
-              <div className="text-center">
-                <div className="w-4 h-4 bg-blue-500 rounded-full mb-2"></div>
-                <div className="text-white text-xs">100</div>
-              </div>
-              <div className="text-center">
-                <div className="w-4 h-4 bg-orange-500 rounded-full mb-2"></div>
-                <div className="text-white text-xs">150</div>
-              </div>
-              <div className="text-center">
-                <div className="w-4 h-4 bg-purple-500 rounded-full mb-2"></div>
-                <div className="text-white text-xs">250+</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Liste des grades */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {allGrades.map((grade, index) => {
-            const playersCount = getPlayersInGrade(grade.minScore, grade.maxScore);
-            const isNegative = grade.minScore < 0;
-            
-            return (
-              <div 
-                key={index} 
-                className={`bg-gradient-to-r ${grade.color} p-6 rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-300`}
-              >
-                <div className="text-center">
-                  <div className="text-6xl mb-3">{grade.emoji}</div>
-                  <h3 className="text-2xl font-bold text-white mb-2">{grade.name}</h3>
-                  <p className="text-white/90 mb-3">{grade.description}</p>
-                  
-                  <div className="bg-black/30 rounded-lg p-3 mb-3">
-                    <div className="text-white font-bold">
-                      {grade.maxScore === 9999 ? 
-                        `${grade.minScore}+ points` : 
-                        `${grade.minScore} à ${grade.maxScore} points`
-                      }
-                    </div>
-                  </div>
-                  
-                  {userType === 'teacher' && (
-                    <div className="text-white/80 text-sm">
-                      {playersCount > 0 ? (
-                        <span className="font-bold">{playersCount} élève{playersCount > 1 ? 's' : ''}</span>
-                      ) : (
-                        <span className="text-white/50">Aucun élève</span>
-                      )}
-                    </div>
-                  )}
-                  
-                  {isNegative && (
-                    <div className="mt-2 text-red-200 text-xs">
-                      ⚠️ Zone de danger
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Statistiques pour les profs */}
-        {userType === 'teacher' && (
-          <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6">
-            <h3 className="text-2xl font-bold text-white mb-4">📊 Répartition Actuelle</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-red-400">
-                  {players.filter(p => p.score < 0).length}
-                </div>
-                <div className="text-white/70">En difficulté</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-400">
-                  {players.filter(p => p.score >= 0 && p.score < 50).length}
-                </div>
-                <div className="text-white/70">Débutants</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-green-400">
-                  {players.filter(p => p.score >= 50 && p.score < 150).length}
-                </div>
-                <div className="text-white/70">Confirmés</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-purple-400">
-                  {players.filter(p => p.score >= 150).length}
-                </div>
-                <div className="text-white/70">Élite</div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-          // Return principal avec le modal d'historique et notifications
-          return (
-            <>
-              {/* Système de notifications */}
-              <NotificationSystem notifications={notifications} />
-              
-              {selectedPlayerHistory && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                  <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-96 overflow-y-auto">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-xl font-bold">Historique de {selectedPlayerHistory}</h3>
-                      <button
-                        onClick={() => setSelectedPlayerHistory(null)}
-                        className="text-gray-500 hover:text-gray-700 text-xl"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <div className="space-y-2">
-                      {playerHistory.length > 0 ? (
-                        playerHistory.map((entry, index) => (
-                          <div key={index} className="border-l-4 border-blue-500 pl-3 py-2">
-                            <div className="font-semibold">{entry.action}</div>
-                            <div className="text-sm text-gray-600">
-                              {entry.points > 0 ? '+' : ''}{entry.points} points
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {entry.timestamp} • Total: {entry.new_total} pts
-                              {entry.teacher_name && entry.teacher_name !== 'Anonyme' && (
-                                <span> • Par: {entry.teacher_name}</span>
-                              )}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-gray-500 text-center">Aucun historique disponible</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          );
+    let bounds;
+    switch(period) {
+      case 'week': bounds = getWeekBounds(); break;
+      case 'month': bounds = getMonthBounds(); break;
+      case 'trimester': bounds = getTrimesterBounds(); break;
+      default: bounds = getWeekBounds();
+    }
+    
+    // Debug logs
+    console.log('Période:', period);
+    console.log('Bounds:', bounds);
+    
+    // D'abord vérifier si des données existent pour cette période
+    const hasData = db.prepare(`
+      SELECT COUNT(*) as count FROM period_stats 
+      WHERE period_type = ? AND period_start = ?
+    `).get(period, bounds.start);
+    
+    console.log('Données period_stats trouvées:', hasData);
+    
+    let franchiseStats = [];
+    
+    if (hasData && hasData.count > 0) {
+      // Utiliser les données de period_stats si elles existent
+      franchiseStats = db.prepare(`
+        SELECT 
+          franchise,
+          SUM(sport_points) as total_sport,
+          SUM(academic_points) as total_academic,
+          SUM(total_points) as total_points,
+          COUNT(*) as active_players,
+          ROUND(
+            CASE 
+              WHEN (SUM(sport_points) + SUM(academic_points)) = 0 THEN 0
+              ELSE (SUM(sport_points) * 100.0) / (SUM(sport_points) + SUM(academic_points))
+            END, 1
+          ) as sport_percentage,
+          ROUND(
+            CASE 
+              WHEN (SUM(sport_points) + SUM(academic_points)) = 0 THEN 0
+              ELSE (SUM(academic_points) * 100.0) / (SUM(sport_points) + SUM(academic_points))
+            END, 1
+          ) as academic_percentage
+        FROM period_stats 
+        WHERE period_type = ? AND period_start = ?
+        GROUP BY franchise
+        ORDER BY total_points DESC
+      `).all(period, bounds.start);
+    } else {
+      // Sinon, calculer depuis l'historique récent
+      console.log('Pas de données period_stats, calcul depuis l\'historique...');
+      
+      // Obtenir les franchises
+      const franchises = db.prepare('SELECT DISTINCT franchise FROM players').all();
+      
+      franchiseStats = franchises.map(f => {
+        const stats = db.prepare(`
+          SELECT 
+            ? as franchise,
+            COALESCE(SUM(CASE WHEN h.category = 'sport' AND h.points > 0 THEN h.points ELSE 0 END), 0) as total_sport,
+            COALESCE(SUM(CASE WHEN h.category = 'academic' AND h.points > 0 THEN h.points ELSE 0 END), 0) as total_academic,
+            COALESCE(SUM(CASE WHEN h.points > 0 THEN h.points ELSE 0 END), 0) as total_points,
+            COUNT(DISTINCT h.player_name) as active_players
+          FROM players p
+          LEFT JOIN history h ON p.name = h.player_name 
+            AND datetime(h.timestamp) >= datetime(?)
+            AND datetime(h.timestamp) <= datetime(?)
+          WHERE p.franchise = ?
+        `).get(f.franchise, bounds.start, bounds.end, f.franchise);
+        
+        const total = (stats.total_sport || 0) + (stats.total_academic || 0);
+        return {
+          ...stats,
+          sport_percentage: total > 0 ? Math.round((stats.total_sport * 100.0) / total * 10) / 10 : 0,
+          academic_percentage: total > 0 ? Math.round((stats.total_academic * 100.0) / total * 10) / 10 : 0
         };
+      }); // Enlever le filtre pour montrer toutes les franchises
+    }
+    
+    // Calculer la franchise la plus équilibrée (ratio le plus proche de 50/50)
+    let mostBalanced = null;
+    let bestBalance = 100;
+    
+    franchiseStats.forEach(franchise => {
+      if (franchise.total_points > 0) {
+        const balance = Math.abs(50 - franchise.sport_percentage);
+        if (balance < bestBalance) {
+          bestBalance = balance;
+          mostBalanced = franchise;
+        }
+      }
+    });
+    
+    res.json({
+      period,
+      period_bounds: bounds,
+      franchise_stats: franchiseStats,
+      most_balanced: mostBalanced,
+      summary: {
+        total_sport_points: franchiseStats.reduce((sum, f) => sum + (f.total_sport || 0), 0),
+        total_academic_points: franchiseStats.reduce((sum, f) => sum + (f.total_academic || 0), 0),
+        most_active_franchise: franchiseStats.length > 0 ? franchiseStats.reduce((prev, curr) => 
+          (prev.active_players || 0) > (curr.active_players || 0) ? prev : curr, franchiseStats[0]) : null
+      }
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-        ReactDOM.render(<App />, document.getElementById('root'));
-    </script>
-</body>
-</html>
+// 4. Hall of Fame (records permanents)
+app.get('/api/hall-of-fame', (req, res) => {
+  try {
+    // Records actuels
+    const currentRecords = db.prepare(`
+      SELECT * FROM hall_of_fame 
+      WHERE is_current = 1 
+      ORDER BY score DESC
+    `).all();
+    
+    // Historique complet
+    const fullHistory = db.prepare(`
+      SELECT * FROM hall_of_fame 
+      ORDER BY date_achieved DESC
+      LIMIT 50
+    `).all();
+    
+    // Statistiques des badges
+    const badgeLeaders = db.prepare(`
+      SELECT 
+        pb.player_name,
+        p.franchise,
+        COUNT(*) as badge_count,
+        SUM(pb.points) as bonus_points
+      FROM player_badges pb
+      JOIN players p ON pb.player_name = p.name
+      GROUP BY pb.player_name, p.franchise
+      ORDER BY badge_count DESC, bonus_points DESC
+      LIMIT 10
+    `).all();
+    
+    // Record absolu actuel
+    const absoluteRecord = db.prepare(`
+      SELECT name as player_name, franchise, score 
+      FROM players 
+      ORDER BY score DESC 
+      LIMIT 1
+    `).get();
+    
+    res.json({
+      current_records: currentRecords,
+      full_history: fullHistory,
+      badge_leaders: badgeLeaders,
+      absolute_record: absoluteRecord,
+      last_updated: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 5. Évolution des positions des franchises
+app.get('/api/progression/franchise', (req, res) => {
+  try {
+    const { days = 30 } = req.query;
+    
+    // Récupérer les classements des X derniers jours
+    const rankings = db.prepare(`
+      SELECT * FROM franchise_rankings 
+      WHERE DATE(date_recorded) >= DATE('now', '-' || ? || ' days')
+      ORDER BY date_recorded ASC
+    `).all(days);
+    
+    // Si pas assez de données historiques, calculer sur les données actuelles
+    if (rankings.length === 0) {
+      // Calculer le classement actuel
+      const currentRankings = db.prepare(`
+        SELECT 
+          franchise,
+          SUM(score) as total_points,
+          DATE('now') as date_recorded
+        FROM players 
+        GROUP BY franchise 
+        ORDER BY total_points DESC
+      `).all();
+      
+      currentRankings.forEach((franchise, index) => {
+        // Insérer dans franchise_rankings pour l'historique
+        db.prepare(`
+          INSERT OR REPLACE INTO franchise_rankings 
+          (franchise, date_recorded, position, total_points, sport_points, academic_points)
+          VALUES (?, ?, ?, ?, 0, 0)
+        `).run(franchise.franchise, franchise.date_recorded, index + 1, franchise.total_points);
+      });
+      
+      return res.json({
+        period: `${days} derniers jours`,
+        data: currentRankings.map((f, i) => ({...f, position: i + 1})),
+        message: 'Données limitées - classement actuel affiché'
+      });
+    }
+    
+    // Organiser les données par franchise
+    const franchiseProgression = {};
+    rankings.forEach(ranking => {
+      if (!franchiseProgression[ranking.franchise]) {
+        franchiseProgression[ranking.franchise] = [];
+      }
+      franchiseProgression[ranking.franchise].push({
+        date: ranking.date_recorded,
+        position: ranking.position,
+        total_points: ranking.total_points,
+        sport_points: ranking.sport_points || 0,
+        academic_points: ranking.academic_points || 0
+      });
+    });
+    
+    res.json({
+      period: `${days} derniers jours`,
+      franchise_progression: franchiseProgression,
+      total_records: rankings.length
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ENDPOINT DE DIAGNOSTIC pour vérifier les données
+app.get('/api/debug/period-stats', (req, res) => {
+  try {
+    const stats = db.prepare('SELECT * FROM period_stats ORDER BY date_updated DESC LIMIT 10').all();
+    const history = db.prepare('SELECT * FROM history ORDER BY id DESC LIMIT 10').all();
+    const counts = db.prepare(`
+      SELECT 
+        period_type,
+        COUNT(*) as count,
+        SUM(total_points) as total_points
+      FROM period_stats
+      GROUP BY period_type
+    `).all();
+    
+    res.json({
+      recent_stats: stats,
+      recent_history: history,
+      summary: counts,
+      current_week: getWeekBounds(),
+      current_month: getMonthBounds()
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// FONCTION POUR MIGRER LES DONNÉES EXISTANTES
+app.post('/api/migrate-existing-data', (req, res) => {
+  try {
+    console.log('🔄 Migration des données existantes...');
+    
+    // Récupérer tout l'historique
+    const allHistory = db.prepare('SELECT * FROM history ORDER BY id ASC').all();
+    
+    allHistory.forEach(entry => {
+      // Déterminer la catégorie si elle n'existe pas
+      if (!entry.category || entry.category === 'unknown') {
+        const category = getActionCategory(entry.action);
+        db.prepare('UPDATE history SET category = ? WHERE id = ?').run(category, entry.id);
+      }
+      
+      // Recréer les stats périodiques basées sur la date
+      const entryDate = new Date(entry.timestamp);
+      const weekBounds = getWeekBounds(entryDate);
+      const monthBounds = getMonthBounds(entryDate);
+      const trimesterBounds = getTrimesterBounds(entryDate);
+      
+      const category = entry.category || getActionCategory(entry.action);
+      
+      // Mettre à jour les stats pour chaque période
+      updatePlayerPeriodStat(entry.player_name, 'week', weekBounds.start, weekBounds.end, entry.points, category);
+      updatePlayerPeriodStat(entry.player_name, 'month', monthBounds.start, monthBounds.end, entry.points, category);
+      updatePlayerPeriodStat(entry.player_name, 'trimester', trimesterBounds.start, trimesterBounds.end, entry.points, category);
+    });
+    
+    console.log(`✅ Migration terminée: ${allHistory.length} entrées traitées`);
+    res.json({ 
+      success: true, 
+      processed: allHistory.length,
+      message: 'Migration des données terminée avec succès'
+    });
+    
+  } catch (error) {
+    console.error('❌ Erreur lors de la migration:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Export CSV des données
+app.get('/api/export-csv', (req, res) => {
+  try {
+    // Récupérer tous les joueurs avec leurs franchises
+    const players = db.prepare(`
+      SELECT 
+        p.name as Joueur,
+        p.franchise as Franchise,
+        p.score as Score_Total,
+        COALESCE(ps.sport_points, 0) as Points_Sport,
+        COALESCE(ps.academic_points, 0) as Points_Académique,
+        COALESCE(stats.current_streak, 0) as Série_Actuelle,
+        COALESCE(stats.max_streak, 0) as Meilleure_Série,
+        (SELECT COUNT(*) FROM player_badges WHERE player_name = p.name) as Nombre_Badges
+      FROM players p
+      LEFT JOIN player_stats stats ON p.name = stats.player_name
+      LEFT JOIN (
+        SELECT player_name, 
+               SUM(sport_points) as sport_points,
+               SUM(academic_points) as academic_points
+        FROM period_stats
+        WHERE period_type = 'month' 
+          AND period_start = DATE('now', 'start of month')
+        GROUP BY player_name
+      ) ps ON p.name = ps.player_name
+      ORDER BY p.franchise, p.score DESC
+    `).all();
+
+    // Récupérer les totaux par franchise
+    const franchises = db.prepare(`
+      SELECT 
+        franchise as Franchise,
+        SUM(score) as Score_Total,
+        COUNT(*) as Nombre_Joueurs,
+        AVG(score) as Score_Moyen,
+        MAX(score) as Meilleur_Score,
+        MIN(score) as Moins_Bon_Score
+      FROM players
+      GROUP BY franchise
+      ORDER BY Score_Total DESC
+    `).all();
+
+    // Créer le CSV pour les joueurs
+    let csvContent = '\ufeff'; // BOM pour Excel UTF-8
+    csvContent += 'EXPORT DES DONNÉES - ' + new Date().toLocaleString('fr-FR') + '\n\n';
+    
+    // Section Joueurs
+    csvContent += '=== JOUEURS ===\n';
+    if (players.length > 0) {
+      csvContent += Object.keys(players[0]).join(';') + '\n';
+      players.forEach(player => {
+        csvContent += Object.values(player).join(';') + '\n';
+      });
+    }
+    
+    csvContent += '\n\n=== FRANCHISES ===\n';
+    if (franchises.length > 0) {
+      csvContent += Object.keys(franchises[0]).join(';') + '\n';
+      franchises.forEach(franchise => {
+        csvContent += Object.values(franchise).map(v => 
+          typeof v === 'number' && !Number.isInteger(v) ? v.toFixed(1) : v
+        ).join(';') + '\n';
+      });
+    }
+
+    // Ajouter les badges par franchise
+    const franchiseBadges = db.prepare(`
+      SELECT 
+        franchise as Franchise,
+        COUNT(*) as Total_Badges_Collectifs
+      FROM franchise_badges
+      GROUP BY franchise
+    `).all();
+
+    if (franchiseBadges.length > 0) {
+      csvContent += '\n\n=== BADGES COLLECTIFS ===\n';
+      csvContent += 'Franchise;Nombre de Badges\n';
+      franchiseBadges.forEach(fb => {
+        csvContent += `${fb.Franchise};${fb.Total_Badges_Collectifs}\n`;
+      });
+    }
+
+    // Configurer les headers pour le téléchargement
+    const filename = `export_basketball_${new Date().toISOString().split('T')[0]}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csvContent);
+
+  } catch (error) {
+    console.error('Erreur lors de l\'export CSV:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Servir l'application React
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Lancer le serveur
+app.listen(port, () => {
+  console.log(`🚀 Serveur démarré sur le port ${port}`);
+  console.log(`🔐 Mot de passe professeur: ${TEACHER_PASSWORD}`);
+  console.log(`🏅 Système de badges automatique activé`);
+  console.log(`📊 Base de données: ${dbPath}`);
+  
+  // Vérifier les classements toutes les heures
+  setInterval(checkFranchiseRankings, 3600000);
+  
+  // Reset hebdomadaire (tous les lundis à minuit)
+  setInterval(() => {
+    const now = new Date();
+    if (now.getDay() === 1 && now.getHours() === 0 && now.getMinutes() === 0) {
+      db.prepare('UPDATE franchise_stats SET weekly_points = 0').run();
+      db.prepare('UPDATE player_stats SET weekly_actions = 0').run();
+      console.log('📅 Reset hebdomadaire effectué');
+    }
+  }, 60000); // Vérifier chaque minute
+  
+  // Reset mensuel (le 1er de chaque mois)
+  setInterval(() => {
+    const now = new Date();
+    if (now.getDate() === 1 && now.getHours() === 0 && now.getMinutes() === 0) {
+      db.prepare('UPDATE franchise_stats SET monthly_points = 0').run();
+      db.prepare('UPDATE player_stats SET monthly_actions = 0').run();
+      console.log('📅 Reset mensuel effectué');
+    }
+  }, 60000);
+});
