@@ -43,16 +43,11 @@
             right: 0;
             bottom: 0;
             background: 
-                radial-gradient(circle at 20% 50%, rgba(220, 38, 38, 0.2) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(153, 27, 27, 0.2) 0%, transparent 50%);
+                radial-gradient(circle at 20% 50%, rgba(220, 38, 38, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(153, 27, 27, 0.15) 0%, transparent 50%);
             pointer-events: none;
             z-index: 1;
-            animation: fireGlow 4s ease-in-out infinite;
-        }
-
-        @keyframes fireGlow {
-            0%, 100% { opacity: 0.5; }
-            50% { opacity: 1; }
+            opacity: 0.7;
         }
 
         /* === THÈME KRAKENS === */
@@ -80,21 +75,22 @@
             bottom: 0;
             left: -100%;
             width: 300%;
-            height: 200px;
+            height: 150px;
             background: linear-gradient(90deg,
                 transparent,
-                rgba(103, 232, 249, 0.1),
+                rgba(103, 232, 249, 0.05),
                 transparent,
-                rgba(8, 145, 178, 0.1)
+                rgba(8, 145, 178, 0.05)
             );
-            animation: wave 10s cubic-bezier(0.36, 0.45, 0.63, 0.53) infinite;
+            animation: wave 20s ease-in-out infinite;
             pointer-events: none;
             z-index: 1;
+            opacity: 0.8;
         }
 
         @keyframes wave {
             0% { transform: translateX(0) translateZ(0) scaleY(1); }
-            50% { transform: translateX(-25%) translateZ(0) scaleY(0.8); }
+            50% { transform: translateX(-25%) translateZ(0) scaleY(0.9); }
             100% { transform: translateX(-50%) translateZ(0) scaleY(1); }
         }
 
@@ -125,16 +121,17 @@
             left: -50%;
             right: -50%;
             bottom: -50%;
-            background: radial-gradient(circle, rgba(252, 211, 77, 0.1) 2px, transparent 2px);
-            background-size: 50px 50px;
-            animation: rise 20s linear infinite;
+            background: radial-gradient(circle, rgba(252, 211, 77, 0.06) 1px, transparent 1px);
+            background-size: 60px 60px;
+            animation: rise 40s linear infinite;
             pointer-events: none;
             z-index: 1;
+            opacity: 0.7;
         }
 
         @keyframes rise {
             0% { transform: translateY(100%) rotate(0deg); }
-            100% { transform: translateY(-100%) rotate(360deg); }
+            100% { transform: translateY(-100%) rotate(180deg); }
         }
 
         /* === THÈME WEREWOLVES === */
@@ -164,16 +161,11 @@
             right: 0;
             bottom: 0;
             background: 
-                radial-gradient(circle at 30% 30%, rgba(187, 247, 208, 0.05) 0%, transparent 50%),
-                radial-gradient(circle at 70% 70%, rgba(22, 163, 74, 0.05) 0%, transparent 50%);
-            animation: moonGlow 6s ease-in-out infinite;
+                radial-gradient(circle at 30% 30%, rgba(187, 247, 208, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 70% 70%, rgba(22, 163, 74, 0.08) 0%, transparent 50%);
+            opacity: 0.6;
             pointer-events: none;
             z-index: 1;
-        }
-
-        @keyframes moonGlow {
-            0%, 100% { opacity: 0.3; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.1); }
         }
 
         /* === STYLES COMMUNS ADAPTÉS AUX THÈMES === */
@@ -312,8 +304,8 @@
         }
 
         @keyframes glow {
-            0%, 100% { filter: drop-shadow(0 0 10px rgba(0, 255, 0, 0.4)); }
-            50% { filter: drop-shadow(0 0 20px rgba(0, 255, 0, 0.8)) brightness(1.2); }
+            0%, 100% { filter: drop-shadow(0 0 15px rgba(0, 255, 0, 0.5)); }
+            50% { filter: drop-shadow(0 0 18px rgba(0, 255, 0, 0.6)); }
         }
 
         /* Effet de hover pour tous les avatars */
