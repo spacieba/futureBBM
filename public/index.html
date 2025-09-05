@@ -1875,7 +1875,7 @@ if (!hofData) {
               
               if (response.ok) {
                 const result = await response.json();
-                showNotification(`✅ ${result.oldName} renommé en ${result.newName}`, 'success');
+                alert(`✅ ${result.oldName} renommé en ${result.newName}`);
                 // Recharger la liste des joueurs
                 loadPlayers();
                 // Vider les champs
