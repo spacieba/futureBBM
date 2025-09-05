@@ -2758,6 +2758,51 @@ if (currentView === 'teacher-actions') {
 
                     <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
                       <h2 className="text-2xl font-bold text-white mb-6 text-center">
+                        ✏️ Renommer un Élève
+                      </h2>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-white text-sm font-bold mb-2">
+                            Nom actuel de l'élève
+                          </label>
+                          <select
+                            value={renamePlayerName}
+                            onChange={(e) => setRenamePlayerName(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
+                          >
+                            <option value="" className="text-black">Sélectionner un élève...</option>
+                            {players.map(player => (
+                              <option key={player.name} value={player.name} className="text-black">
+                                {player.name} ({player.franchise})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-white text-sm font-bold mb-2">
+                            Nouveau nom
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Nouveau nom de l'élève"
+                            value={newPlayerName}
+                            onChange={(e) => setNewPlayerName(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white placeholder-white/60 border border-white/30 focus:border-white/70 focus:outline-none"
+                          />
+                        </div>
+                        
+                        <button
+                          onClick={handleRenameStudent}
+                          className="w-full bg-orange-600 hover:bg-orange-500 text-white py-3 rounded-lg transition-colors font-bold"
+                        >
+                          ✏️ Renommer l'Élève
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
                         🗑️ Supprimer un Élève
                       </h2>
                       <div className="space-y-4">
@@ -3103,34 +3148,6 @@ if (currentView === 'teacher-actions') {
               player.name.toLowerCase().includes(searchName.toLowerCase())
             );
 
-            const searchPlayer = async (selectedPlayerName = null) => {
-              const playerName = selectedPlayerName || searchName.trim();
-              
-              if (!playerName) {
-                alert('Veuillez sélectionner ou entrer votre nom');
-                return;
-              }
-
-              try {
-                const response = await fetch(`/api/player/${encodeURIComponent(playerName)}`);
-                if (response.ok) {
-                  const player = await response.json();
-                  setFoundPlayer(player);
-                  
-                  const historyResponse = await fetch(`/api/history/${encodeURIComponent(playerName)}`);
-                  const history = await historyResponse.json();
-                  setSearchHistory(history);
-                  setSearchName(playerName); // Mettre à jour le champ avec le nom sélectionné
-                } else {
-                  setFoundPlayer(null);
-                  setSearchHistory([]);
-                  alert('Élève non trouvé. Vérifiez l\'orthographe de votre nom.');
-                }
-              } catch (error) {
-                console.error('Erreur de recherche:', error);
-                alert('Erreur lors de la recherche: ' + error.message);
-              }
-            };
 
             return (
               <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
@@ -4360,87 +4377,164 @@ if (currentView === 'grades') {
   );
 }
 
-          // PAGE DRAFT POOL
-          if (currentView === 'draft-pool') {
-            const [draftPoolPlayers, setDraftPoolPlayers] = React.useState([]);
-            const [selectedDraftPlayer, setSelectedDraftPlayer] = React.useState(null);
-            const [selectedTargetFranchise, setSelectedTargetFranchise] = React.useState('');
-            
-            // Charger les joueurs du Draft Pool
-            React.useEffect(() => {
+          // États pour le Draft Pool
+          const [draftPoolPlayers, setDraftPoolPlayers] = React.useState([]);
+          const [selectedDraftPlayer, setSelectedDraftPlayer] = React.useState(null);
+          const [selectedTargetFranchise, setSelectedTargetFranchise] = React.useState('');
+          
+          // États pour le renommage
+          const [renamePlayerName, setRenamePlayerName] = React.useState('');
+          const [newPlayerName, setNewPlayerName] = React.useState('');
+
+          // Charger les joueurs du Draft Pool
+          React.useEffect(() => {
+            if (currentView === 'draft-pool') {
               fetch('/api/draft-pool')
                 .then(res => res.json())
                 .then(data => setDraftPoolPlayers(data))
                 .catch(error => console.error('Erreur:', error));
-            }, []);
+            }
+          }, [currentView]);
             
-            // Drafter un joueur
-            const handleDraftPlayer = async () => {
-              if (!selectedDraftPlayer || !selectedTargetFranchise) {
-                alert('Veuillez sélectionner un joueur et une franchise cible');
-                return;
-              }
-              
-              try {
-                const response = await fetch('/api/draft-player', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    playerName: selectedDraftPlayer,
-                    targetFranchise: selectedTargetFranchise
-                  })
-                });
-                
-                if (response.ok) {
-                  const result = await response.json();
-                  showNotification(`✅ ${result.player} drafté vers ${result.newFranchise}`, 'success');
-                  // Recharger les listes
-                  loadPlayers();
-                  fetch('/api/draft-pool')
-                    .then(res => res.json())
-                    .then(data => setDraftPoolPlayers(data));
-                  setSelectedDraftPlayer(null);
-                  setSelectedTargetFranchise('');
-                } else {
-                  const error = await response.json();
-                  alert('Erreur: ' + error.error);
-                }
-              } catch (error) {
-                console.error('Erreur:', error);
-                alert('Erreur lors du draft');
-              }
-            };
+          // Drafter un joueur
+          const handleDraftPlayer = async () => {
+            if (!selectedDraftPlayer || !selectedTargetFranchise) {
+              alert('Veuillez sélectionner un joueur et une franchise cible');
+              return;
+            }
             
-            // Retourner un joueur au Draft Pool
-            const handleUndraftPlayer = async (playerName) => {
-              if (!confirm(`Êtes-vous sûr de vouloir retourner ${playerName} au Draft Pool ?`)) {
-                return;
-              }
+            try {
+              const response = await fetch('/api/draft-player', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  playerName: selectedDraftPlayer,
+                  targetFranchise: selectedTargetFranchise
+                })
+              });
               
-              try {
-                const response = await fetch('/api/undraft-player', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ playerName })
-                });
-                
-                if (response.ok) {
-                  const result = await response.json();
-                  showNotification(`✅ ${result.player} retourné au Draft Pool`, 'info');
-                  // Recharger les listes
-                  loadPlayers();
-                  fetch('/api/draft-pool')
-                    .then(res => res.json())
-                    .then(data => setDraftPoolPlayers(data));
-                } else {
-                  const error = await response.json();
-                  alert('Erreur: ' + error.error);
-                }
-              } catch (error) {
-                console.error('Erreur:', error);
-                alert('Erreur lors du retour au Draft Pool');
+              if (response.ok) {
+                const result = await response.json();
+                showNotification(`✅ ${result.player} drafté vers ${result.newFranchise}`, 'success');
+                // Recharger les listes
+                loadPlayers();
+                fetch('/api/draft-pool')
+                  .then(res => res.json())
+                  .then(data => setDraftPoolPlayers(data));
+                setSelectedDraftPlayer(null);
+                setSelectedTargetFranchise('');
+              } else {
+                const error = await response.json();
+                alert('Erreur: ' + error.error);
               }
-            };
+            } catch (error) {
+              console.error('Erreur:', error);
+              alert('Erreur lors du draft');
+            }
+          };
+          
+          // Retourner un joueur au Draft Pool
+          const handleUndraftPlayer = async (playerName) => {
+            if (!confirm(`Êtes-vous sûr de vouloir retourner ${playerName} au Draft Pool ?`)) {
+              return;
+            }
+            
+            try {
+              const response = await fetch('/api/undraft-player', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ playerName })
+              });
+              
+              if (response.ok) {
+                const result = await response.json();
+                showNotification(`✅ ${result.player} retourné au Draft Pool`, 'info');
+                // Recharger les listes
+                loadPlayers();
+                fetch('/api/draft-pool')
+                  .then(res => res.json())
+                  .then(data => setDraftPoolPlayers(data));
+              } else {
+                const error = await response.json();
+                alert('Erreur: ' + error.error);
+              }
+            } catch (error) {
+              console.error('Erreur:', error);
+              alert('Erreur lors du retour au Draft Pool');
+            }
+          };
+          
+          // Renommer un élève
+          const handleRenameStudent = async () => {
+            if (!renamePlayerName || !newPlayerName) {
+              alert('Veuillez saisir l\'ancien nom et le nouveau nom');
+              return;
+            }
+            
+            if (!confirm(`Êtes-vous sûr de vouloir renommer "${renamePlayerName}" en "${newPlayerName}" ?`)) {
+              return;
+            }
+            
+            try {
+              const response = await fetch('/api/rename-student', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  oldName: renamePlayerName,
+                  newName: newPlayerName
+                })
+              });
+              
+              if (response.ok) {
+                const result = await response.json();
+                showNotification(`✅ ${result.oldName} renommé en ${result.newName}`, 'success');
+                // Recharger la liste des joueurs
+                loadPlayers();
+                // Vider les champs
+                setRenamePlayerName('');
+                setNewPlayerName('');
+              } else {
+                const error = await response.json();
+                alert('Erreur: ' + error.error);
+              }
+            } catch (error) {
+              console.error('Erreur:', error);
+              alert('Erreur lors du renommage');
+            }
+          };
+          
+          // Fonction de recherche d'élève
+          const searchPlayer = async (selectedPlayerName = null) => {
+            const playerName = selectedPlayerName || searchName.trim();
+            
+            if (!playerName) {
+              alert('Veuillez sélectionner ou entrer votre nom');
+              return;
+            }
+
+            try {
+              const response = await fetch(`/api/player/${encodeURIComponent(playerName)}`);
+              if (response.ok) {
+                const player = await response.json();
+                setFoundPlayer(player);
+                
+                const historyResponse = await fetch(`/api/history/${encodeURIComponent(playerName)}`);
+                const history = await historyResponse.json();
+                setSearchHistory(history);
+                setSearchName(playerName); // Mettre à jour le champ avec le nom sélectionné
+              } else {
+                setFoundPlayer(null);
+                setSearchHistory([]);
+                alert('Élève non trouvé. Vérifiez l\'orthographe de votre nom.');
+              }
+            } catch (error) {
+              console.error('Erreur de recherche:', error);
+              alert('Erreur lors de la recherche: ' + error.message);
+            }
+          };
+
+          // PAGE DRAFT POOL
+          if (currentView === 'draft-pool') {
             
             return (
               <div className="min-h-screen bg-gradient-to-br from-orange-900 via-amber-900 to-yellow-900 p-8">
