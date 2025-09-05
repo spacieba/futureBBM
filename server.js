@@ -1232,6 +1232,61 @@ app.post('/api/add-student', (req, res) => {
   }
 });
 
+// Renommer un élève
+app.put('/api/rename-student', (req, res) => {
+  try {
+    const { oldName, newName } = req.body;
+    
+    if (!oldName || !newName) {
+      return res.status(400).json({ error: 'Ancien nom et nouveau nom requis' });
+    }
+    
+    if (oldName === newName) {
+      return res.status(400).json({ error: 'Le nouveau nom doit être différent de l\'ancien' });
+    }
+    
+    // Vérifier que le nouveau nom n'existe pas déjà
+    const existingPlayer = db.prepare('SELECT * FROM players WHERE name = ?').get(newName);
+    if (existingPlayer) {
+      return res.status(400).json({ error: 'Un élève avec ce nom existe déjà' });
+    }
+    
+    const transaction = db.transaction(() => {
+      // Vérifier que l'ancien nom existe
+      const oldPlayer = db.prepare('SELECT * FROM players WHERE name = ?').get(oldName);
+      if (!oldPlayer) {
+        throw new Error('Élève non trouvé');
+      }
+      
+      // Mettre à jour le nom dans toutes les tables
+      db.prepare('UPDATE players SET name = ? WHERE name = ?').run(newName, oldName);
+      db.prepare('UPDATE history SET player_name = ? WHERE player_name = ?').run(newName, oldName);
+      db.prepare('UPDATE player_badges SET player_name = ? WHERE player_name = ?').run(newName, oldName);
+      db.prepare('UPDATE player_stats SET player_name = ? WHERE player_name = ?').run(newName, oldName);
+      db.prepare('UPDATE period_stats SET player_name = ? WHERE player_name = ?').run(newName, oldName);
+      db.prepare('UPDATE hall_of_fame SET player_name = ? WHERE player_name = ?').run(newName, oldName);
+      db.prepare('UPDATE mvp_history SET player_name = ? WHERE player_name = ?').run(newName, oldName);
+      
+      // Ajouter une entrée dans l'historique pour tracer le changement de nom
+      const timestamp = new Date().toLocaleString('fr-FR');
+      db.prepare(`
+        INSERT INTO history (player_name, action, points, timestamp, new_total, teacher_name, category)
+        VALUES (?, ?, 0, ?, ?, 'Système', 'unknown')
+      `).run(newName, `Nom changé de "${oldName}" vers "${newName}"`, timestamp, oldPlayer.score);
+      
+      return { oldName, newName, franchise: oldPlayer.franchise };
+    });
+    
+    const result = transaction();
+    console.log(`✅ Élève renommé: ${result.oldName} → ${result.newName}`);
+    res.json({ success: true, ...result });
+    
+  } catch (error) {
+    console.error('❌ Erreur lors du renommage:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Supprimer un élève
 app.delete('/api/remove-student/:playerName', (req, res) => {
   try {
@@ -1241,6 +1296,9 @@ app.delete('/api/remove-student/:playerName', (req, res) => {
       db.prepare('DELETE FROM history WHERE player_name = ?').run(playerName);
       db.prepare('DELETE FROM player_badges WHERE player_name = ?').run(playerName);
       db.prepare('DELETE FROM player_stats WHERE player_name = ?').run(playerName);
+      db.prepare('DELETE FROM period_stats WHERE player_name = ?').run(playerName);
+      db.prepare('DELETE FROM hall_of_fame WHERE player_name = ?').run(playerName);
+      db.prepare('DELETE FROM mvp_history WHERE player_name = ?').run(playerName);
       const result = db.prepare('DELETE FROM players WHERE name = ?').run(playerName);
       return result.changes > 0;
     });
