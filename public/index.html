@@ -627,17 +627,17 @@ const individualBadges = {
     id: 'halloween_spirit',
     name: 'Halloween Spirit',
     emoji: '🎃',
-    description: '3 Actions positives semaine Halloween',
-    points: 50,
-    rarity: 'legendaire'
+    description: '3 Actions positives du 3 au 9 novembre (aucune négative)',
+    points: 12,
+    rarity: 'argent'
   },
   christmas_magic: {
     id: 'christmas_magic',
     name: 'Christmas Magic',
     emoji: '🎄',
-    description: 'Actions positives pendant les fêtes',
-    points: 50,
-    rarity: 'legendaire'
+    description: '3 Actions positives du 15 au 21 décembre (aucune négative)',
+    points: 12,
+    rarity: 'argent'
   }
 };
        const collectiveBadges = {
@@ -1160,6 +1160,84 @@ if (!hofData) {
           // Fonction pour gérer le clic sur une carte de franchise
           const handleFranchiseClick = (franchise) => {
             setSelectedFranchiseView(selectedFranchiseView === franchise ? null : franchise);
+          };
+
+          // === FONCTIONS BADGES SAISONNIERS ===
+          
+          // Fonction pour vérifier si on est dans une période saisonnière
+          const getCurrentSeasonalPeriod = () => {
+            const now = new Date();
+            const currentMonth = now.getMonth() + 1; // getMonth() retourne 0-11
+            const currentDay = now.getDate();
+            
+            // Halloween : 3-9 novembre (mois 11)
+            if (currentMonth === 11 && currentDay >= 3 && currentDay <= 9) {
+              return 'halloween';
+            }
+            
+            // Noël : 15-21 décembre (mois 12)
+            if (currentMonth === 12 && currentDay >= 15 && currentDay <= 21) {
+              return 'christmas';
+            }
+            
+            return null;
+          };
+          
+          // Fonction pour vérifier si une date est dans une période saisonnière
+          const isDateInSeasonalPeriod = (date, period) => {
+            const checkDate = new Date(date);
+            const month = checkDate.getMonth() + 1;
+            const day = checkDate.getDate();
+            
+            if (period === 'halloween') {
+              return month === 11 && day >= 3 && day <= 9;
+            }
+            
+            if (period === 'christmas') {
+              return month === 12 && day >= 15 && day <= 21;
+            }
+            
+            return false;
+          };
+          
+          // Fonction pour compter les actions positives dans une période saisonnière
+          const countSeasonalActions = (playerName, period) => {
+            if (!searchHistory || searchHistory.length === 0) return 0;
+            
+            return searchHistory.filter(entry => {
+              return entry.points > 0 && isDateInSeasonalPeriod(entry.timestamp, period);
+            }).length;
+          };
+          
+          // Fonction pour vérifier s'il y a des actions négatives dans une période saisonnière
+          const hasNegativeSeasonalActions = (playerName, period) => {
+            if (!searchHistory || searchHistory.length === 0) return false;
+            
+            return searchHistory.some(entry => {
+              return entry.points < 0 && isDateInSeasonalPeriod(entry.timestamp, period);
+            });
+          };
+          
+          // Fonction pour vérifier si un joueur mérite un badge saisonnier
+          const checkSeasonalBadges = (playerName) => {
+            const earnedBadges = [];
+            const currentPeriod = getCurrentSeasonalPeriod();
+            
+            // Vérifier Halloween (besoin de 3 actions positives du 3-9 octobre ET aucune action négative)
+            const halloweenActions = countSeasonalActions(playerName, 'halloween');
+            const hasHalloweenNegative = hasNegativeSeasonalActions(playerName, 'halloween');
+            if (halloweenActions >= 3 && !hasHalloweenNegative) {
+              earnedBadges.push('halloween_spirit');
+            }
+            
+            // Vérifier Noël (besoin de 3 actions positives du 15-21 décembre ET aucune action négative)  
+            const christmasActions = countSeasonalActions(playerName, 'christmas');
+            const hasChristmasNegative = hasNegativeSeasonalActions(playerName, 'christmas');
+            if (christmasActions >= 3 && !hasChristmasNegative) {
+              earnedBadges.push('christmas_magic');
+            }
+            
+            return earnedBadges;
           };
 
           // Fonction pour obtenir le grade basketball selon le score
@@ -1954,6 +2032,42 @@ if (currentView === 'home') {
                     </button>
                   </div>
 
+                  {/* Affichage des événements saisonniers actifs pour professeur */}
+                  {(() => {
+                    const currentSeason = getCurrentSeasonalPeriod();
+                    if (currentSeason === 'halloween') {
+                      return (
+                        <div className="mb-6 bg-gradient-to-r from-orange-600/20 to-purple-600/20 border-l-4 border-orange-400 p-6 rounded-lg shadow-lg">
+                          <div className="flex items-start gap-3">
+                            <span className="text-3xl">🎃</span>
+                            <div className="flex-1">
+                              <h3 className="text-xl font-bold text-white mb-2">🔥 Événement Halloween Actif ! (3-9 novembre)</h3>
+                              <p className="text-white/90 leading-relaxed">
+                                Badge <strong>Halloween Spirit</strong> disponible : les élèves qui obtiennent 3 actions positives <strong>sans aucune action négative</strong> gagneront +12 points automatiquement ! 🎃
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    if (currentSeason === 'christmas') {
+                      return (
+                        <div className="mb-6 bg-gradient-to-r from-red-600/20 to-green-600/20 border-l-4 border-red-400 p-6 rounded-lg shadow-lg">
+                          <div className="flex items-start gap-3">
+                            <span className="text-3xl">🎄</span>
+                            <div className="flex-1">
+                              <h3 className="text-xl font-bold text-white mb-2">🔥 Événement Noël Actif ! (15-21 décembre)</h3>
+                              <p className="text-white/90 leading-relaxed">
+                                Badge <strong>Christmas Magic</strong> disponible : les élèves qui obtiennent 3 actions positives <strong>sans aucune action négative</strong> gagneront +12 points automatiquement ! 🎄
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+
                   <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
                     <button
                       onClick={() => setCurrentView('teacher-players')}
@@ -2597,6 +2711,7 @@ if (currentView === 'teacher-actions') {
                     </button>
                   </div>
 
+
                   {/* Affichage du message du jour s'il existe */}
                   {studentPageMessage && (
                     <div className="mb-6 bg-gradient-to-r from-green-500/20 to-blue-500/20 border-l-4 border-green-400 p-6 rounded-lg shadow-lg">
@@ -2611,6 +2726,42 @@ if (currentView === 'teacher-actions') {
                       </div>
                     </div>
                   )}
+
+                  {/* Affichage des événements saisonniers actifs */}
+                  {(() => {
+                    const currentSeason = getCurrentSeasonalPeriod();
+                    if (currentSeason === 'halloween') {
+                      return (
+                        <div className="mb-6 bg-gradient-to-r from-orange-600/20 to-purple-600/20 border-l-4 border-orange-400 p-6 rounded-lg shadow-lg">
+                          <div className="flex items-start gap-3">
+                            <span className="text-3xl">🎃</span>
+                            <div className="flex-1">
+                              <h3 className="text-xl font-bold text-white mb-2">🔥 Événement Halloween Actif !</h3>
+                              <p className="text-white/90 text-lg leading-relaxed">
+                                Du 3 au 9 novembre • Obtenez 3 actions positives <strong>sans aucune action négative</strong> pour débloquer le badge <strong>Halloween Spirit</strong> (+12 points) ! 🎃
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    if (currentSeason === 'christmas') {
+                      return (
+                        <div className="mb-6 bg-gradient-to-r from-red-600/20 to-green-600/20 border-l-4 border-red-400 p-6 rounded-lg shadow-lg">
+                          <div className="flex items-start gap-3">
+                            <span className="text-3xl">🎄</span>
+                            <div className="flex-1">
+                              <h3 className="text-xl font-bold text-white mb-2">🔥 Événement Noël Actif !</h3>
+                              <p className="text-white/90 text-lg leading-relaxed">
+                                Du 15 au 21 décembre • Obtenez 3 actions positives <strong>sans aucune action négative</strong> pour débloquer le badge <strong>Christmas Magic</strong> (+12 points) ! 🎄
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
 
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
@@ -3097,6 +3248,26 @@ if (currentView === 'teacher-actions') {
                                 })(), 
                                 target: 5,
                                 description: '5 actions positives en 7 jours'
+                              },
+                              { 
+                                name: 'Halloween Spirit', 
+                                emoji: '🎃', 
+                                current: countSeasonalActions(foundPlayer.name, 'halloween'), 
+                                target: 3,
+                                description: '3 actions positives du 3 au 9 novembre (aucune négative)',
+                                seasonal: true,
+                                period: 'halloween',
+                                blocked: hasNegativeSeasonalActions(foundPlayer.name, 'halloween')
+                              },
+                              { 
+                                name: 'Christmas Magic', 
+                                emoji: '🎄', 
+                                current: countSeasonalActions(foundPlayer.name, 'christmas'), 
+                                target: 3,
+                                description: '3 actions positives du 15 au 21 décembre (aucune négative)',
+                                seasonal: true,
+                                period: 'christmas',
+                                blocked: hasNegativeSeasonalActions(foundPlayer.name, 'christmas')
                               }
                             ];
 
@@ -3105,15 +3276,36 @@ if (currentView === 'teacher-actions') {
                               const isCompleted = badge.current >= badge.target;
                               const remaining = Math.max(badge.target - badge.current, 0);
                               
+                              // Vérifier si c'est un badge saisonnier et si on est dans la période
+                              const isSeasonalActive = badge.seasonal && getCurrentSeasonalPeriod() === badge.period;
+                              const isBlocked = badge.blocked;
+                              
+                              let seasonalClass = '';
+                              if (badge.seasonal) {
+                                if (isBlocked) {
+                                  seasonalClass = 'bg-red-600/20 border border-red-500/50'; // Badge bloqué par action négative
+                                } else if (isSeasonalActive) {
+                                  seasonalClass = 'bg-orange-500/20 border border-orange-400/50'; // Période active
+                                } else {
+                                  seasonalClass = 'bg-gray-600/20 border border-gray-500/30'; // Hors saison
+                                }
+                              }
+                              
                               return (
-                                <div key={index} className={`p-4 rounded-lg ${isCompleted ? 'bg-green-500/20 border border-green-500/40' : 'bg-white/10'}`}>
+                                <div key={index} className={`p-4 rounded-lg ${
+                                  isCompleted ? 'bg-green-500/20 border border-green-500/40' : 
+                                  seasonalClass || 'bg-white/10'
+                                }`}>
                                   <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-3">
                                       <span className="text-2xl">{badge.emoji}</span>
                                       <div>
-                                        <div className={`font-bold ${isCompleted ? 'text-green-300' : 'text-white'}`}>
+                                        <div className={`font-bold ${isCompleted ? 'text-green-300' : (isBlocked ? 'text-red-300' : 'text-white')}`}>
                                           {badge.name}
                                           {isCompleted && <span className="ml-2">✅</span>}
+                                          {badge.seasonal && isBlocked && <span className="ml-2 text-red-400">🚫 BLOQUÉ</span>}
+                                          {badge.seasonal && !isBlocked && isSeasonalActive && <span className="ml-2 text-orange-300">🔥 ACTIF</span>}
+                                          {badge.seasonal && !isBlocked && !isSeasonalActive && !isCompleted && <span className="ml-2 text-gray-400">⏳ Hors saison</span>}
                                         </div>
                                         <div className="text-xs text-white/70">{badge.description}</div>
                                       </div>
@@ -3122,9 +3314,14 @@ if (currentView === 'teacher-actions') {
                                       <div className={`font-bold ${isCompleted ? 'text-green-300' : 'text-white'}`}>
                                         {badge.current}/{badge.target}
                                       </div>
-                                      {!isCompleted && remaining > 0 && (
+                                      {!isCompleted && remaining > 0 && !isBlocked && (
                                         <div className="text-xs text-orange-300">
                                           Plus que {remaining} !
+                                        </div>
+                                      )}
+                                      {isBlocked && (
+                                        <div className="text-xs text-red-300">
+                                          Action négative détectée !
                                         </div>
                                       )}
                                     </div>
@@ -3135,15 +3332,17 @@ if (currentView === 'teacher-actions') {
                                       className={`h-full transition-all duration-1000 ${
                                         isCompleted 
                                           ? 'bg-gradient-to-r from-green-400 to-green-600' 
+                                          : isBlocked
+                                          ? 'bg-gradient-to-r from-red-400 to-red-600'
                                           : 'bg-gradient-to-r from-yellow-400 to-orange-500'
                                       }`}
-                                      style={{ width: `${progress}%` }}
+                                      style={{ width: `${isBlocked ? 100 : progress}%` }}
                                     />
                                   </div>
                                   
                                   {!isCompleted && (
                                     <div className="mt-2 text-xs text-white/60">
-                                      {progress.toFixed(1)}% complété
+                                      {isBlocked ? 'Badge bloqué par action négative' : `${progress.toFixed(1)}% complété`}
                                     </div>
                                   )}
                                 </div>
