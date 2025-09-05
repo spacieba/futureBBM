@@ -10,6 +10,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
     <style>
         /* === THÈMES DYNAMIQUES PAR FRANCHISE === */
@@ -164,6 +165,39 @@
             background: 
                 radial-gradient(circle at 30% 30%, rgba(187, 247, 208, 0.08) 0%, transparent 50%),
                 radial-gradient(circle at 70% 70%, rgba(22, 163, 74, 0.08) 0%, transparent 50%);
+            opacity: 0.6;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        /* === THÈME DRAFT POOL === */
+        .theme-draft-pool {
+            --primary-color: #F59E0B;
+            --secondary-color: #D97706;
+            --accent-color: #FEF3C7;
+            --bg-gradient-1: #1F1610;
+            --bg-gradient-2: #44403C;
+            --text-primary: #FFFFFF;
+            --text-secondary: #FED7AA;
+            --glow-color: rgba(245, 158, 11, 0.6);
+        }
+
+        .theme-draft-pool body {
+            background: 
+                linear-gradient(135deg, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 50%, #292524 100%);
+            background-attachment: fixed;
+            position: relative;
+        }
+
+        .theme-draft-pool::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.08) 0%, transparent 50%);
             opacity: 0.6;
             pointer-events: none;
             z-index: 1;
@@ -354,6 +388,107 @@
             box-shadow: 
                 0 7px 22px rgba(22, 163, 74, 0.3),
                 inset 0 1px 0 rgba(187, 247, 208, 0.2);
+        }
+        
+        /* Draft Pool - Thème Neutre/En attente */
+        .theme-draft-pool .theme-card {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.1));
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            box-shadow: 
+                0 8px 32px 0 rgba(31, 22, 16, 0.5),
+                inset 0 0 15px rgba(245, 158, 11, 0.2),
+                0 0 40px rgba(254, 243, 199, 0.1);
+        }
+        
+        .theme-draft-pool .theme-text-glow {
+            text-shadow: 
+                0 0 20px rgba(245, 158, 11, 0.9),
+                0 0 40px rgba(254, 215, 170, 0.5),
+                0 2px 8px rgba(31, 22, 16, 0.8);
+        }
+        
+        .theme-draft-pool .theme-button {
+            background: linear-gradient(135deg, #F59E0B, #D97706, #B45309);
+            box-shadow: 
+                0 8px 25px rgba(245, 158, 11, 0.3),
+                inset 0 1px 0 rgba(254, 243, 199, 0.3);
+        }
+        
+        /* === INSCRIPTION DE TEMPLE (MAXIMES DE FRANCHISE) === */
+        .temple-inscription {
+            position: relative;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.5));
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+        
+        .temple-inscription::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, 
+                var(--primary-color, #FFD700), 
+                var(--secondary-color, #FFA500), 
+                var(--accent-color, #FF6347),
+                var(--primary-color, #FFD700)
+            );
+            border-radius: 15px;
+            z-index: -1;
+            opacity: 0.3;
+            animation: temple-glow 3s ease-in-out infinite alternate;
+        }
+        
+        @keyframes temple-glow {
+            0% { opacity: 0.2; }
+            100% { opacity: 0.5; }
+        }
+        
+        .temple-inscription .maxime-english {
+            font-family: 'Times New Roman', serif;
+            font-size: 1.1rem;
+            font-weight: bold;
+            font-style: italic;
+            color: #FFD700;
+            text-shadow: 
+                0 0 10px currentColor,
+                0 0 20px currentColor,
+                0 2px 4px rgba(0, 0, 0, 0.8);
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        
+        .temple-inscription .maxime-french {
+            font-family: 'Georgia', serif;
+            font-size: 0.9rem;
+            font-style: italic;
+            color: rgba(255, 255, 255, 0.8);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+            letter-spacing: 0.5px;
+        }
+        
+        .temple-inscription .temple-ornament {
+            position: absolute;
+            top: 10px;
+            font-size: 1.5rem;
+            opacity: 0.4;
+        }
+        
+        .temple-inscription .temple-ornament.left {
+            left: 15px;
+        }
+        
+        .temple-inscription .temple-ornament.right {
+            right: 15px;
+            transform: scaleX(-1);
         }
         
         /* === EFFETS SPÉCIAUX DE BACKGROUND PAR FRANCHISE === */
@@ -1128,7 +1263,7 @@ if (!hofData) {
           const [teacherName, setTeacherName] = useState('');
           const [selectedStudent, setSelectedStudent] = useState('');
           const [newStudentName, setNewStudentName] = useState('');
-          const [newStudentFranchise, setNewStudentFranchise] = useState('Minotaurs');
+          const [newStudentFranchise, setNewStudentFranchise] = useState('Draft Pool');
           const [selectedPlayerForGraph, setSelectedPlayerForGraph] = useState(null);
           const [playerProgressionData, setPlayerProgressionData] = useState(null);
           const [currentChart, setCurrentChart] = useState(null);
@@ -1158,9 +1293,49 @@ if (!hofData) {
               'Minotaurs': 'theme-minotaurs',
               'Krakens': 'theme-krakens', 
               'Phoenix': 'theme-phoenix',
-              'Werewolves': 'theme-werewolves'
+              'Werewolves': 'theme-werewolves',
+              'Draft Pool': 'theme-draft-pool'
             };
             return themeMap[franchise] || '';
+          };
+          
+          // Fonction pour appliquer le thème dynamiquement
+          const applyTheme = (franchise) => {
+            const themeClass = getThemeClass(franchise);
+            // Retirer tous les thèmes existants
+            document.documentElement.className = document.documentElement.className
+              .replace(/theme-\w+/g, '');
+            // Ajouter le nouveau thème
+            if (themeClass) {
+              document.documentElement.classList.add(themeClass);
+            }
+          };
+          
+          // Maximes sacrées des franchises
+          const getFranchiseMaxime = (franchise) => {
+            const maximes = {
+              'Minotaurs': {
+                english: "Horns high, hearts strong, victory awaits",
+                french: "Cornes hautes, cœurs forts, la victoire nous attend",
+                ornament: "⚔️"
+              },
+              'Krakens': {
+                english: "Smart minds rise from the deepest challenges", 
+                french: "Les esprits intelligents s'élèvent des défis les plus profonds",
+                ornament: "🌊"
+              },
+              'Phoenix': {
+                english: "Burn bright, rise higher, soar forever",
+                french: "Brûle fort, élève-toi plus haut, plane pour l'éternité", 
+                ornament: "🔥"
+              },
+              'Werewolves': {
+                english: "Together we howl, together we triumph",
+                french: "Ensemble nous hurlons, ensemble nous triomphons",
+                ornament: "🌙"
+              }
+            };
+            return maximes[franchise] || null;
           };
 
           // Fonction pour changer le thème de l'application
@@ -2122,7 +2297,7 @@ if (currentView === 'home') {
                     return null;
                   })()}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 mb-8">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6 mb-8">
                     <button
                       onClick={() => setCurrentView('teacher-players')}
                       className="bg-gradient-to-r from-emerald-600 to-emerald-800 hover:from-emerald-500 hover:to-emerald-700 text-white p-4 md:p-6 rounded-xl shadow-2xl transform hover:scale-105 active:scale-95 transition-all duration-300 touch-manipulation min-h-20 md:min-h-24"
@@ -2130,6 +2305,15 @@ if (currentView === 'home') {
                       <div className="text-3xl md:text-4xl mb-2">👥</div>
                       <h3 className="text-lg md:text-xl font-bold">Gestion des Points</h3>
                       <p className="text-emerald-100 text-xs md:text-sm">Ajouter/retirer des points</p>
+                    </button>
+                    
+                    <button
+                      onClick={() => setCurrentView('draft-pool')}
+                      className="bg-gradient-to-r from-orange-600 to-orange-800 hover:from-orange-500 hover:to-orange-700 text-white p-4 md:p-6 rounded-xl shadow-2xl transform hover:scale-105 active:scale-95 transition-all duration-300 touch-manipulation min-h-20 md:min-h-24"
+                    >
+                      <div className="text-3xl md:text-4xl mb-2">🎯</div>
+                      <h3 className="text-lg md:text-xl font-bold">Draft Pool</h3>
+                      <p className="text-orange-100 text-xs md:text-sm">Élèves non draftés</p>
                     </button>
                     
                     <button
@@ -2555,10 +2739,11 @@ if (currentView === 'teacher-actions') {
                             onChange={(e) => setNewStudentFranchise(e.target.value)}
                             className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
                           >
-                            <option value="Minotaurs" className="text-black">Minotaurs</option>
-                            <option value="Krakens" className="text-black">Krakens</option>
-                            <option value="Phoenix" className="text-black">Phoenix</option>
-                            <option value="Werewolves" className="text-black">Werewolves</option>
+                            <option value="Draft Pool" className="text-black">🎯 Draft Pool (Non drafté)</option>
+                            <option value="Minotaurs" className="text-black">🐂 Minotaurs</option>
+                            <option value="Krakens" className="text-black">🐙 Krakens</option>
+                            <option value="Phoenix" className="text-black">🔥 Phoenix</option>
+                            <option value="Werewolves" className="text-black">🐺 Werewolves</option>
                           </select>
                         </div>
                         
@@ -3067,17 +3252,138 @@ if (currentView === 'teacher-actions') {
 
                   {foundPlayer && (
                     <div className="space-y-6">
-                      <div className={`bg-gradient-to-r ${franchiseColors[foundPlayer.franchise]} p-6 rounded-xl franchise-card`}>
+                      {/* Appliquer le thème de la franchise du joueur */}
+                      {(() => {
+                        React.useEffect(() => {
+                          applyTheme(foundPlayer.franchise);
+                          // Retirer le thème quand on quitte la page
+                          return () => {
+                            document.documentElement.className = document.documentElement.className
+                              .replace(/theme-\w+/g, '');
+                          };
+                        }, [foundPlayer.franchise]);
+                        return null;
+                      })()}
+                      
+                      {/* Inscription sacrée du temple de la franchise */}
+                      {(() => {
+                        const maxime = getFranchiseMaxime(foundPlayer.franchise);
+                        if (!maxime) return null;
+                        
+                        return (
+                          <div className="temple-inscription">
+                            <div className="temple-ornament left">{maxime.ornament}</div>
+                            <div className="temple-ornament right">{maxime.ornament}</div>
+                            <div className="maxime-english">"{maxime.english}"</div>
+                            <div className="maxime-french">"{maxime.french}"</div>
+                          </div>
+                        );
+                      })()}
+                      
+                      {/* Message de bienvenue si récemment drafté */}
+                      {(() => {
+                        // Vérifier si le joueur a été récemment drafté (dans les dernières 24h)
+                        const now = new Date();
+                        const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+                        
+                        const recentDraftEntry = searchHistory.find(entry => {
+                          // Vérifier si c'est une action de draft
+                          if (!entry.action || !entry.action.includes('🎉 Drafté')) return false;
+                          
+                          // Vérifier si c'est récent (dans les dernières 24h)
+                          const entryDate = new Date(entry.timestamp);
+                          return entryDate > oneDayAgo && foundPlayer.franchise !== 'Draft Pool';
+                        });
+                        
+                        if (recentDraftEntry) {
+                          // Déclencher les confettis
+                          React.useEffect(() => {
+                            if (window.confetti) {
+                              // Explosion de confettis aux couleurs de la franchise
+                              const franchiseConfettiColors = {
+                                'Minotaurs': ['#dc2626', '#991b1b', '#fef3c7'],
+                                'Krakens': ['#0891b2', '#0c4a6e', '#67e8f9'],
+                                'Phoenix': ['#7c3aed', '#5b21b6', '#ddd6fe'],
+                                'Werewolves': ['#16a34a', '#15803d', '#bbf7d0']
+                              };
+                              
+                              const colors = franchiseConfettiColors[foundPlayer.franchise] || ['#fbbf24', '#f59e0b', '#d97706'];
+                              
+                              // Premier tir de confettis
+                              window.confetti({
+                                particleCount: 150,
+                                spread: 70,
+                                origin: { y: 0.6 },
+                                colors: colors
+                              });
+                              
+                              // Deuxième tir avec délai
+                              setTimeout(() => {
+                                window.confetti({
+                                  particleCount: 100,
+                                  angle: 60,
+                                  spread: 55,
+                                  origin: { x: 0 },
+                                  colors: colors
+                                });
+                              }, 250);
+                              
+                              // Troisième tir
+                              setTimeout(() => {
+                                window.confetti({
+                                  particleCount: 100,
+                                  angle: 120,
+                                  spread: 55,
+                                  origin: { x: 1 },
+                                  colors: colors
+                                });
+                              }, 400);
+                            }
+                          }, []);
+                          
+                          return (
+                            <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-2 border-yellow-400 rounded-xl p-6 mb-6 animate-pulse">
+                              <div className="text-center">
+                                <div className="text-4xl mb-3">🎉</div>
+                                <h2 className="text-2xl font-bold text-yellow-300 mb-2">
+                                  Félicitations ! Vous avez été drafté !
+                                </h2>
+                                <p className="text-white text-lg">
+                                  Bienvenue dans la franchise <span className="font-bold text-yellow-200">{foundPlayer.franchise}</span> !
+                                </p>
+                                <p className="text-white/80 mt-2">
+                                  Vos points et badges ont été transférés avec succès.
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                      
+                      <div className={`bg-gradient-to-r ${foundPlayer.franchise === 'Draft Pool' ? 'from-gray-600 to-gray-800' : franchiseColors[foundPlayer.franchise]} p-6 rounded-xl franchise-card`}>
                         <div className="text-center">
                           <h2 className="text-3xl font-bold text-white mb-2">{foundPlayer.name}</h2>
                           <div className="text-xl text-white/90 mb-4 flex items-center justify-center space-x-3">
-                            <span>Franchise:</span>
-                            <div className="flex items-center space-x-2">
-                              <span className={`franchise-avatar ${getFranchiseAvatar(foundPlayer.franchise).class}`}>
-                                {getFranchiseAvatar(foundPlayer.franchise).emoji}
-                              </span>
-                              <span className="font-bold">{foundPlayer.franchise}</span>
-                            </div>
+                            {foundPlayer.franchise === 'Draft Pool' ? (
+                              <>
+                                <span className="text-2xl">🎯</span>
+                                <div>
+                                  <div className="font-bold text-orange-300">En attente de draft</div>
+                                  <div className="text-sm text-white/70">Vous n'êtes pas encore affecté à une franchise</div>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <span>Franchise:</span>
+                                <div className="flex items-center space-x-2">
+                                  <span className={`franchise-avatar ${getFranchiseAvatar(foundPlayer.franchise).class}`}>
+                                    {getFranchiseAvatar(foundPlayer.franchise).emoji}
+                                  </span>
+                                  <span className="font-bold">{foundPlayer.franchise}</span>
+                                </div>
+                              </>
+                            )}
                           </div>
                           <div className="mb-4">
                             <div className="inline-flex items-center space-x-2 bg-black/30 px-4 py-2 rounded-full">
@@ -3088,6 +3394,15 @@ if (currentView === 'teacher-actions') {
                             </div>
                           </div>
                           <div className="text-5xl font-bold text-white">{foundPlayer.score} points</div>
+                          
+                          {/* Message pour les joueurs du Draft Pool */}
+                          {foundPlayer.franchise === 'Draft Pool' && (
+                            <div className="mt-4 bg-orange-500/20 rounded-lg p-3">
+                              <p className="text-orange-200 text-sm">
+                                💡 Continuez vos efforts ! Vous serez bientôt drafté dans une franchise !
+                              </p>
+                            </div>
+                          )}
                           
                           {/* Bouton pour nouvelle recherche */}
                           <div className="mt-4">
@@ -4044,6 +4359,211 @@ if (currentView === 'grades') {
     </div>
   );
 }
+
+          // PAGE DRAFT POOL
+          if (currentView === 'draft-pool') {
+            const [draftPoolPlayers, setDraftPoolPlayers] = React.useState([]);
+            const [selectedDraftPlayer, setSelectedDraftPlayer] = React.useState(null);
+            const [selectedTargetFranchise, setSelectedTargetFranchise] = React.useState('');
+            
+            // Charger les joueurs du Draft Pool
+            React.useEffect(() => {
+              fetch('/api/draft-pool')
+                .then(res => res.json())
+                .then(data => setDraftPoolPlayers(data))
+                .catch(error => console.error('Erreur:', error));
+            }, []);
+            
+            // Drafter un joueur
+            const handleDraftPlayer = async () => {
+              if (!selectedDraftPlayer || !selectedTargetFranchise) {
+                alert('Veuillez sélectionner un joueur et une franchise cible');
+                return;
+              }
+              
+              try {
+                const response = await fetch('/api/draft-player', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    playerName: selectedDraftPlayer,
+                    targetFranchise: selectedTargetFranchise
+                  })
+                });
+                
+                if (response.ok) {
+                  const result = await response.json();
+                  showNotification(`✅ ${result.player} drafté vers ${result.newFranchise}`, 'success');
+                  // Recharger les listes
+                  loadPlayers();
+                  fetch('/api/draft-pool')
+                    .then(res => res.json())
+                    .then(data => setDraftPoolPlayers(data));
+                  setSelectedDraftPlayer(null);
+                  setSelectedTargetFranchise('');
+                } else {
+                  const error = await response.json();
+                  alert('Erreur: ' + error.error);
+                }
+              } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors du draft');
+              }
+            };
+            
+            // Retourner un joueur au Draft Pool
+            const handleUndraftPlayer = async (playerName) => {
+              if (!confirm(`Êtes-vous sûr de vouloir retourner ${playerName} au Draft Pool ?`)) {
+                return;
+              }
+              
+              try {
+                const response = await fetch('/api/undraft-player', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ playerName })
+                });
+                
+                if (response.ok) {
+                  const result = await response.json();
+                  showNotification(`✅ ${result.player} retourné au Draft Pool`, 'info');
+                  // Recharger les listes
+                  loadPlayers();
+                  fetch('/api/draft-pool')
+                    .then(res => res.json())
+                    .then(data => setDraftPoolPlayers(data));
+                } else {
+                  const error = await response.json();
+                  alert('Erreur: ' + error.error);
+                }
+              } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors du retour au Draft Pool');
+              }
+            };
+            
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-orange-900 via-amber-900 to-yellow-900 p-8">
+                <div className="max-w-7xl mx-auto">
+                  <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-4xl font-bold text-white">🎯 Draft Pool - Élèves Non Draftés</h1>
+                    <button
+                      onClick={() => setCurrentView('teacher-dashboard')}
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors"
+                    >
+                      ← Retour
+                    </button>
+                  </div>
+                  
+                  {/* Section Draft */}
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
+                    <h2 className="text-2xl font-bold text-white mb-4">📋 Drafter un Élève</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <select
+                        value={selectedDraftPlayer || ''}
+                        onChange={(e) => setSelectedDraftPlayer(e.target.value)}
+                        className="px-4 py-3 rounded-lg bg-white/90 text-gray-800"
+                      >
+                        <option value="">Sélectionner un élève...</option>
+                        {draftPoolPlayers.map(player => (
+                          <option key={player.name} value={player.name}>
+                            {player.name} ({player.score} pts)
+                          </option>
+                        ))}
+                      </select>
+                      
+                      <select
+                        value={selectedTargetFranchise}
+                        onChange={(e) => setSelectedTargetFranchise(e.target.value)}
+                        className="px-4 py-3 rounded-lg bg-white/90 text-gray-800"
+                      >
+                        <option value="">Sélectionner une franchise...</option>
+                        {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => (
+                          <option key={franchise} value={franchise}>{franchise}</option>
+                        ))}
+                      </select>
+                      
+                      <button
+                        onClick={handleDraftPlayer}
+                        className="bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-lg font-bold transition-colors"
+                      >
+                        ✅ Drafter
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Liste des joueurs non draftés */}
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
+                    <h2 className="text-2xl font-bold text-white mb-4">
+                      👥 Joueurs en Attente ({draftPoolPlayers.length})
+                    </h2>
+                    {draftPoolPlayers.length === 0 ? (
+                      <p className="text-white/70 text-center py-8">Aucun joueur dans le Draft Pool</p>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {draftPoolPlayers.map(player => (
+                          <div key={player.name} className="bg-white/20 rounded-lg p-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <h3 className="font-bold text-white text-lg">{player.name}</h3>
+                              <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                                player.score >= 150 ? 'bg-purple-600 text-white' :
+                                player.score >= 100 ? 'bg-blue-600 text-white' :
+                                player.score >= 50 ? 'bg-green-600 text-white' :
+                                player.score >= 0 ? 'bg-yellow-600 text-white' :
+                                'bg-red-600 text-white'
+                              }`}>
+                                {player.score} pts
+                              </span>
+                            </div>
+                            {player.badges && player.badges.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mb-2">
+                                {player.badges.map(badge => (
+                                  <span key={badge.badge_id} className="text-xl" title={badge.badge_name}>
+                                    {badge.badge_emoji}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            <p className="text-white/70 text-sm">En attente de draft</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Section Retour au Draft Pool */}
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                    <h2 className="text-2xl font-bold text-white mb-4">↩️ Retourner un Joueur au Draft Pool</h2>
+                    <p className="text-white/70 mb-4">
+                      Sélectionnez un joueur déjà drafté pour le retourner au Draft Pool. 
+                      Les points déjà acquis seront conservés.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                        const franchisePlayers = players.filter(p => p.franchise === franchise);
+                        return (
+                          <div key={franchise} className="bg-white/10 rounded-lg p-4">
+                            <h3 className="font-bold text-white mb-2">{franchise}</h3>
+                            <div className="space-y-2">
+                              {franchisePlayers.map(player => (
+                                <button
+                                  key={player.name}
+                                  onClick={() => handleUndraftPlayer(player.name)}
+                                  className="w-full text-left px-3 py-2 bg-white/10 hover:bg-white/20 rounded transition-colors text-white text-sm"
+                                >
+                                  {player.name} ({player.score} pts) ↩️
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
 
           // PAGE GUIDE
           if (currentView === 'guide') {
