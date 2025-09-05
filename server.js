@@ -1284,21 +1284,27 @@ app.put('/api/rename-student', (req, res) => {
       return res.status(400).json({ error: 'Un élève avec ce nom existe déjà' });
     }
     
+    // Vérifier que l'ancien nom existe
+    const oldPlayer = db.prepare('SELECT * FROM players WHERE name = ?').get(oldName);
+    if (!oldPlayer) {
+      return res.status(404).json({ error: 'Élève non trouvé' });
+    }
+    
+    // IMPORTANT: Désactiver temporairement les contraintes de clés étrangères AVANT la transaction
+    db.prepare('PRAGMA foreign_keys = OFF').run();
+    
     const transaction = db.transaction(() => {
-      // Vérifier que l'ancien nom existe
-      const oldPlayer = db.prepare('SELECT * FROM players WHERE name = ?').get(oldName);
-      if (!oldPlayer) {
-        throw new Error('Élève non trouvé');
-      }
-      
-      // Mettre à jour le nom dans toutes les tables
-      db.prepare('UPDATE players SET name = ? WHERE name = ?').run(newName, oldName);
+      // Mettre à jour TOUTES les tables enfants AVANT la table parent
+      // 1. Tables avec clés étrangères vers players(name)
       db.prepare('UPDATE history SET player_name = ? WHERE player_name = ?').run(newName, oldName);
       db.prepare('UPDATE player_badges SET player_name = ? WHERE player_name = ?').run(newName, oldName);
       db.prepare('UPDATE player_stats SET player_name = ? WHERE player_name = ?').run(newName, oldName);
       db.prepare('UPDATE period_stats SET player_name = ? WHERE player_name = ?').run(newName, oldName);
       db.prepare('UPDATE hall_of_fame SET player_name = ? WHERE player_name = ?').run(newName, oldName);
       db.prepare('UPDATE mvp_history SET player_name = ? WHERE player_name = ?').run(newName, oldName);
+      
+      // 2. Enfin, mettre à jour la table parent (players)
+      db.prepare('UPDATE players SET name = ? WHERE name = ?').run(newName, oldName);
       
       // Ajouter une entrée dans l'historique pour tracer le changement de nom
       const timestamp = new Date().toISOString();
@@ -1310,7 +1316,14 @@ app.put('/api/rename-student', (req, res) => {
       return { oldName, newName, franchise: oldPlayer.franchise };
     });
     
-    const result = transaction();
+    let result;
+    try {
+      result = transaction();
+    } finally {
+      // IMPORTANT: Réactiver les contraintes de clés étrangères APRÈS la transaction
+      db.prepare('PRAGMA foreign_keys = ON').run();
+    }
+    
     console.log(`✅ Élève renommé: ${result.oldName} → ${result.newName}`);
     res.json({ success: true, ...result });
     
