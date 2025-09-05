@@ -1968,6 +1968,18 @@ if (!hofData) {
               loadPlayers();
             }
           }, [currentView]);
+          
+          // Appliquer le thème quand un joueur est trouvé
+          useEffect(() => {
+            if (foundPlayer && foundPlayer.franchise) {
+              applyTheme(foundPlayer.franchise);
+              return () => {
+                // Retirer le thème quand on quitte ou change
+                document.documentElement.className = document.documentElement.className
+                  .replace(/theme-\w+/g, '');
+              };
+            }
+          }, [foundPlayer]);
 
           // Obtenir les joueurs triés par score pour une franchise
           const getSortedPlayers = (franchise) => {
@@ -3269,18 +3281,7 @@ if (currentView === 'teacher-actions') {
 
                   {foundPlayer && (
                     <div className="space-y-6">
-                      {/* Appliquer le thème de la franchise du joueur */}
-                      {(() => {
-                        React.useEffect(() => {
-                          applyTheme(foundPlayer.franchise);
-                          // Retirer le thème quand on quitte la page
-                          return () => {
-                            document.documentElement.className = document.documentElement.className
-                              .replace(/theme-\w+/g, '');
-                          };
-                        }, [foundPlayer.franchise]);
-                        return null;
-                      })()}
+                      {/* Le thème sera appliqué par useEffect au niveau principal */}
                       
                       {/* Inscription sacrée du temple de la franchise */}
                       {(() => {
@@ -3313,50 +3314,50 @@ if (currentView === 'teacher-actions') {
                         });
                         
                         if (recentDraftEntry) {
-                          // Déclencher les confettis
-                          React.useEffect(() => {
-                            if (window.confetti) {
-                              // Explosion de confettis aux couleurs de la franchise
-                              const franchiseConfettiColors = {
-                                'Minotaurs': ['#dc2626', '#991b1b', '#fef3c7'],
-                                'Krakens': ['#0891b2', '#0c4a6e', '#67e8f9'],
-                                'Phoenix': ['#7c3aed', '#5b21b6', '#ddd6fe'],
-                                'Werewolves': ['#16a34a', '#15803d', '#bbf7d0']
-                              };
-                              
-                              const colors = franchiseConfettiColors[foundPlayer.franchise] || ['#fbbf24', '#f59e0b', '#d97706'];
-                              
-                              // Premier tir de confettis
+                          // Déclencher les confettis - version simplifiée sans useEffect
+                          if (window.confetti) {
+                            // Explosion de confettis aux couleurs de la franchise
+                            const franchiseConfettiColors = {
+                              'Minotaurs': ['#dc2626', '#991b1b', '#fef3c7'],
+                              'Krakens': ['#0891b2', '#0c4a6e', '#67e8f9'],
+                              'Phoenix': ['#7c3aed', '#5b21b6', '#ddd6fe'],
+                              'Werewolves': ['#16a34a', '#15803d', '#bbf7d0']
+                            };
+                            
+                            const colors = franchiseConfettiColors[foundPlayer.franchise] || ['#fbbf24', '#f59e0b', '#d97706'];
+                            
+                            // Premier tir de confettis
+                            setTimeout(() => {
                               window.confetti({
                                 particleCount: 150,
                                 spread: 70,
                                 origin: { y: 0.6 },
                                 colors: colors
                               });
-                              
-                              // Deuxième tir avec délai
-                              setTimeout(() => {
-                                window.confetti({
-                                  particleCount: 100,
-                                  angle: 60,
-                                  spread: 55,
-                                  origin: { x: 0 },
-                                  colors: colors
-                                });
-                              }, 250);
-                              
-                              // Troisième tir
-                              setTimeout(() => {
-                                window.confetti({
-                                  particleCount: 100,
-                                  angle: 120,
-                                  spread: 55,
-                                  origin: { x: 1 },
-                                  colors: colors
-                                });
-                              }, 400);
-                            }
-                          }, []);
+                            }, 100);
+                            
+                            // Deuxième tir avec délai
+                            setTimeout(() => {
+                              window.confetti({
+                                particleCount: 100,
+                                angle: 60,
+                                spread: 55,
+                                origin: { x: 0 },
+                                colors: colors
+                              });
+                            }, 350);
+                            
+                            // Troisième tir
+                            setTimeout(() => {
+                              window.confetti({
+                                particleCount: 100,
+                                angle: 120,
+                                spread: 55,
+                                origin: { x: 1 },
+                                colors: colors
+                              });
+                            }, 500);
+                          }
                           
                           return (
                             <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-2 border-yellow-400 rounded-xl p-6 mb-6 animate-pulse">
@@ -4387,7 +4388,7 @@ if (currentView === 'grades') {
           const [newPlayerName, setNewPlayerName] = React.useState('');
 
           // Charger les joueurs du Draft Pool
-          React.useEffect(() => {
+          useEffect(() => {
             if (currentView === 'draft-pool') {
               fetch('/api/draft-pool')
                 .then(res => res.json())
