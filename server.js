@@ -37,7 +37,8 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE NOT NULL,
     franchise TEXT NOT NULL,
-    score INTEGER DEFAULT 0
+    score INTEGER DEFAULT 0,
+    is_drafted INTEGER DEFAULT 1
   );
 
   CREATE TABLE IF NOT EXISTS history (
@@ -565,26 +566,34 @@ const initialFranchises = {
   Minotaurs: ['Leny', 'Lyam', 'Augustin', 'Lino', 'Lina D', 'Djilane', 'Talia'],
   Krakens: ['Swan', 'Nolann', 'Enery', 'Marie', 'Seyma Nur', 'Willow'],
   Phoenix: ['Mahé', 'Narcisse', 'Daniella', 'Matis.B', 'Jamila'],
-  Werewolves: ['Assia', 'Ethaniel', 'Russy', 'Youssef', 'Lisa L', 'Noa', 'Lenny K']
+  Werewolves: ['Assia', 'Ethaniel', 'Russy', 'Youssef', 'Lisa L', 'Noa', 'Lenny K'],
+  'Draft Pool': [] // Pool pour les joueurs non draftés
 };
 
 // Initialiser les joueurs et stats
 const initDatabase = () => {
   const existingPlayers = db.prepare('SELECT COUNT(*) as count FROM players').get();
   
+  // Ajouter la colonne is_drafted si elle n'existe pas
+  const columnExists = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('players') WHERE name='is_drafted'").get();
+  if (columnExists.count === 0) {
+    db.exec('ALTER TABLE players ADD COLUMN is_drafted INTEGER DEFAULT 1');
+  }
+  
   if (existingPlayers.count === 0) {
-    const insertPlayer = db.prepare('INSERT INTO players (name, franchise, score) VALUES (?, ?, ?)');
+    const insertPlayer = db.prepare('INSERT INTO players (name, franchise, score, is_drafted) VALUES (?, ?, ?, ?)');
     const insertStats = db.prepare('INSERT INTO player_stats (player_name) VALUES (?)');
     
     Object.entries(initialFranchises).forEach(([franchise, players]) => {
+      const isDrafted = franchise !== 'Draft Pool' ? 1 : 0;
       players.forEach(player => {
-        insertPlayer.run(player, franchise, 0);
+        insertPlayer.run(player, franchise, 0, isDrafted);
         insertStats.run(player);
       });
     });
   }
   
-  // Initialiser les stats de franchise
+  // Initialiser les stats de franchise (seulement pour les vraies franchises)
   const franchises = ['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'];
   const insertFranchiseStats = db.prepare('INSERT OR IGNORE INTO franchise_stats (franchise) VALUES (?)');
   franchises.forEach(f => insertFranchiseStats.run(f));
@@ -902,7 +911,16 @@ app.post('/api/verify-teacher', (req, res) => {
 // Récupérer tous les joueurs avec leurs badges
 app.get('/api/players', (req, res) => {
   try {
-    const players = db.prepare('SELECT * FROM players ORDER BY score DESC').all();
+    const { includeDraftPool = 'true' } = req.query;
+    let query = 'SELECT * FROM players';
+    
+    // Par défaut, ne pas inclure le Draft Pool dans la liste principale
+    if (includeDraftPool === 'false') {
+      query += " WHERE franchise != 'Draft Pool'";
+    }
+    query += ' ORDER BY score DESC';
+    
+    const players = db.prepare(query).all();
     
     // Ajouter les badges à chaque joueur
     const playersWithBadges = players.map(player => {
@@ -912,7 +930,7 @@ app.get('/api/players', (req, res) => {
         WHERE player_name = ?
       `).all(player.name);
       
-      return { ...player, badges };
+      return { ...player, badges, is_drafted: player.is_drafted || (player.franchise !== 'Draft Pool' ? 1 : 0) };
     });
     
     res.json(playersWithBadges);
@@ -1189,16 +1207,18 @@ app.delete('/api/undo-last/:playerName', (req, res) => {
 // Ajouter un nouvel élève
 app.post('/api/add-student', (req, res) => {
   try {
-    const { name, franchise } = req.body;
+    const { name, franchise = 'Draft Pool' } = req.body;
     
     const existing = db.prepare('SELECT * FROM players WHERE name = ?').get(name);
     if (existing) {
       return res.status(400).json({ error: 'Un élève avec ce nom existe déjà' });
     }
     
+    const isDrafted = franchise !== 'Draft Pool' ? 1 : 0;
+    
     const transaction = db.transaction(() => {
-      db.prepare('INSERT INTO players (name, franchise, score) VALUES (?, ?, ?)')
-        .run(name, franchise, 0);
+      db.prepare('INSERT INTO players (name, franchise, score, is_drafted) VALUES (?, ?, ?, ?)')
+        .run(name, franchise, 0, isDrafted);
       
       db.prepare('INSERT INTO player_stats (player_name) VALUES (?)')
         .run(name);
@@ -1869,6 +1889,172 @@ app.post('/api/migrate-existing-data', (req, res) => {
     
   } catch (error) {
     console.error('❌ Erreur lors de la migration:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Récupérer les joueurs du Draft Pool
+app.get('/api/draft-pool', (req, res) => {
+  try {
+    const draftPoolPlayers = db.prepare(`
+      SELECT p.*, 
+        (SELECT COUNT(*) FROM player_badges WHERE player_name = p.name) as badge_count
+      FROM players p 
+      WHERE p.franchise = 'Draft Pool' OR p.is_drafted = 0
+      ORDER BY p.score DESC
+    `).all();
+    
+    // Ajouter les badges à chaque joueur
+    const playersWithBadges = draftPoolPlayers.map(player => {
+      const badges = db.prepare(`
+        SELECT badge_id, badge_name, badge_emoji, rarity 
+        FROM player_badges 
+        WHERE player_name = ?
+      `).all(player.name);
+      
+      return { ...player, badges };
+    });
+    
+    res.json(playersWithBadges);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Drafter un joueur vers une franchise
+app.post('/api/draft-player', (req, res) => {
+  try {
+    const { playerName, targetFranchise } = req.body;
+    
+    if (!playerName || !targetFranchise) {
+      return res.status(400).json({ error: 'Nom du joueur et franchise cible requis' });
+    }
+    
+    // Vérifier que la franchise existe et n'est pas le Draft Pool
+    const validFranchises = ['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'];
+    if (!validFranchises.includes(targetFranchise)) {
+      return res.status(400).json({ error: 'Franchise invalide' });
+    }
+    
+    const transaction = db.transaction(() => {
+      // Récupérer le joueur actuel
+      const player = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
+      if (!player) {
+        throw new Error('Joueur non trouvé');
+      }
+      
+      const oldFranchise = player.franchise;
+      
+      // Mettre à jour le joueur
+      db.prepare(`
+        UPDATE players 
+        SET franchise = ?, is_drafted = 1 
+        WHERE name = ?
+      `).run(targetFranchise, playerName);
+      
+      // Mettre à jour les stats de période si nécessaire
+      db.prepare(`
+        UPDATE period_stats 
+        SET franchise = ? 
+        WHERE player_name = ?
+      `).run(targetFranchise, playerName);
+      
+      // Si le joueur avait des points, mettre à jour les stats de franchise
+      if (player.score !== 0) {
+        // Récupérer tous les points du joueur dans l'historique
+        const history = db.prepare(`
+          SELECT SUM(CASE WHEN points > 0 THEN points ELSE 0 END) as positive_points,
+                 SUM(CASE WHEN category = 'sport' AND points > 0 THEN points ELSE 0 END) as sport_points,
+                 SUM(CASE WHEN category = 'academic' AND points > 0 THEN points ELSE 0 END) as academic_points
+          FROM history 
+          WHERE player_name = ?
+        `).get(playerName);
+        
+        if (history && history.positive_points > 0) {
+          // Ajouter les points à la nouvelle franchise
+          db.prepare(`
+            UPDATE franchise_stats 
+            SET weekly_points = weekly_points + ?,
+                monthly_points = monthly_points + ?
+            WHERE franchise = ?
+          `).run(history.positive_points, history.positive_points, targetFranchise);
+        }
+      }
+      
+      // Vérifier et attribuer les badges collectifs de la nouvelle franchise
+      checkCollectiveBadges(targetFranchise);
+      
+      // Ajouter à l'historique avec un marqueur spécial pour le draft récent
+      const timestamp = new Date().toLocaleString('fr-FR');
+      const draftMessage = `🎉 Drafté de ${oldFranchise} vers ${targetFranchise}`;
+      db.prepare(`
+        INSERT INTO history (player_name, action, points, timestamp, new_total, teacher_name, category)
+        VALUES (?, ?, 0, ?, ?, 'Système', 'unknown')
+      `).run(playerName, draftMessage, timestamp, player.score);
+      
+      return { player: playerName, oldFranchise, newFranchise: targetFranchise, score: player.score };
+    });
+    
+    const result = transaction();
+    console.log(`✅ ${result.player} drafté de ${result.oldFranchise} vers ${result.newFranchise}`);
+    res.json({ success: true, ...result });
+    
+  } catch (error) {
+    console.error('❌ Erreur lors du draft:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Retourner un joueur au Draft Pool
+app.post('/api/undraft-player', (req, res) => {
+  try {
+    const { playerName } = req.body;
+    
+    if (!playerName) {
+      return res.status(400).json({ error: 'Nom du joueur requis' });
+    }
+    
+    const transaction = db.transaction(() => {
+      // Récupérer le joueur actuel
+      const player = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
+      if (!player) {
+        throw new Error('Joueur non trouvé');
+      }
+      
+      const oldFranchise = player.franchise;
+      
+      // Mettre à jour le joueur
+      db.prepare(`
+        UPDATE players 
+        SET franchise = 'Draft Pool', is_drafted = 0 
+        WHERE name = ?
+      `).run(playerName);
+      
+      // Mettre à jour les stats de période
+      db.prepare(`
+        UPDATE period_stats 
+        SET franchise = 'Draft Pool' 
+        WHERE player_name = ?
+      `).run(playerName);
+      
+      // Note: On ne retire pas les points de l'ancienne franchise car ils ont été acquis quand le joueur y était
+      
+      // Ajouter à l'historique
+      const timestamp = new Date().toLocaleString('fr-FR');
+      db.prepare(`
+        INSERT INTO history (player_name, action, points, timestamp, new_total, teacher_name, category)
+        VALUES (?, ?, 0, ?, ?, 'Système', 'unknown')
+      `).run(playerName, `Retourné au Draft Pool depuis ${oldFranchise}`, timestamp, player.score);
+      
+      return { player: playerName, oldFranchise, score: player.score };
+    });
+    
+    const result = transaction();
+    console.log(`✅ ${result.player} retourné au Draft Pool depuis ${result.oldFranchise}`);
+    res.json({ success: true, ...result });
+    
+  } catch (error) {
+    console.error('❌ Erreur lors du retour au Draft Pool:', error);
     res.status(500).json({ error: error.message });
   }
 });
