@@ -4379,13 +4379,13 @@ if (currentView === 'grades') {
 }
 
           // États pour le Draft Pool
-          const [draftPoolPlayers, setDraftPoolPlayers] = React.useState([]);
-          const [selectedDraftPlayer, setSelectedDraftPlayer] = React.useState(null);
-          const [selectedTargetFranchise, setSelectedTargetFranchise] = React.useState('');
+          const [draftPoolPlayers, setDraftPoolPlayers] = useState([]);
+          const [selectedDraftPlayer, setSelectedDraftPlayer] = useState(null);
+          const [selectedTargetFranchise, setSelectedTargetFranchise] = useState('');
           
           // États pour le renommage
-          const [renamePlayerName, setRenamePlayerName] = React.useState('');
-          const [newPlayerName, setNewPlayerName] = React.useState('');
+          const [renamePlayerName, setRenamePlayerName] = useState('');
+          const [newPlayerName, setNewPlayerName] = useState('');
 
           // Charger les joueurs du Draft Pool
           useEffect(() => {
