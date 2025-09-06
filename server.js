@@ -1237,8 +1237,8 @@ app.post('/api/add-student', (req, res) => {
       return res.status(400).json({ error: 'Nom de l\'eleve requis' });
     }
     
-    // Validation de la franchise (inclut maintenant Pool de Réserve)
-    const validFranchises = ['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves', 'Reserve'];
+    // Validation de la franchise (inclut maintenant Non-Draftés)
+    const validFranchises = ['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves', 'Non-Draftés'];
     if (!franchise || !validFranchises.includes(franchise)) {
       return res.status(400).json({ error: 'Franchise valide requise (Minotaurs, Krakens, Phoenix, Werewolves, Reserve)' });
     }
@@ -1250,8 +1250,8 @@ app.post('/api/add-student', (req, res) => {
     }
     
     const transaction = db.transaction(() => {
-      // Un élève dans la réserve n'est pas encore drafté
-      const isDrafted = franchise !== 'Reserve' ? 1 : 0;
+      // Un élève dans Non-Draftés n'est pas encore drafté
+      const isDrafted = franchise !== 'Non-Draftés' ? 1 : 0;
       db.prepare('INSERT INTO players (name, franchise, score, is_drafted) VALUES (?, ?, ?, ?)')
         .run(cleanName, franchise, 0, isDrafted);
       
@@ -1512,6 +1512,65 @@ app.get('/api/reserve-stats', (req, res) => {
     });
   } catch (error) {
     console.error('❌ Erreur lors de la récupération des stats de la réserve:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Drafter un élève vers une franchise
+app.post('/api/draft-student', (req, res) => {
+  try {
+    const { playerName, newFranchise } = req.body;
+    
+    if (!playerName || playerName.trim() === '') {
+      return res.status(400).json({ error: 'Nom du joueur requis' });
+    }
+    
+    if (!newFranchise || newFranchise.trim() === '') {
+      return res.status(400).json({ error: 'Franchise de destination requise' });
+    }
+    
+    // Validation de la franchise
+    const validFranchises = ['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'];
+    if (!validFranchises.includes(newFranchise)) {
+      return res.status(400).json({ error: 'Franchise invalide' });
+    }
+    
+    // Vérifier que le joueur existe
+    const player = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
+    if (!player) {
+      return res.status(404).json({ error: 'Joueur non trouvé' });
+    }
+    
+    // Mettre à jour la franchise du joueur et marquer comme drafté
+    const updateStmt = db.prepare('UPDATE players SET franchise = ?, is_drafted = 1 WHERE name = ?');
+    const result = updateStmt.run(newFranchise, playerName);
+    
+    if (result.changes > 0) {
+      // Ajouter une entrée dans l'historique
+      const historyStmt = db.prepare(`
+        INSERT INTO history (player_name, action, points, timestamp, new_total, teacher_name, category)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+      
+      historyStmt.run(
+        playerName,
+        `Drafté vers ${newFranchise}`,
+        0,
+        new Date().toISOString(),
+        player.score,
+        'Système',
+        'draft'
+      );
+      
+      res.json({ 
+        success: true, 
+        message: `${playerName} a été drafté vers ${newFranchise} avec ${player.score} points` 
+      });
+    } else {
+      res.status(400).json({ error: 'Impossible de drafter le joueur' });
+    }
+  } catch (error) {
+    console.error('Erreur lors du draft:', error);
     res.status(500).json({ error: error.message });
   }
 });
