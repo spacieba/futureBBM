@@ -1290,8 +1290,10 @@ if (!hofData) {
           const [loginError, setLoginError] = useState('');
           const [teacherName, setTeacherName] = useState('');
           const [selectedStudent, setSelectedStudent] = useState('');
+          const [selectedStudentForDraft, setSelectedStudentForDraft] = useState('');
           const [newStudentName, setNewStudentName] = useState('');
           const [newStudentFranchise, setNewStudentFranchise] = useState('Non-Draftés');
+          const [draftFranchise, setDraftFranchise] = useState('');
           const [selectedPlayerForGraph, setSelectedPlayerForGraph] = useState(null);
           const [playerProgressionData, setPlayerProgressionData] = useState(null);
           const [currentChart, setCurrentChart] = useState(null);
@@ -3025,8 +3027,8 @@ if (currentView === 'teacher-actions') {
                             Élève à drafter (Non-Draftés uniquement)
                           </label>
                           <select
-                            value={selectedStudent}
-                            onChange={(e) => setSelectedStudent(e.target.value)}
+                            value={selectedStudentForDraft}
+                            onChange={(e) => setSelectedStudentForDraft(e.target.value)}
                             className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
                           >
                             <option value="" className="text-black">-- Choisir un élève non-drafté --</option>
@@ -3046,8 +3048,8 @@ if (currentView === 'teacher-actions') {
                             Franchise de destination
                           </label>
                           <select
-                            value={newStudentFranchise}
-                            onChange={(e) => setNewStudentFranchise(e.target.value)}
+                            value={draftFranchise}
+                            onChange={(e) => setDraftFranchise(e.target.value)}
                             className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
                           >
                             <option value="" className="text-black">-- Choisir une franchise --</option>
@@ -3059,8 +3061,8 @@ if (currentView === 'teacher-actions') {
                         </div>
                         
                         <button
-                          onClick={() => draftStudent(selectedStudent, newStudentFranchise)}
-                          disabled={!selectedStudent || !newStudentFranchise || newStudentFranchise === 'Non-Draftés'}
+                          onClick={() => draftStudent(selectedStudentForDraft, draftFranchise)}
+                          disabled={!selectedStudentForDraft || !draftFranchise || draftFranchise === 'Non-Draftés'}
                           className="w-full bg-purple-600 hover:bg-purple-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-lg transition-colors font-bold"
                         >
                           🎯 Drafter l'Élève
