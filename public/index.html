@@ -1421,10 +1421,6 @@ if (!hofData) {
           // États pour le renommage
           const [renamePlayerName, setRenamePlayerName] = useState('');
           const [newPlayerName, setNewPlayerName] = useState('');
-          // États pour l'accès élèves
-          const [accessCode, setAccessCode] = useState('');
-          const [studentName, setStudentName] = useState('');
-          const [studentData, setStudentData] = useState(null);
           
           // === GESTION DES THÈMES DYNAMIQUES ===
           
@@ -1840,46 +1836,6 @@ if (!hofData) {
               }
             } catch (error) {
               setLoginError('Erreur de connexion');
-            }
-          };
-
-          // Vérifier le code d'accès élève
-          const verifyStudent = async () => {
-            if (!accessCode.trim()) {
-              setLoginError('Veuillez entrer votre code d\'accès');
-              return;
-            }
-            
-            try {
-              const response = await fetch('/api/verify-student', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accessCode })
-              });
-              
-              const data = await response.json();
-              if (data.success) {
-                setUserType('student');
-                setStudentName(data.studentName);
-                setCurrentView('student-dashboard');
-                setLoginError('');
-                await loadStudentData(data.studentName);
-              } else {
-                setLoginError('Code d\'accès incorrect');
-              }
-            } catch (error) {
-              setLoginError('Erreur de connexion');
-            }
-          };
-
-          // Charger les données d'un élève
-          const loadStudentData = async (studentName) => {
-            try {
-              const response = await fetch(`/api/student-profile/${encodeURIComponent(studentName)}`);
-              const data = await response.json();
-              setStudentData(data);
-            } catch (error) {
-              console.error('Erreur lors du chargement des données élève:', error);
             }
           };
 
@@ -2530,7 +2486,10 @@ if (currentView === 'home') {
             
             {/* Bouton Élève */}
             <button
-              onClick={() => setCurrentView('student-login')}
+              onClick={() => {
+                setUserType('student');
+                setCurrentView('student-dashboard');
+              }}
               className="w-full group relative overflow-hidden backdrop-blur-md bg-white/10 border border-white/20 hover:bg-white/15 active:bg-white/20 text-white rounded-2xl shadow-2xl transform active:scale-95 md:hover:scale-105 transition-all duration-300 touch-manipulation"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-pink-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -2541,7 +2500,7 @@ if (currentView === 'home') {
                     <h2 className="text-xl md:text-3xl font-bold mb-2 text-orange-200">ÉLÈVE</h2>
                     <p className="text-white/80 text-sm md:text-base mb-3">Consultez vos performances</p>
                     <div className="inline-flex items-center bg-orange-900/40 backdrop-blur-sm px-4 py-2 rounded-full border border-orange-500/30">
-                      <span className="text-xs md:text-sm text-orange-300 font-semibold">🔑 Code d'accès requis</span>
+                      <span className="text-xs md:text-sm text-orange-300 font-semibold">👁️ Accès libre</span>
                     </div>
                   </div>
                 </div>
@@ -2629,64 +2588,6 @@ if (currentView === 'home') {
             );
           }
 
-          // PAGE DE CONNEXION ÉLÈVE
-          if (currentView === 'student-login') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-orange-900 via-pink-900 to-red-900 p-8 flex items-center justify-center">
-                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 max-w-md w-full">
-                  <h2 className="text-3xl font-bold text-white text-center mb-8">
-                    🎓 Accès Élève
-                  </h2>
-                  
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-white text-sm font-bold mb-2">
-                        Code d'accès <span className="text-red-400">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={accessCode}
-                        onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
-                        onKeyPress={(e) => e.key === 'Enter' && verifyStudent()}
-                        className="w-full px-3 py-2 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white/70 focus:outline-none text-center font-mono text-lg"
-                        placeholder="XXXXXX"
-                        maxLength="6"
-                      />
-                      <p className="text-white/70 text-xs mt-1">
-                        Entrez le code à 6 caractères fourni par votre professeur
-                      </p>
-                    </div>
-                    
-                    {loginError && (
-                      <div className="text-red-300 text-sm text-center">
-                        {loginError}
-                      </div>
-                    )}
-                    
-                    <div className="flex space-x-4">
-                      <button
-                        onClick={() => {
-                          setCurrentView('home');
-                          setAccessCode('');
-                          setLoginError('');
-                        }}
-                        className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 rounded-lg transition-colors"
-                      >
-                        ← Retour
-                      </button>
-                      <button
-                        onClick={verifyStudent}
-                        className="flex-1 bg-orange-600 hover:bg-orange-500 text-white py-3 rounded-lg transition-colors"
-                      >
-                        Se connecter
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
           // TABLEAU DE BORD PROFESSEUR
           if (currentView === 'teacher-dashboard') {
             return (
@@ -2763,15 +2664,6 @@ if (currentView === 'home') {
                       <div className="text-3xl md:text-4xl mb-2">⚙️</div>
                       <h3 className="text-lg md:text-xl font-bold">Administration</h3>
                       <p className="text-blue-100 text-xs md:text-sm">Gérer les élèves</p>
-                    </button>
-                    
-                    <button
-                      onClick={() => setCurrentView('access-codes')}
-                      className="bg-gradient-to-r from-orange-600 to-orange-800 hover:from-orange-500 hover:to-orange-700 text-white p-4 md:p-6 rounded-xl shadow-2xl transform hover:scale-105 active:scale-95 transition-all duration-300 touch-manipulation min-h-20 md:min-h-24"
-                    >
-                      <div className="text-3xl md:text-4xl mb-2">🔑</div>
-                      <h3 className="text-lg md:text-xl font-bold">Codes d'Accès</h3>
-                      <p className="text-orange-100 text-xs md:text-sm">Gérer les codes élèves</p>
                     </button>
                     
                     <button
@@ -3487,245 +3379,161 @@ if (currentView === 'teacher-actions') {
 
           // TABLEAU DE BORD ÉLÈVE
           if (currentView === 'student-dashboard') {
-            if (!studentData) {
-              return (
-                <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8 flex items-center justify-center">
-                  <div className="text-white text-xl">Chargement de vos données...</div>
-                </div>
-              );
-            }
-
-            const studentTheme = getThemeClass(studentData.player.franchise);
-            
             return (
-              <div className={`min-h-screen ${studentTheme} p-4 md:p-8`}>
+              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4 md:p-8">
                 <div className="max-w-4xl mx-auto">
                   <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4 sm:gap-0">
-                    <div>
-                      <h1 className="text-2xl sm:text-4xl font-bold text-white text-center sm:text-left">
-                        👨‍🎓 Bonjour {studentData.player.name}!
-                      </h1>
-                      <p className="text-white/80 text-center sm:text-left">
-                        {studentData.player.franchise} • {studentData.player.score} points
-                      </p>
-                    </div>
+                    <h1 className="text-2xl sm:text-4xl font-bold text-white text-center sm:text-left">👨‍🎓 Espace Élève</h1>
                     <button
                       onClick={() => {
                         setCurrentView('home');
                         setUserType(null);
-                        setStudentData(null);
-                        setAccessCode('');
-                        setStudentName('');
                       }}
-                      className="bg-red-600 hover:bg-red-500 text-white px-4 py-3 md:px-6 md:py-3 rounded-lg transition-colors"
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-3 md:px-6 md:py-3 rounded-lg transition-colors min-h-12 flex items-center justify-center text-sm md:text-base"
                     >
-                      🚪 Déconnexion
+                      ← Retour Accueil
                     </button>
                   </div>
 
 
-                  {/* Carte de profil de l'élève */}
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-8">
-                    <div className="text-center">
-                      <div className="text-6xl mb-4">
-                        {getFranchiseAvatar(studentData.player.franchise).emoji}
-                      </div>
-                      <h2 className="text-3xl font-bold text-white mb-2">
-                        {studentData.player.score} points
-                      </h2>
-                      <p className="text-white/80 text-lg mb-4">
-                        Franchise: {studentData.player.franchise}
-                      </p>
-                      
-                      {/* Badges de l'élève */}
-                      {studentData.badges && studentData.badges.length > 0 && (
-                        <div className="mt-6">
-                          <h3 className="text-lg font-bold text-white mb-3">🏅 Mes Badges</h3>
-                          <div className="flex flex-wrap justify-center gap-2">
-                            {studentData.badges.map((badge, index) => (
-                              <div
-                                key={index}
-                                className="bg-white/20 backdrop-blur-sm px-3 py-2 rounded-full text-sm text-white border border-white/30"
-                              >
-                                <span className="mr-1">{badge.badge_emoji}</span>
-                                {badge.badge_name}
-                              </div>
-                            ))}
-                          </div>
+                  {/* Affichage du message du jour s'il existe */}
+                  {studentPageMessage && (
+                    <div className="mb-6 bg-gradient-to-r from-green-500/20 to-blue-500/20 border-l-4 border-green-400 p-6 rounded-lg shadow-lg">
+                      <div className="flex items-start gap-3">
+                        <span className="text-3xl">📢</span>
+                        <div className="flex-1">
+                          <h3 className="text-xl font-bold text-white mb-2">Message du jour</h3>
+                          <p className="text-white/90 text-lg leading-relaxed">
+                            {studentPageMessage}
+                          </p>
                         </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Historique personnel */}
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                    <h3 className="text-2xl font-bold text-white mb-6">
-                      📈 Mon Historique Personnel
-                    </h3>
-                    
-                    {studentData.history && studentData.history.length > 0 ? (
-                      <div className="space-y-3 max-h-96 overflow-y-auto">
-                        {studentData.history.map((entry, index) => {
-                          const isPositive = entry.points > 0;
-                          const date = new Date(entry.timestamp).toLocaleDateString('fr-FR');
-                          
-                          return (
-                            <div
-                              key={index}
-                              className={`p-4 rounded-lg border-l-4 ${
-                                isPositive
-                                  ? 'bg-green-500/20 border-green-400'
-                                  : 'bg-red-500/20 border-red-400'
-                              }`}
-                            >
-                              <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-lg">
-                                      {isPositive ? '🎯' : '⚠️'}
-                                    </span>
-                                    <span className="text-white font-semibold">
-                                      {entry.action}
-                                    </span>
-                                  </div>
-                                  <div className="text-white/70 text-sm">
-                                    {date} • Score après: {entry.new_total} pts
-                                  </div>
-                                </div>
-                                <div className={`text-xl font-bold ${
-                                  isPositive ? 'text-green-300' : 'text-red-300'
-                                }`}>
-                                  {isPositive ? '+' : ''}{entry.points}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
                       </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <div className="text-6xl mb-4">📝</div>
-                        <p className="text-white/70 text-lg">
-                          Aucune action enregistrée pour le moment
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          }
-
-          // GESTION DES CODES D'ACCÈS
-          if (currentView === 'access-codes') {
-            return (
-              <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4 md:p-8">
-                <div className="max-w-6xl mx-auto">
-                  <div className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl md:text-4xl font-bold text-white">🔑 Gestion des Codes d'Accès Élèves</h1>
-                    <button
-                      onClick={() => setCurrentView('teacher-dashboard')}
-                      className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-3 md:px-6 md:py-3 rounded-lg transition-colors"
-                    >
-                      ← Retour
-                    </button>
-                  </div>
-
-                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-6">
-                    <h2 className="text-xl font-bold text-white mb-4">
-                      ℹ️ Comment utiliser les codes d'accès
-                    </h2>
-                    <div className="text-white/90 space-y-2">
-                      <p>• Les codes d'accès permettent aux élèves de consulter uniquement leurs données personnelles</p>
-                      <p>• Chaque élève reçoit un code unique à 6 caractères</p>
-                      <p>• Vous pouvez générer ou régénérer les codes à tout moment</p>
-                      <p>• Les codes sont automatiquement générés lors de l'ajout d'un nouvel élève</p>
                     </div>
-                  </div>
+                  )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                    {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves', 'Non-Draftés'].map(franchise => {
-                      const franchisePlayers = getSortedPlayers(franchise);
-                      const avatar = getFranchiseAvatar(franchise);
+                  {/* Affichage des événements saisonniers actifs */}
+                  {(() => {
+                    const currentSeason = getCurrentSeasonalPeriod();
+                    if (currentSeason === 'halloween') {
                       return (
-                        <div key={franchise} className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
-                          <h2 className={`text-xl font-bold text-white mb-4 text-center bg-gradient-to-r ${franchiseColors[franchise]} p-3 rounded-lg flex items-center justify-center space-x-2`}>
-                            <span className={`franchise-avatar ${avatar.class} text-2xl`}>
-                              {avatar.emoji}
-                            </span>
-                            <span>{franchise}</span>
-                          </h2>
-                          <div className="space-y-3">
-                            {franchisePlayers.map(player => (
-                              <div key={player.name} className="bg-white/20 rounded-lg p-4">
-                                <div className="flex justify-between items-center mb-3">
-                                  <span className="text-white font-semibold truncate">
-                                    {player.name}
-                                  </span>
-                                  <div className="flex items-center space-x-2">
-                                    <span className="text-white/70 text-sm">
-                                      {player.score} pts
-                                    </span>
-                                  </div>
-                                </div>
-                                
-                                {/* Affichage du code d'accès */}
-                                <div className="mb-3">
-                                  <div className="flex items-center justify-between bg-black/30 rounded-lg p-3">
-                                    <div>
-                                      <div className="text-white/70 text-xs mb-1">Code d'accès:</div>
-                                      <div className="text-white font-mono text-lg">
-                                        {player.access_code || 'Non défini'}
-                                      </div>
-                                    </div>
-                                    <button
-                                      onClick={async () => {
-                                        try {
-                                          const response = await fetch('/api/generate-student-code', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ playerName: player.name })
-                                          });
-                                          const data = await response.json();
-                                          if (data.success) {
-                                            await loadPlayers();
-                                            alert(`Nouveau code généré pour ${player.name}: ${data.accessCode}`);
-                                          }
-                                        } catch (error) {
-                                          alert('Erreur lors de la génération du code');
-                                        }
-                                      }}
-                                      className="bg-orange-600 hover:bg-orange-500 text-white px-3 py-2 rounded text-sm"
-                                      title="Générer un nouveau code"
-                                    >
-                                      🔄 Nouveau
-                                    </button>
-                                  </div>
-                                </div>
-
-                                {/* Bouton pour copier le code */}
-                                {player.access_code && (
-                                  <button
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(player.access_code);
-                                      alert(`Code copié: ${player.access_code}`);
-                                    }}
-                                    className="w-full bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded text-sm transition-colors"
-                                  >
-                                    📋 Copier le code
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                            {franchisePlayers.length === 0 && (
-                              <div className="text-center py-4 text-white/70">
-                                Aucun élève dans cette franchise
-                              </div>
-                            )}
+                        <div className="mb-6 bg-gradient-to-r from-orange-600/20 to-purple-600/20 border-l-4 border-orange-400 p-6 rounded-lg shadow-lg">
+                          <div className="flex items-start gap-3">
+                            <span className="text-3xl">🎃</span>
+                            <div className="flex-1">
+                              <h3 className="text-xl font-bold text-white mb-2">🔥 Événement Halloween Actif !</h3>
+                              <p className="text-white/90 text-lg leading-relaxed">
+                                Du 3 au 9 novembre • Obtenez 3 actions positives <strong>sans aucune action négative</strong> pour débloquer le badge <strong>Halloween Spirit</strong> (+12 points) ! 🎃
+                              </p>
+                            </div>
                           </div>
                         </div>
                       );
-                    })}
+                    }
+                    if (currentSeason === 'christmas') {
+                      return (
+                        <div className="mb-6 bg-gradient-to-r from-red-600/20 to-green-600/20 border-l-4 border-red-400 p-6 rounded-lg shadow-lg">
+                          <div className="flex items-start gap-3">
+                            <span className="text-3xl">🎄</span>
+                            <div className="flex-1">
+                              <h3 className="text-xl font-bold text-white mb-2">🔥 Événement Noël Actif !</h3>
+                              <p className="text-white/90 text-lg leading-relaxed">
+                                Du 15 au 21 décembre • Obtenez 3 actions positives <strong>sans aucune action négative</strong> pour débloquer le badge <strong>Christmas Magic</strong> (+12 points) ! 🎄
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 mb-8">
+                    <button
+                      onClick={() => {
+                        setCurrentView('student-search');
+                        // Réinitialiser la recherche quand on clique sur "Mon Score"
+                        setSearchName('');
+                        setFoundPlayer(null);
+                        setSearchHistory([]);
+                      }}
+                      className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-500 hover:to-blue-700 text-white p-4 md:p-6 rounded-xl shadow-2xl transform hover:scale-105 active:scale-95 transition-all duration-300 touch-manipulation min-h-20 md:min-h-24"
+                    >
+                      <div className="text-3xl md:text-4xl mb-2">🔍</div>
+                      <h3 className="text-lg md:text-xl font-bold">Mon Score</h3>
+                      <p className="text-blue-100 text-xs md:text-sm">Voir mon historique personnel</p>
+                    </button>
+
+                    <button
+                      onClick={() => setCurrentView('badges')}
+                      className="bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white p-4 md:p-6 rounded-xl shadow-2xl transform hover:scale-105 active:scale-95 transition-all duration-300 touch-manipulation min-h-20 md:min-h-24"
+                    >
+                      <div className="text-3xl md:text-4xl mb-2">🏅</div>
+                      <h3 className="text-lg md:text-xl font-bold">Badges</h3>
+                      <p className="text-purple-100 text-xs md:text-sm">Découvrir les badges</p>
+                    </button>
+
+                    <button
+                      onClick={() => setCurrentView('grades')}
+                      className="bg-gradient-to-r from-orange-600 to-orange-800 hover:from-orange-500 hover:to-orange-700 text-white p-4 md:p-6 rounded-xl shadow-2xl transform hover:scale-105 active:scale-95 transition-all duration-300 touch-manipulation min-h-20 md:min-h-24"
+                    >
+                      <div className="text-3xl md:text-4xl mb-2">🏀</div>
+                      <h3 className="text-lg md:text-xl font-bold">Grades</h3>
+                      <p className="text-orange-100 text-xs md:text-sm">Découvrir les grades</p>
+                    </button>
+
+                    <button
+                      onClick={() => setCurrentView('rankings')}
+                      className="bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-500 hover:to-amber-700 text-white p-4 md:p-6 rounded-xl shadow-2xl transform hover:scale-105 active:scale-95 transition-all duration-300 touch-manipulation min-h-20 md:min-h-24"
+                    >
+                      <div className="text-3xl md:text-4xl mb-2">🏆</div>
+                      <h3 className="text-lg md:text-xl font-bold">Classement</h3>
+                      <p className="text-amber-100 text-xs md:text-sm">Voir les résultats</p>
+                    </button>
+
+                    <button
+                      onClick={() => setCurrentView('guide')}
+                      className="bg-gradient-to-r from-teal-600 to-teal-800 hover:from-teal-500 hover:to-teal-700 text-white p-4 md:p-6 rounded-xl shadow-2xl transform hover:scale-105 active:scale-95 transition-all duration-300 touch-manipulation min-h-20 md:min-h-24"
+                    >
+                      <div className="text-3xl md:text-4xl mb-2">📚</div>
+                      <h3 className="text-lg md:text-xl font-bold">Guide</h3>
+                      <p className="text-teal-100 text-xs md:text-sm">Comment ça marche ?</p>
+                    </button>
+                    
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                    <h3 className="text-2xl font-bold text-white mb-6 text-center">
+                      🏠 Les Quatre Franchises
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                        const franchisePlayers = getSortedPlayers(franchise);
+                        const totalPoints = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
+                        const avatar = getFranchiseAvatar(franchise);
+                        return (
+                          <div 
+                            key={franchise} 
+                            className={`theme-card cursor-pointer transform transition-all duration-300 p-4 rounded-lg text-center franchise-card hover:scale-105 ${selectedFranchiseView === franchise ? 'ring-4 ring-white/50' : ''}`}
+                            onClick={() => handleFranchiseClick(franchise)}
+                          >
+                            <div className="flex items-center justify-center mb-2">
+                              <span className={`franchise-avatar ${avatar.class}`}>
+                                {avatar.emoji}
+                              </span>
+                            </div>
+                            <h4 className="font-bold theme-text-glow text-lg">{franchise}</h4>
+                            <div className="text-3xl font-bold theme-text-glow">{totalPoints}</div>
+                            <div className="text-sm opacity-80">{franchisePlayers.length} élèves</div>
+                            {selectedFranchiseView === franchise && (
+                              <div className="mt-2 text-xs text-center opacity-75">
+                                🎨 Thème actif
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
