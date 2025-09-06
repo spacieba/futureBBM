@@ -1769,7 +1769,11 @@ app.get('/api/progression/:playerName', (req, res) => {
     if (processedData.length > 0 && days !== 'all') {
       const filledData = [];
       const startDate = new Date();
-      startDate.setDate(startDate.getDate() - parseInt(days));
+      const parsedDays = parseInt(days);
+      if (isNaN(parsedDays) || parsedDays < 0 || parsedDays > 365) {
+        throw new Error('Nombre de jours invalide');
+      }
+      startDate.setDate(startDate.getDate() - parsedDays);
       
       let currentScore = initialScore;
       for (let d = new Date(startDate); d <= new Date(); d.setDate(d.getDate() + 1)) {
@@ -1924,7 +1928,11 @@ app.get('/api/mvp/history', (req, res) => {
       params.push(mvp_type);
     }
     
-    params.push(parseInt(limit));
+    const parsedLimit = parseInt(limit);
+    if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 1000) {
+      return res.status(400).json({ error: 'Limite invalide' });
+    }
+    params.push(parsedLimit);
     
     const history = db.prepare(`
       SELECT * FROM mvp_history 
