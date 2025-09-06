@@ -23,11 +23,6 @@ app.use(express.static('public', {
 // 🔒 MOT DE PASSE PROFESSEUR - MODIFIABLE ICI
 const TEACHER_PASSWORD = 'GPwinner2026';
 
-// 🎲 FONCTION POUR GÉNÉRER LES CODES D'ACCÈS ÉLÈVES
-function generateStudentCode() {
-  return Math.random().toString(36).substr(2, 6).toUpperCase();
-}
-
 // Initialiser la base de données
 const dataDir = process.env.NODE_ENV === 'production' ? '/tmp' : path.join(__dirname, 'data');
 if (!fs.existsSync(dataDir)) {
@@ -51,8 +46,7 @@ db.exec(`
     name TEXT UNIQUE NOT NULL,
     franchise TEXT NOT NULL,
     score INTEGER DEFAULT 0,
-    is_drafted INTEGER DEFAULT 1,
-    access_code TEXT UNIQUE
+    is_drafted INTEGER DEFAULT 1
   );
 
   CREATE TABLE IF NOT EXISTS history (
@@ -917,92 +911,13 @@ const updateHallOfFame = (playerName, newScore) => {
 app.post('/api/verify-teacher', (req, res) => {
   const { password } = req.body;
   if (password === TEACHER_PASSWORD) {
-    res.json({ success: true, userType: 'teacher' });
+    res.json({ success: true });
   } else {
     res.json({ success: false });
   }
 });
 
-// Vérification du code d'accès élève
-app.post('/api/verify-student', (req, res) => {
-  const { accessCode } = req.body;
-  try {
-    const student = db.prepare('SELECT name, franchise FROM players WHERE access_code = ?').get(accessCode);
-    if (student) {
-      res.json({ 
-        success: true, 
-        userType: 'student', 
-        studentName: student.name,
-        franchise: student.franchise
-      });
-    } else {
-      res.json({ success: false });
-    }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Générer un code d'accès pour un élève
-app.post('/api/generate-student-code', (req, res) => {
-  const { playerName } = req.body;
-  try {
-    let newCode;
-    let attempts = 0;
-    const maxAttempts = 10;
-    
-    do {
-      newCode = generateStudentCode();
-      attempts++;
-    } while (db.prepare('SELECT 1 FROM players WHERE access_code = ?').get(newCode) && attempts < maxAttempts);
-    
-    if (attempts >= maxAttempts) {
-      return res.status(500).json({ error: 'Unable to generate unique code' });
-    }
-    
-    db.prepare('UPDATE players SET access_code = ? WHERE name = ?').run(newCode, playerName);
-    res.json({ success: true, accessCode: newCode });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Récupérer le profil d'un élève (données limitées)
-app.get('/api/student-profile/:studentName', (req, res) => {
-  const { studentName } = req.params;
-  try {
-    const player = db.prepare('SELECT name, franchise, score FROM players WHERE name = ?').get(studentName);
-    if (!player) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
-    
-    // Récupérer l'historique personnel de l'élève
-    const history = db.prepare(`
-      SELECT action, points, timestamp, new_total, category 
-      FROM history 
-      WHERE player_name = ? 
-      ORDER BY timestamp DESC 
-      LIMIT 50
-    `).all(studentName);
-    
-    // Récupérer les badges personnels
-    const badges = db.prepare(`
-      SELECT badge_id, badge_name, badge_emoji, rarity, date_earned
-      FROM player_badges 
-      WHERE player_name = ?
-    `).all(studentName);
-    
-    res.json({ 
-      player: player, 
-      history: history, 
-      badges: badges 
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Récupérer tous les joueurs avec leurs badges (PROFESSEURS UNIQUEMENT)
+// Récupérer tous les joueurs avec leurs badges
 app.get('/api/players', (req, res) => {
   try {
     const players = db.prepare('SELECT * FROM players ORDER BY score DESC').all();
@@ -1019,25 +934,6 @@ app.get('/api/players', (req, res) => {
     });
     
     res.json(playersWithBadges);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Récupérer les statistiques générales (version limitée pour élèves)
-app.get('/api/public-stats', (req, res) => {
-  try {
-    // Retourner uniquement les totaux par franchise (sans noms ni détails)
-    const franchiseStats = {};
-    ['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves', 'Non-Draftés'].forEach(franchise => {
-      const players = db.prepare('SELECT COUNT(*) as count, SUM(score) as total FROM players WHERE franchise = ?').get(franchise);
-      franchiseStats[franchise] = {
-        playerCount: players.count || 0,
-        totalPoints: players.total || 0
-      };
-    });
-    
-    res.json({ franchiseStats });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -1354,24 +1250,10 @@ app.post('/api/add-student', (req, res) => {
     }
     
     const transaction = db.transaction(() => {
-      // Générer un code d'accès unique
-      let accessCode;
-      let attempts = 0;
-      const maxAttempts = 10;
-      
-      do {
-        accessCode = generateStudentCode();
-        attempts++;
-      } while (db.prepare('SELECT 1 FROM players WHERE access_code = ?').get(accessCode) && attempts < maxAttempts);
-      
-      if (attempts >= maxAttempts) {
-        throw new Error('Unable to generate unique access code');
-      }
-      
       // Un élève dans Non-Draftés n'est pas encore drafté
       const isDrafted = franchise !== 'Non-Draftés' ? 1 : 0;
-      db.prepare('INSERT INTO players (name, franchise, score, is_drafted, access_code) VALUES (?, ?, ?, ?, ?)')
-        .run(cleanName, franchise, 0, isDrafted, accessCode);
+      db.prepare('INSERT INTO players (name, franchise, score, is_drafted) VALUES (?, ?, ?, ?)')
+        .run(cleanName, franchise, 0, isDrafted);
       
       db.prepare('INSERT INTO player_stats (player_name) VALUES (?)')
         .run(cleanName);
