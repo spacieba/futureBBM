@@ -110,6 +110,15 @@ db.exec(`
     best_rank_duration INTEGER DEFAULT 0,
     last_rank_check TEXT
   );
+
+  CREATE TABLE IF NOT EXISTS student_codes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_name TEXT UNIQUE NOT NULL,
+    access_code TEXT UNIQUE NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    last_login TEXT,
+    FOREIGN KEY (player_name) REFERENCES players (name)
+  );
 `);
 
 db.exec(`
@@ -606,6 +615,47 @@ const initDatabase = () => {
 };
 
 initDatabase();
+
+// === GESTION DES CODES D'ACCÈS ÉLÈVES ===
+
+// Fonction pour générer un code d'accès unique
+const generateAccessCode = () => {
+  const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Sans I, O, 0, 1 pour éviter confusion
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return code;
+};
+
+// Générer des codes pour tous les élèves qui n'en ont pas
+const ensureAllPlayersHaveCodes = () => {
+  const players = db.prepare('SELECT name FROM players').all();
+  const insertCode = db.prepare('INSERT OR IGNORE INTO student_codes (player_name, access_code) VALUES (?, ?)');
+  
+  players.forEach(player => {
+    const existingCode = db.prepare('SELECT access_code FROM student_codes WHERE player_name = ?').get(player.name);
+    if (!existingCode) {
+      let code;
+      let isUnique = false;
+      
+      // S'assurer que le code est unique
+      while (!isUnique) {
+        code = generateAccessCode();
+        const exists = db.prepare('SELECT COUNT(*) as count FROM student_codes WHERE access_code = ?').get(code);
+        if (exists.count === 0) {
+          isUnique = true;
+        }
+      }
+      
+      insertCode.run(player.name, code);
+      console.log(`📝 Code généré pour ${player.name}: ${code}`);
+    }
+  });
+};
+
+// Initialiser les codes d'accès
+ensureAllPlayersHaveCodes();
 
 // === FONCTIONS DE VÉRIFICATION DES BADGES ===
 
@@ -1257,10 +1307,27 @@ app.post('/api/add-student', (req, res) => {
       
       db.prepare('INSERT INTO player_stats (player_name) VALUES (?)')
         .run(cleanName);
+      
+      // Créer un code d'accès pour le nouvel élève
+      let code;
+      let isUnique = false;
+      
+      while (!isUnique) {
+        code = generateAccessCode();
+        const exists = db.prepare('SELECT COUNT(*) as count FROM student_codes WHERE access_code = ?').get(code);
+        if (exists.count === 0) {
+          isUnique = true;
+        }
+      }
+      
+      db.prepare('INSERT INTO student_codes (player_name, access_code) VALUES (?, ?)')
+        .run(cleanName, code);
+      
+      return code;
     });
     
-    transaction();
-    res.json({ success: true });
+    const accessCode = transaction();
+    res.json({ success: true, accessCode });
     
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -2344,6 +2411,136 @@ app.get('/api/export-csv', (req, res) => {
 
   } catch (error) {
     console.error('Erreur lors de l\'export CSV:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// === ENDPOINTS POUR L'AUTHENTIFICATION DES ÉLÈVES ===
+
+// Vérifier un code d'accès élève
+app.post('/api/student-login', (req, res) => {
+  try {
+    const { accessCode } = req.body;
+    
+    if (!accessCode || accessCode.length !== 6) {
+      return res.status(400).json({ error: 'Code invalide' });
+    }
+    
+    const studentCode = db.prepare(`
+      SELECT sc.*, p.name, p.franchise, p.score 
+      FROM student_codes sc
+      JOIN players p ON sc.player_name = p.name
+      WHERE sc.access_code = ?
+    `).get(accessCode.toUpperCase());
+    
+    if (!studentCode) {
+      return res.status(401).json({ error: 'Code incorrect' });
+    }
+    
+    // Mettre à jour la dernière connexion
+    db.prepare('UPDATE student_codes SET last_login = ? WHERE access_code = ?')
+      .run(new Date().toISOString(), accessCode.toUpperCase());
+    
+    res.json({
+      success: true,
+      playerName: studentCode.name,
+      franchise: studentCode.franchise,
+      score: studentCode.score
+    });
+    
+  } catch (error) {
+    console.error('Erreur lors de la connexion élève:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Obtenir tous les codes (pour le professeur)
+app.get('/api/student-codes', (req, res) => {
+  try {
+    const codes = db.prepare(`
+      SELECT 
+        sc.player_name,
+        sc.access_code,
+        sc.created_at,
+        sc.last_login,
+        p.franchise,
+        p.score
+      FROM student_codes sc
+      JOIN players p ON sc.player_name = p.name
+      ORDER BY p.franchise, p.name
+    `).all();
+    
+    res.json(codes);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des codes:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Réinitialiser un code d'accès
+app.post('/api/reset-student-code', (req, res) => {
+  try {
+    const { playerName } = req.body;
+    
+    if (!playerName) {
+      return res.status(400).json({ error: 'Nom de l\'élève requis' });
+    }
+    
+    let newCode;
+    let isUnique = false;
+    
+    while (!isUnique) {
+      newCode = generateAccessCode();
+      const exists = db.prepare('SELECT COUNT(*) as count FROM student_codes WHERE access_code = ?').get(newCode);
+      if (exists.count === 0) {
+        isUnique = true;
+      }
+    }
+    
+    db.prepare('UPDATE student_codes SET access_code = ?, created_at = ? WHERE player_name = ?')
+      .run(newCode, new Date().toISOString(), playerName);
+    
+    res.json({ success: true, newCode });
+    
+  } catch (error) {
+    console.error('Erreur lors de la réinitialisation du code:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Créer un code pour un nouvel élève (appelé automatiquement lors de l'ajout)
+app.post('/api/create-student-code', (req, res) => {
+  try {
+    const { playerName } = req.body;
+    
+    if (!playerName) {
+      return res.status(400).json({ error: 'Nom de l\'élève requis' });
+    }
+    
+    // Vérifier si un code existe déjà
+    const existing = db.prepare('SELECT access_code FROM student_codes WHERE player_name = ?').get(playerName);
+    if (existing) {
+      return res.json({ success: true, code: existing.access_code });
+    }
+    
+    let code;
+    let isUnique = false;
+    
+    while (!isUnique) {
+      code = generateAccessCode();
+      const exists = db.prepare('SELECT COUNT(*) as count FROM student_codes WHERE access_code = ?').get(code);
+      if (exists.count === 0) {
+        isUnique = true;
+      }
+    }
+    
+    db.prepare('INSERT INTO student_codes (player_name, access_code) VALUES (?, ?)')
+      .run(playerName, code);
+    
+    res.json({ success: true, code });
+    
+  } catch (error) {
+    console.error('Erreur lors de la création du code:', error);
     res.status(500).json({ error: error.message });
   }
 });
