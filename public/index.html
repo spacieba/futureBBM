@@ -1422,6 +1422,13 @@ if (!hofData) {
           const [renamePlayerName, setRenamePlayerName] = useState('');
           const [newPlayerName, setNewPlayerName] = useState('');
           
+          // États pour l'authentification élève
+          const [showStudentLogin, setShowStudentLogin] = useState(false);
+          const [studentAccessCode, setStudentAccessCode] = useState('');
+          const [authenticatedStudent, setAuthenticatedStudent] = useState(null);
+          const [studentLoginError, setStudentLoginError] = useState('');
+          const [studentCodes, setStudentCodes] = useState([]);
+          
           // === GESTION DES THÈMES DYNAMIQUES ===
           
           // Fonction pour obtenir le nom du thème selon la franchise
@@ -1836,6 +1843,68 @@ if (!hofData) {
               }
             } catch (error) {
               setLoginError('Erreur de connexion');
+            }
+          };
+
+          // Connexion élève avec code d'accès
+          const handleStudentLogin = async () => {
+            setStudentLoginError('');
+            try {
+              const response = await fetch('/api/student-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ accessCode: studentAccessCode })
+              });
+              
+              const data = await response.json();
+              
+              if (response.ok && data.success) {
+                setAuthenticatedStudent({
+                  name: data.playerName,
+                  franchise: data.franchise,
+                  score: data.score
+                });
+                setShowStudentLogin(false);
+                setUserType('student');
+                setCurrentView('student-personal');
+                setStudentAccessCode('');
+              } else {
+                setStudentLoginError(data.error || 'Code incorrect');
+              }
+            } catch (error) {
+              setStudentLoginError('Erreur de connexion');
+            }
+          };
+
+          // Charger les codes d'accès (pour le professeur)
+          const loadStudentCodes = async () => {
+            try {
+              const response = await fetch('/api/student-codes');
+              const data = await response.json();
+              setStudentCodes(data);
+            } catch (error) {
+              console.error('Erreur lors du chargement des codes:', error);
+            }
+          };
+
+          // Réinitialiser un code d'accès
+          const resetStudentCode = async (playerName) => {
+            if (!confirm(`Voulez-vous vraiment réinitialiser le code de ${playerName} ?`)) return;
+            
+            try {
+              const response = await fetch('/api/reset-student-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ playerName })
+              });
+              
+              const data = await response.json();
+              if (data.success) {
+                alert(`Nouveau code pour ${playerName}: ${data.newCode}`);
+                await loadStudentCodes();
+              }
+            } catch (error) {
+              console.error('Erreur lors de la réinitialisation:', error);
             }
           };
 
@@ -2486,10 +2555,7 @@ if (currentView === 'home') {
             
             {/* Bouton Élève */}
             <button
-              onClick={() => {
-                setUserType('student');
-                setCurrentView('student-dashboard');
-              }}
+              onClick={() => setShowStudentLogin(true)}
               className="w-full group relative overflow-hidden backdrop-blur-md bg-white/10 border border-white/20 hover:bg-white/15 active:bg-white/20 text-white rounded-2xl shadow-2xl transform active:scale-95 md:hover:scale-105 transition-all duration-300 touch-manipulation"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-pink-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -2498,9 +2564,9 @@ if (currentView === 'home') {
                   <div className="text-4xl md:text-6xl flex-shrink-0 group-hover:scale-110 transition-transform duration-300">👨‍🎓</div>
                   <div className="text-left md:text-center">
                     <h2 className="text-xl md:text-3xl font-bold mb-2 text-orange-200">ÉLÈVE</h2>
-                    <p className="text-white/80 text-sm md:text-base mb-3">Consultez vos performances</p>
+                    <p className="text-white/80 text-sm md:text-base mb-3">Accédez à vos stats privées</p>
                     <div className="inline-flex items-center bg-orange-900/40 backdrop-blur-sm px-4 py-2 rounded-full border border-orange-500/30">
-                      <span className="text-xs md:text-sm text-orange-300 font-semibold">👁️ Accès libre</span>
+                      <span className="text-xs md:text-sm text-orange-300 font-semibold">🔐 Code personnel</span>
                     </div>
                   </div>
                 </div>
@@ -5034,6 +5100,68 @@ if (currentView === 'grades') {
                   </button>
                 )}
               </div>
+              
+              {/* Modal de connexion élève */}
+              {showStudentLogin && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-xl p-6 max-w-md w-full">
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-2xl font-bold text-gray-800">🔐 Connexion Élève</h3>
+                      <button
+                        onClick={() => {
+                          setShowStudentLogin(false);
+                          setStudentAccessCode('');
+                          setStudentLoginError('');
+                        }}
+                        className="text-gray-500 hover:text-gray-700 text-2xl"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-gray-700 text-sm font-bold mb-2">
+                          Entre ton code d'accès personnel (6 caractères)
+                        </label>
+                        <input
+                          type="text"
+                          value={studentAccessCode}
+                          onChange={(e) => setStudentAccessCode(e.target.value.toUpperCase().slice(0, 6))}
+                          onKeyPress={(e) => e.key === 'Enter' && handleStudentLogin()}
+                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-center text-2xl font-mono tracking-wider uppercase"
+                          placeholder="XXXXXX"
+                          maxLength="6"
+                          autoFocus
+                        />
+                      </div>
+                      
+                      {studentLoginError && (
+                        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                          {studentLoginError}
+                        </div>
+                      )}
+                      
+                      <button
+                        onClick={handleStudentLogin}
+                        disabled={studentAccessCode.length !== 6}
+                        className={`w-full py-3 rounded-lg font-bold transition-colors ${
+                          studentAccessCode.length === 6
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        Se connecter
+                      </button>
+                      
+                      <div className="text-center text-sm text-gray-600 mt-4">
+                        <p>💡 Ton code t'a été donné par ton professeur</p>
+                        <p className="mt-2">Si tu l'as perdu, demande-lui de te le redonner</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               {selectedPlayerHistory && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 modal-backdrop">
