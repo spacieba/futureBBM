@@ -8,8 +8,8 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
     <style>
@@ -171,28 +171,37 @@
         }
         
 
-        /* === NAVIGATION MOBILE === */
+        /* === NAVIGATION MOBILE AMÉLIORÉE === */
         
         .mobile-nav {
           position: fixed;
           bottom: 0;
           left: 0;
           right: 0;
-          background: rgba(0, 0, 0, 0.9);
-          backdrop-filter: blur(10px);
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
-          padding: 12px;
-          z-index: 50;
+          background: rgba(0, 0, 0, 0.95);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border-top: 1px solid rgba(255, 255, 255, 0.2);
+          padding: 8px 4px;
+          padding-bottom: env(safe-area-inset-bottom, 8px);
+          z-index: 9999;
           display: none;
+          box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
         }
         
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
           .mobile-nav {
             display: flex;
+            justify-content: space-around;
           }
           
-          .main-content {
-            padding-bottom: 80px;
+          body {
+            padding-bottom: calc(60px + env(safe-area-inset-bottom));
+          }
+          
+          /* Ajustements pour éviter que le contenu soit caché */
+          .min-h-screen {
+            min-height: calc(100vh - 60px - env(safe-area-inset-bottom));
           }
         }
         
@@ -202,27 +211,120 @@
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 8px 4px;
-          border-radius: 8px;
-          transition: background-color 0.2s;
+          padding: 10px 8px;
+          border-radius: 12px;
+          transition: all 0.3s ease;
           text-decoration: none;
-          color: rgba(255, 255, 255, 0.7);
+          color: rgba(255, 255, 255, 0.6);
+          min-width: 60px;
+          min-height: 50px;
+          position: relative;
         }
         
-        .mobile-nav-button:hover,
+        .mobile-nav-button:active {
+          transform: scale(0.95);
+          background: rgba(255, 255, 255, 0.2);
+        }
+        
         .mobile-nav-button.active {
-          background: rgba(255, 255, 255, 0.1);
           color: white;
+          background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3));
+        }
+        
+        .mobile-nav-button.active::before {
+          content: '';
+          position: absolute;
+          top: -2px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 30px;
+          height: 3px;
+          background: linear-gradient(90deg, #818cf8, #a78bfa);
+          border-radius: 2px;
         }
         
         .mobile-nav-icon {
-          font-size: 20px;
+          font-size: 24px;
           margin-bottom: 4px;
+          transition: transform 0.3s ease;
+        }
+        
+        .mobile-nav-button:active .mobile-nav-icon {
+          transform: scale(1.2);
         }
         
         .mobile-nav-text {
-          font-size: 10px;
-          font-weight: 500;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.3px;
+        }
+        
+        /* Amélioration des zones tactiles sur mobile */
+        @media (max-width: 768px) {
+          button, .touch-target {
+            min-height: 44px;
+            min-width: 44px;
+          }
+          
+          /* Espacement pour les petits boutons */
+          .gap-3 {
+            gap: 0.75rem;
+          }
+        }
+
+        /* === TABLEAUX RESPONSIFS === */
+        @media (max-width: 768px) {
+          .table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin: 0 -1rem;
+            padding: 0 1rem;
+          }
+          
+          .table-container::-webkit-scrollbar {
+            height: 6px;
+          }
+          
+          .table-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+          }
+          
+          .table-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+          }
+          
+          table {
+            min-width: 500px;
+          }
+        }
+        
+        /* === MODALES RESPONSIVES === */
+        @media (max-width: 768px) {
+          .modal-content {
+            max-height: 85vh;
+            overflow-y: auto;
+            margin: 1rem;
+            border-radius: 1rem;
+          }
+          
+          .modal-backdrop {
+            padding: 0;
+          }
+        }
+        
+        /* === GRAPHIQUES RESPONSIFS === */
+        @media (max-width: 768px) {
+          .chart-container {
+            position: relative;
+            height: 250px !important;
+            width: 100% !important;
+          }
+          
+          canvas {
+            max-height: 250px !important;
+          }
         }
 
         /* === STYLES COMMUNS ADAPTÉS AUX THÈMES === */
@@ -2771,7 +2873,7 @@ if (currentView === 'teacher-actions') {
                     addPoints(selectedPlayerData.name, action.points, action.label);
                     setCurrentView('teacher-players');
                   }}
-                  className="bg-blue-600/80 hover:bg-blue-500 text-white p-3 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
+                  className="bg-blue-600/80 hover:bg-blue-500 text-white p-4 md:p-3 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg min-h-[60px] md:min-h-0 touch-manipulation"
                   disabled={loading}
                 >
                   <div className="flex justify-between items-center">
@@ -2800,7 +2902,7 @@ if (currentView === 'teacher-actions') {
                     addPoints(selectedPlayerData.name, action.points, action.label);
                     setCurrentView('teacher-players');
                   }}
-                  className="bg-green-600/80 hover:bg-green-500 text-white p-3 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
+                  className="bg-green-600/80 hover:bg-green-500 text-white p-4 md:p-3 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg min-h-[60px] md:min-h-0 touch-manipulation"
                   disabled={loading}
                 >
                   <div className="flex justify-between items-center">
@@ -2836,7 +2938,7 @@ if (currentView === 'teacher-actions') {
                     addPoints(selectedPlayerData.name, action.points, action.label);
                     setCurrentView('teacher-players');
                   }}
-                  className="bg-pink-600/80 hover:bg-pink-500 text-white p-3 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
+                  className="bg-pink-600/80 hover:bg-pink-500 text-white p-4 md:p-3 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg min-h-[60px] md:min-h-0 touch-manipulation"
                   disabled={loading}
                 >
                   <div className="flex justify-between items-center">
@@ -2865,7 +2967,7 @@ if (currentView === 'teacher-actions') {
                     addPoints(selectedPlayerData.name, action.points, action.label);
                     setCurrentView('teacher-players');
                   }}
-                  className="bg-red-600/80 hover:bg-red-500 text-white p-3 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
+                  className="bg-red-600/80 hover:bg-red-500 text-white p-4 md:p-3 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg min-h-[60px] md:min-h-0 touch-manipulation"
                   disabled={loading}
                 >
                   <div className="flex justify-between items-center">
@@ -3264,7 +3366,9 @@ if (currentView === 'teacher-actions') {
                         📈 Évolution de {selectedPlayerForGraph}
                       </h2>
                       <div className="bg-white rounded-lg p-4">
-                        <canvas id="playerChart" width="800" height="400"></canvas>
+                        <div className="chart-container">
+                          <canvas id="playerChart"></canvas>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -3460,7 +3564,7 @@ if (currentView === 'teacher-actions') {
                     <h1 className="text-4xl font-bold text-white">🔍 Rechercher Mon Score</h1>
                     <button
                       onClick={() => setCurrentView('student-dashboard')}
-                      className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-3 md:px-6 md:py-3 rounded-lg transition-colors min-h-12 text-sm md:text-base"
+                      className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-3 md:px-6 md:py-3 rounded-lg transition-colors min-h-[44px] md:min-h-12 text-sm md:text-base touch-manipulation"
                     >
                       ← Retour
                     </button>
@@ -4860,9 +4964,80 @@ if (currentView === 'grades') {
               {/* Système de notifications */}
               <NotificationSystem notifications={notifications} />
               
+              {/* Navigation mobile fixe en bas */}
+              <div className="mobile-nav">
+                <button
+                  onClick={() => setCurrentView('home')}
+                  className={`mobile-nav-button ${currentView === 'home' ? 'active' : ''}`}
+                >
+                  <span className="mobile-nav-icon">🏠</span>
+                  <span className="mobile-nav-text">Accueil</span>
+                </button>
+                
+                {userType === 'student' && (
+                  <>
+                    <button
+                      onClick={() => setCurrentView('student-search')}
+                      className={`mobile-nav-button ${currentView === 'student-search' ? 'active' : ''}`}
+                    >
+                      <span className="mobile-nav-icon">🔍</span>
+                      <span className="mobile-nav-text">Score</span>
+                    </button>
+                    <button
+                      onClick={() => setCurrentView('student-dashboard')}
+                      className={`mobile-nav-button ${currentView === 'student-dashboard' ? 'active' : ''}`}
+                    >
+                      <span className="mobile-nav-icon">🏀</span>
+                      <span className="mobile-nav-text">Franchises</span>
+                    </button>
+                  </>
+                )}
+                
+                {userType === 'teacher' && (
+                  <>
+                    <button
+                      onClick={() => setCurrentView('teacher-players')}
+                      className={`mobile-nav-button ${currentView === 'teacher-players' ? 'active' : ''}`}
+                    >
+                      <span className="mobile-nav-icon">👥</span>
+                      <span className="mobile-nav-text">Élèves</span>
+                    </button>
+                    <button
+                      onClick={() => setCurrentView('teacher-dashboard')}
+                      className={`mobile-nav-button ${currentView === 'teacher-dashboard' ? 'active' : ''}`}
+                    >
+                      <span className="mobile-nav-icon">⚙️</span>
+                      <span className="mobile-nav-text">Gestion</span>
+                    </button>
+                  </>
+                )}
+                
+                <button
+                  onClick={() => setCurrentView('rankings')}
+                  className={`mobile-nav-button ${currentView === 'rankings' ? 'active' : ''}`}
+                >
+                  <span className="mobile-nav-icon">🏆</span>
+                  <span className="mobile-nav-text">Classements</span>
+                </button>
+                
+                {userType && (
+                  <button
+                    onClick={() => {
+                      setUserType(null);
+                      setCurrentView('home');
+                      setSelectedFranchiseView(null);
+                    }}
+                    className="mobile-nav-button"
+                  >
+                    <span className="mobile-nav-icon">🚪</span>
+                    <span className="mobile-nav-text">Quitter</span>
+                  </button>
+                )}
+              </div>
+              
               {selectedPlayerHistory && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                  <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-96 overflow-y-auto">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 modal-backdrop">
+                  <div className="bg-white rounded-xl p-4 md:p-6 max-w-md w-full max-h-[85vh] md:max-h-96 overflow-y-auto modal-content">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-xl font-bold">Historique de {selectedPlayerHistory}</h3>
                       <button
