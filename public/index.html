@@ -494,24 +494,106 @@
             z-index: 1;
         }
         
+        /* Non-Draftés - Thème neutre et prometteur */
+        .theme-undrafted {
+            --primary-color: #6B7280;
+            --secondary-color: #4B5563;
+            --accent-color: #F3F4F6;
+            --bg-gradient-1: #1F2937;
+            --bg-gradient-2: #374151;
+            --text-primary: #FFFFFF;
+            --text-secondary: #D1D5DB;
+            --glow-color: rgba(107, 114, 128, 0.5);
+        }
+        
+        .theme-undrafted::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 50% 50%, rgba(107, 114, 128, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .theme-undrafted .theme-card {
+            background: linear-gradient(135deg, rgba(107, 114, 128, 0.15), rgba(75, 85, 99, 0.1));
+            border: 1px solid rgba(107, 114, 128, 0.3);
+            box-shadow: 
+                0 8px 32px 0 rgba(31, 41, 55, 0.5),
+                inset 0 0 15px rgba(107, 114, 128, 0.2),
+                0 0 30px rgba(209, 213, 219, 0.1);
+        }
+        
+        .theme-undrafted .theme-button {
+            background: linear-gradient(135deg, #6B7280, #4B5563, #374151);
+            box-shadow: 
+                0 6px 20px rgba(107, 114, 128, 0.3),
+                inset 0 1px 0 rgba(243, 244, 246, 0.2);
+        }
+        
+        .theme-undrafted h1 {
+            font-family: 'Segoe UI', 'Roboto', sans-serif;
+            letter-spacing: 0.5px;
+        }
+        
         /* === PERSONNALISATION DES TITRES === */
         
-        .theme-minotaurs h1, .theme-minotaurs h2, .theme-minotaurs h3 {
+        /* Titres principaux avec polices thématiques */
+        .theme-minotaurs h1 {
             font-family: 'Georgia', 'Times New Roman', serif;
             text-transform: uppercase;
         }
         
-        .theme-krakens h1, .theme-krakens h2, .theme-krakens h3 {
+        .theme-krakens h1 {
             font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
             letter-spacing: 0.5px;
         }
         
-        .theme-phoenix h1, .theme-phoenix h2, .theme-phoenix h3 {
+        .theme-phoenix h1 {
             font-family: 'Book Antiqua', 'Palatino', serif;
             font-style: italic;
         }
         
-        .theme-werewolves h1, .theme-werewolves h2, .theme-werewolves h3 {
+        .theme-werewolves h1 {
+            font-family: 'Impact', 'Arial Black', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* H2 et H3 dans les boutons d'interface - police uniforme pour éviter les débordements */
+        button h2, button h3,
+        .theme-card h2, .theme-card h3 {
+            font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif !important;
+            font-style: normal !important;
+            text-transform: none !important;
+            letter-spacing: normal !important;
+        }
+        
+        /* Autres H2 et H3 peuvent garder les polices thématiques */
+        .theme-minotaurs h2:not(button h2):not(.theme-card h2),
+        .theme-minotaurs h3:not(button h3):not(.theme-card h3) {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            text-transform: uppercase;
+        }
+        
+        .theme-krakens h2:not(button h2):not(.theme-card h2),
+        .theme-krakens h3:not(button h3):not(.theme-card h3) {
+            font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+            letter-spacing: 0.5px;
+        }
+        
+        .theme-phoenix h2:not(button h2):not(.theme-card h2),
+        .theme-phoenix h3:not(button h3):not(.theme-card h3) {
+            font-family: 'Book Antiqua', 'Palatino', serif;
+            font-style: italic;
+        }
+        
+        .theme-werewolves h2:not(button h2):not(.theme-card h2),
+        .theme-werewolves h3:not(button h3):not(.theme-card h3) {
             font-family: 'Impact', 'Arial Black', sans-serif;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -1085,7 +1167,8 @@ if (!franchiseData.franchise_stats || franchiseData.franchise_stats.length === 0
             Minotaurs: 'from-red-600 to-red-800',
             Krakens: 'from-blue-600 to-blue-800',
             Phoenix: 'from-purple-600 to-purple-800',
-            Werewolves: 'from-green-600 to-green-800'
+            Werewolves: 'from-green-600 to-green-800',
+            'Non-Draftés': 'from-gray-600 to-gray-800'
           };
 
           return (
@@ -1208,7 +1291,7 @@ if (!hofData) {
           const [teacherName, setTeacherName] = useState('');
           const [selectedStudent, setSelectedStudent] = useState('');
           const [newStudentName, setNewStudentName] = useState('');
-          const [newStudentFranchise, setNewStudentFranchise] = useState('Minotaurs');
+          const [newStudentFranchise, setNewStudentFranchise] = useState('Non-Draftés');
           const [selectedPlayerForGraph, setSelectedPlayerForGraph] = useState(null);
           const [playerProgressionData, setPlayerProgressionData] = useState(null);
           const [currentChart, setCurrentChart] = useState(null);
@@ -1242,6 +1325,7 @@ if (!hofData) {
               'Krakens': 'theme-krakens', 
               'Phoenix': 'theme-phoenix',
               'Werewolves': 'theme-werewolves',
+              'Non-Draftés': 'theme-undrafted',
             };
             return themeMap[franchise] || '';
           };
@@ -1280,6 +1364,11 @@ if (!hofData) {
                 english: "Together we howl, together we triumph",
                 french: "Ensemble nous hurlons, ensemble nous triomphons",
                 ornament: "🌙"
+              },
+              'Non-Draftés': {
+                english: "Every champion starts with a dream",
+                french: "Chaque champion commence par un rêve",
+                ornament: "⭐"
               }
             };
             return maximes[franchise] || null;
@@ -1535,7 +1624,8 @@ if (!hofData) {
               Minotaurs: { emoji: '🐂', class: 'minotaur-avatar', name: 'Taureau Enragé' },
               Krakens: { emoji: '🐙', class: 'kraken-avatar', name: 'Kraken des Profondeurs' },
               Phoenix: { emoji: '🔥', class: 'phoenix-avatar', name: 'Phoenix Éternel' },
-              Werewolves: { emoji: '🐺', class: 'werewolf-avatar', name: 'Loup-Garou' }
+              Werewolves: { emoji: '🐺', class: 'werewolf-avatar', name: 'Loup-Garou' },
+              'Non-Draftés': { emoji: '✨', class: 'undrafted-avatar', name: 'Espoir' }
             };
             return avatars[franchise] || { emoji: '⚡', class: 'franchise-avatar', name: 'Guerrier' };
           };
@@ -1607,7 +1697,8 @@ if (!hofData) {
             Minotaurs: 'from-red-600 to-red-800',
             Krakens: 'from-blue-600 to-blue-800',
             Phoenix: 'from-purple-600 to-purple-800',
-            Werewolves: 'from-green-600 to-green-800'
+            Werewolves: 'from-green-600 to-green-800',
+            'Non-Draftés': 'from-gray-600 to-gray-800'
           };
 
           // Vérifier le mot de passe professeur
@@ -1990,6 +2081,50 @@ if (!hofData) {
               alert('Erreur lors de la suppression');
             }
           };
+          
+          // Drafter un élève vers une franchise (professeurs uniquement)
+          const draftStudent = async (playerName, newFranchise) => {
+            if (!playerName || !newFranchise) {
+              alert('Veuillez sélectionner un élève et une franchise');
+              return;
+            }
+            
+            const player = players.find(p => p.name === playerName);
+            if (!player) {
+              alert('Élève non trouvé');
+              return;
+            }
+            
+            if (player.franchise === newFranchise) {
+              alert(`${playerName} est déjà dans ${newFranchise}`);
+              return;
+            }
+            
+            if (!confirm(`Voulez-vous drafter ${playerName} (${player.score} points) vers ${newFranchise} ?`)) {
+              return;
+            }
+            
+            try {
+              const response = await fetch('/api/draft-student', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                  playerName,
+                  newFranchise
+                })
+              });
+              
+              if (response.ok) {
+                await loadPlayers();
+                alert(`${playerName} a été drafté vers ${newFranchise} avec ses ${player.score} points !`);
+              } else {
+                const error = await response.json();
+                alert(error.error || 'Erreur lors du draft');
+              }
+            } catch (error) {
+              alert('Erreur lors du draft de l\'élève');
+            }
+          };
 
           useEffect(() => {
             if (userType) {
@@ -2028,7 +2163,7 @@ if (!hofData) {
           // Obtenir le classement des franchises
           const getFranchiseRankings = () => {
             const franchiseScores = {};
-            ['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].forEach(franchise => {
+            ['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves', 'Non-Draftés'].forEach(franchise => {
               franchiseScores[franchise] = players
                 .filter(player => player.franchise === franchise)
                 .reduce((total, player) => total + player.score, 0);
@@ -2395,8 +2530,8 @@ if (currentView === 'home') {
 
                   <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
                     <h3 className="text-2xl font-bold text-white mb-4">📊 Statistiques Rapides</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
+                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves', 'Non-Draftés'].map(franchise => {
                         const franchisePlayers = getSortedPlayers(franchise);
                         const totalPoints = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
                         const avatar = getFranchiseAvatar(franchise);
@@ -2779,6 +2914,7 @@ if (currentView === 'teacher-actions') {
                             onChange={(e) => setNewStudentFranchise(e.target.value)}
                             className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
                           >
+                            <option value="Non-Draftés" className="text-black">✨ Non-Draftés</option>
                             <option value="Minotaurs" className="text-black">🐂 Minotaurs</option>
                             <option value="Krakens" className="text-black">🐙 Krakens</option>
                             <option value="Phoenix" className="text-black">🔥 Phoenix</option>
@@ -2878,14 +3014,71 @@ if (currentView === 'teacher-actions') {
                         </p>
                       </div>
                     </div>
+                    
+                    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                      <h2 className="text-2xl font-bold text-white mb-6 text-center">
+                        🎯 Drafter un Élève
+                      </h2>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-white text-sm font-bold mb-2">
+                            Élève à drafter (Non-Draftés uniquement)
+                          </label>
+                          <select
+                            value={selectedStudent}
+                            onChange={(e) => setSelectedStudent(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
+                          >
+                            <option value="" className="text-black">-- Choisir un élève non-drafté --</option>
+                            {players
+                              .filter(player => player.franchise === 'Non-Draftés')
+                              .sort((a, b) => b.score - a.score)
+                              .map(player => (
+                                <option key={player.name} value={player.name} className="text-black">
+                                  {player.name} ({player.score} points)
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-white text-sm font-bold mb-2">
+                            Franchise de destination
+                          </label>
+                          <select
+                            value={newStudentFranchise}
+                            onChange={(e) => setNewStudentFranchise(e.target.value)}
+                            className="w-full px-3 py-2 rounded-lg bg-white/20 text-white border border-white/30 focus:border-white/70 focus:outline-none"
+                          >
+                            <option value="" className="text-black">-- Choisir une franchise --</option>
+                            <option value="Minotaurs" className="text-black">🐂 Minotaurs</option>
+                            <option value="Krakens" className="text-black">🐙 Krakens</option>
+                            <option value="Phoenix" className="text-black">🔥 Phoenix</option>
+                            <option value="Werewolves" className="text-black">🐺 Werewolves</option>
+                          </select>
+                        </div>
+                        
+                        <button
+                          onClick={() => draftStudent(selectedStudent, newStudentFranchise)}
+                          disabled={!selectedStudent || !newStudentFranchise || newStudentFranchise === 'Non-Draftés'}
+                          className="w-full bg-purple-600 hover:bg-purple-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white py-3 rounded-lg transition-colors font-bold"
+                        >
+                          🎯 Drafter l'Élève
+                        </button>
+                        
+                        <p className="text-purple-300 text-sm text-center">
+                          💡 Les points de l'élève seront transférés à sa nouvelle franchise
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6">
                     <h2 className="text-2xl font-bold text-white mb-6 text-center">
                       📋 Liste Actuelle des Élèves
                     </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves', 'Non-Draftés'].map(franchise => {
                         const avatar = getFranchiseAvatar(franchise);
                         return (
                           <div key={franchise} className={`bg-gradient-to-r ${franchiseColors[franchise]} p-4 rounded-lg franchise-card`}>
@@ -2961,9 +3154,9 @@ if (currentView === 'teacher-actions') {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
                     {/* Liste des joueurs */}
-                    {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
+                    {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves', 'Non-Draftés'].map(franchise => {
                       const franchisePlayers = getSortedPlayers(franchise);
                       const avatar = getFranchiseAvatar(franchise);
                       return (
@@ -3363,7 +3556,8 @@ if (currentView === 'teacher-actions') {
                               'Minotaurs': ['#dc2626', '#991b1b', '#fef3c7'],
                               'Krakens': ['#0891b2', '#0c4a6e', '#67e8f9'],
                               'Phoenix': ['#7c3aed', '#5b21b6', '#ddd6fe'],
-                              'Werewolves': ['#16a34a', '#15803d', '#bbf7d0']
+                              'Werewolves': ['#16a34a', '#15803d', '#bbf7d0'],
+                              'Non-Draftés': ['#6b7280', '#4b5563', '#f3f4f6']
                             };
                             
                             const colors = franchiseConfettiColors[foundPlayer.franchise] || ['#fbbf24', '#f59e0b', '#d97706'];
