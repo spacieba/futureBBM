@@ -2416,8 +2416,8 @@ if (!hofData) {
 
           // PAGE D'ACCUEIL - CHOIX DU TYPE D'UTILISATEUR
           // Page d'accueil avec logo - remplace votre condition if (currentView === 'home')
-if (currentView === 'home') {
-  return (
+          if (currentView === 'home') {
+            return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden">
       {/* Particules simplifiées pour mobile */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -2587,8 +2587,8 @@ if (currentView === 'home') {
         </div>
       </div>
     </div>
-  );
-}
+            );
+          }
 
           // PAGE DE CONNEXION PROFESSEUR
           if (currentView === 'teacher-login') {
@@ -2877,12 +2877,12 @@ if (currentView === 'home') {
             );
           }
 
-         // PAGE D'ATTRIBUTION DES POINTS
-if (currentView === 'teacher-actions') {
-  const selectedPlayerData = players.find(p => p.name === selectedStudent);
-  if (!selectedPlayerData) return null;
+          // PAGE D'ATTRIBUTION DES POINTS
+          if (currentView === 'teacher-actions') {
+            const selectedPlayerData = players.find(p => p.name === selectedStudent);
+            if (!selectedPlayerData) return null;
 
-  return (
+            return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
       <div className="max-w-4xl mx-auto">
         {/* En-tête */}
@@ -4700,10 +4700,10 @@ if (currentView === 'teacher-actions') {
               </div>
             );
           }
-// PAGE DES GRADES
-if (currentView === 'grades') {
-  // Définition complète de tous les grades
-  const allGrades = [
+          // PAGE DES GRADES
+          if (currentView === 'grades') {
+            // Définition complète de tous les grades
+            const allGrades = [
     // GRADES NÉGATIFS
     { emoji: '🗑️', name: 'Scrub', minScore: -1000, maxScore: -50, color: 'from-red-900 to-red-700', description: 'Le pire niveau possible' },
     { emoji: '🪑', name: 'Benchwarmer', minScore: -50, maxScore: -25, color: 'from-red-700 to-red-500', description: 'Cloué sur le banc' },
