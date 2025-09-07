@@ -2088,7 +2088,12 @@ if (!hofData) {
             }
           };
 
-          // Fonction de recherche d'élève
+          // État pour le système de codes d'accès
+          const [accessCode, setAccessCode] = React.useState('');
+          const [showCodeInput, setShowCodeInput] = React.useState(false);
+          const [pendingPlayerName, setPendingPlayerName] = React.useState('');
+
+          // Fonction de recherche d'élève avec code d'accès
           async function searchPlayer(selectedPlayerName = null) {
             const playerName = selectedPlayerName || searchName.trim();
             
@@ -2097,16 +2102,32 @@ if (!hofData) {
               return;
             }
 
+            // Si on a déjà un code d'accès, l'utiliser directement
+            if (accessCode) {
+              await verifyAndLoadPlayer(playerName, accessCode);
+              return;
+            }
+
+            // Sinon, demander le code d'accès
+            setPendingPlayerName(playerName);
+            setShowCodeInput(true);
+          }
+
+          // Fonction pour vérifier le code et charger le profil
+          async function verifyAndLoadPlayer(playerName, code) {
             try {
-              const response = await fetch(`/api/player/${encodeURIComponent(playerName)}`);
+              const response = await fetch(`/api/player/${encodeURIComponent(playerName)}?code=${encodeURIComponent(code)}`);
+              
               if (response.ok) {
                 const player = await response.json();
                 setFoundPlayer(player);
                 
-                const historyResponse = await fetch(`/api/history/${encodeURIComponent(playerName)}`);
+                const historyResponse = await fetch(`/api/history/${encodeURIComponent(playerName)}?code=${encodeURIComponent(code)}`);
                 const history = await historyResponse.json();
                 setSearchHistory(history);
                 setSearchName(playerName); // Mettre à jour le champ avec le nom sélectionné
+                setShowCodeInput(false);
+                setAccessCode(code); // Sauvegarder le code pour la session
                 
                 // Vérifier si l'élève a été récemment drafté (dans les dernières 24 heures)
                 const recentDraft = history.find(entry => 
@@ -2125,6 +2146,15 @@ if (!hofData) {
                   }, 500);
                 }
               } else {
+                const errorData = await response.json();
+                
+                if (errorData.needsCode) {
+                  // Code d'accès incorrect
+                  alert('❌ Code d\'accès incorrect. Veuillez vérifier votre code et réessayer.');
+                  setShowCodeInput(true);
+                  return;
+                }
+                
                 setFoundPlayer(null);
                 setSearchHistory([]);
                 
@@ -2152,8 +2182,26 @@ if (!hofData) {
             } catch (error) {
               console.error('Erreur de recherche:', error);
               alert('Erreur lors de la recherche: ' + error.message);
+              setShowCodeInput(false);
             }
           }
+
+          // Fonction pour soumettre le code d'accès
+          const submitAccessCode = async () => {
+            if (!accessCode.trim()) {
+              alert('Veuillez entrer votre code d\'accès');
+              return;
+            }
+            
+            await verifyAndLoadPlayer(pendingPlayerName, accessCode.trim());
+          };
+
+          // Fonction pour annuler la demande de code
+          const cancelCodeInput = () => {
+            setShowCodeInput(false);
+            setAccessCode('');
+            setPendingPlayerName('');
+          };
 
           // Ajouter un élève (professeurs uniquement)
           const addStudent = async () => {
@@ -3275,6 +3323,90 @@ if (currentView === 'teacher-actions') {
 
                   <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6">
                     <h2 className="text-2xl font-bold text-white mb-6 text-center">
+                      🔐 Codes d'Accès des Élèves
+                    </h2>
+                    <div className="space-y-4">
+                      <div className="bg-blue-500/20 border border-blue-400/30 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <span className="text-2xl">💡</span>
+                          <div className="text-white text-sm">
+                            <p className="font-semibold mb-1">Information importante</p>
+                            <p>Chaque élève possède un code d'accès unique pour accéder à sa section "Mon Score". Ces codes sont générés automatiquement et restent constants.</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+                        {players.map(player => {
+                          const code = (() => {
+                            const crypto = require('crypto');
+                            const secret = 'GPBasketball2026Secret';
+                            const hash = crypto.createHash('md5').update(secret + player.name.toLowerCase()).digest('hex');
+                            const codeStr = hash.substring(0, 6).toUpperCase();
+                            return codeStr.substring(0, 3) + '-' + codeStr.substring(3, 6);
+                          })();
+                          
+                          const avatar = getFranchiseAvatar(player.franchise);
+                          
+                          return (
+                            <div key={player.name} className="bg-white/10 rounded-lg p-3">
+                              <div className="flex items-center gap-3 mb-2">
+                                <span className={`franchise-avatar ${avatar.class} text-xl`}>
+                                  {avatar.emoji}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-white font-medium text-sm truncate">
+                                    {player.name}
+                                  </div>
+                                  <div className="text-white/60 text-xs">
+                                    {player.franchise}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="bg-black/20 rounded p-2 text-center">
+                                <div className="text-white font-mono text-lg tracking-wider">
+                                  {code}
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(code);
+                                    alert(`Code copié: ${code}`);
+                                  }}
+                                  className="text-blue-300 hover:text-blue-100 text-xs mt-1 underline"
+                                >
+                                  Copier
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      <div className="text-center">
+                        <button
+                          onClick={() => {
+                            const codes = players.map(player => {
+                              const crypto = require('crypto');
+                              const secret = 'GPBasketball2026Secret';
+                              const hash = crypto.createHash('md5').update(secret + player.name.toLowerCase()).digest('hex');
+                              const codeStr = hash.substring(0, 6).toUpperCase();
+                              const code = codeStr.substring(0, 3) + '-' + codeStr.substring(3, 6);
+                              return `${player.name}: ${code}`;
+                            }).join('\n');
+                            
+                            navigator.clipboard.writeText(codes);
+                            alert('Tous les codes ont été copiés dans le presse-papier !');
+                          }}
+                          className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg transition-colors"
+                        >
+                          📋 Copier tous les codes
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-6">
+                    <h2 className="text-2xl font-bold text-white mb-6 text-center">
                       📊 Export des Données
                     </h2>
                     <div className="flex justify-center">
@@ -3664,8 +3796,63 @@ if (currentView === 'teacher-actions') {
                       })}
                     </div>
 
+                    {/* Interface de saisie du code d'accès */}
+                    {showCodeInput && (
+                      <div className="bg-orange-500/20 border border-orange-400/30 rounded-lg p-6 mt-4">
+                        <div className="text-center mb-4">
+                          <span className="text-4xl">🔐</span>
+                          <h3 className="text-xl font-bold text-white mt-2">Code d'accès requis</h3>
+                          <p className="text-white/80 text-sm mt-1">
+                            Pour accéder au profil de <strong>{pendingPlayerName}</strong>
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={accessCode}
+                              onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
+                              onKeyPress={(e) => e.key === 'Enter' && submitAccessCode()}
+                              className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white/70 focus:outline-none text-center text-lg font-mono tracking-wider"
+                              placeholder="XXX-XXX"
+                              maxLength="7"
+                            />
+                            <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/60">
+                              🔑
+                            </span>
+                          </div>
+                          
+                          <div className="flex gap-3">
+                            <button
+                              onClick={submitAccessCode}
+                              className="flex-1 bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-bold transition-colors"
+                            >
+                              ✅ Valider
+                            </button>
+                            <button
+                              onClick={cancelCodeInput}
+                              className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 rounded-lg font-bold transition-colors"
+                            >
+                              ❌ Annuler
+                            </button>
+                          </div>
+                          
+                          <div className="bg-yellow-500/20 border border-yellow-400/30 rounded-lg p-3">
+                            <div className="flex items-start gap-2">
+                              <span className="text-lg">⚠️</span>
+                              <div className="text-yellow-200 text-xs">
+                                <p className="font-semibold">Où trouver mon code ?</p>
+                                <p>Votre code d'accès personnel vous a été communiqué par votre professeur. Si vous l'avez perdu, demandez-le lui.</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Message d'aide */}
-                    {!searchName && (
+                    {!searchName && !showCodeInput && (
                       <div className="bg-blue-500/20 border border-blue-400/30 rounded-lg p-4 mt-4">
                         <div className="flex items-start gap-3">
                           <span className="text-2xl">💡</span>
@@ -3675,6 +3862,7 @@ if (currentView === 'teacher-actions') {
                               <li>• Tapez votre prénom ou nom dans la barre de recherche</li>
                               <li>• Cliquez sur une suggestion pour sélectionner rapidement</li>
                               <li>• Utilisez la touche Entrée pour rechercher</li>
+                              <li>• <strong>Vous devrez ensuite entrer votre code d'accès personnel</strong></li>
                             </ul>
                           </div>
                         </div>
@@ -3684,6 +3872,22 @@ if (currentView === 'teacher-actions') {
 
                   {foundPlayer && (
                     <div className="space-y-6">
+                      {/* Bouton de déconnexion */}
+                      <div className="text-right">
+                        <button
+                          onClick={() => {
+                            setFoundPlayer(null);
+                            setSearchHistory([]);
+                            setAccessCode('');
+                            setSearchName('');
+                            setPendingPlayerName('');
+                          }}
+                          className="bg-red-600/80 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+                        >
+                          🔓 Se déconnecter
+                        </button>
+                      </div>
+                      
                       {/* Le thème sera appliqué par useEffect au niveau principal */}
                       
                       {/* Message de félicitations pour draft */}
