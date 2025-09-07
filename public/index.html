@@ -924,7 +924,7 @@ const individualBadges = {
     rarity: 'bronze'
   },
   
-  // === SPÉCIAUX & RARES (4 badges) ===
+  // === SPÉCIAUX & RARES (6 badges) ===
   showtime: {
     id: 'showtime',
     name: 'Showtime',
@@ -956,6 +956,22 @@ const individualBadges = {
     description: '3 Actions positives du 15 au 21 décembre (aucune négative)',
     points: 12,
     rarity: 'argent'
+  },
+  game_changer: {
+    id: 'game_changer',
+    name: 'Game Changer',
+    emoji: '⚡',
+    description: 'Passer des deux dernières places au top 3 de sa franchise',
+    points: 40,
+    rarity: 'diamant'
+  },
+  collectionneur: {
+    id: 'collectionneur',
+    name: 'Collectionneur',
+    emoji: '🏆',
+    description: 'Obtenir au moins 6 badges individuels et 6 badges collectifs',
+    points: 12,
+    rarity: 'or'
   }
 };
        const collectiveBadges = {
@@ -994,7 +1010,7 @@ const individualBadges = {
     rarity: 'argent'
   },
   
-  // === SOLIDARITÉ (4 badges) ===
+  // === SOLIDARITÉ (6 badges) ===
   unitedWeStand: {
     id: 'united_we_stand',
     name: 'United We Stand',
@@ -1018,6 +1034,30 @@ const individualBadges = {
     description: 'Écart <50 points entre 1er et dernier (actif en décembre)',
     points: 50,
     rarity: 'argent'
+  },
+  noWeakLink: {
+    id: 'no_weak_link',
+    name: 'No Weak Link',
+    emoji: '🔗',
+    description: 'Dernier de la franchise au-dessus de +25 points pendant 2 mois',
+    points: 60,
+    rarity: 'argent'
+  },
+  tripleThreat: {
+    id: 'triple_threat',
+    name: 'Triple Threat',
+    emoji: '🎯',
+    description: '3 membres dans le top 10 général pendant 1 mois',
+    points: 75,
+    rarity: 'argent'
+  },
+  mutualSupport: {
+    id: 'mutual_support',
+    name: 'Mutual Support',
+    emoji: '💪',
+    description: '80% des membres ont des activités facultatives en 2 semaines',
+    points: 50,
+    rarity: 'bronze'
   }
 };
 
@@ -4325,6 +4365,42 @@ if (currentView === 'teacher-actions') {
                                 seasonal: true,
                                 period: 'christmas',
                                 blocked: hasNegativeSeasonalActions(foundPlayer.name, 'christmas')
+                              },
+                              { 
+                                name: 'Game Changer', 
+                                emoji: '⚡', 
+                                current: (() => {
+                                  // Vérifier le classement actuel dans la franchise
+                                  const franchisePlayers = players.filter(p => p.franchise === foundPlayer.franchise)
+                                    .sort((a, b) => b.score - a.score);
+                                  const currentRank = franchisePlayers.findIndex(p => p.name === foundPlayer.name) + 1;
+                                  const isInTop3 = currentRank <= 3;
+                                  const wasBottom2 = foundPlayer.was_bottom_two || false;
+                                  
+                                  if (wasBottom2 && !isInTop3) {
+                                    return 0.5; // Était dans les 2 derniers, pas encore top 3
+                                  } else if (wasBottom2 && isInTop3) {
+                                    return 1; // Badge obtenu!
+                                  }
+                                  return 0; // Pas encore éligible
+                                })(), 
+                                target: 1,
+                                description: 'Passer des deux dernières places au top 3',
+                                special: true
+                              },
+                              { 
+                                name: 'Collectionneur', 
+                                emoji: '🏆', 
+                                current: (() => {
+                                  const individualCount = foundPlayer.badges ? foundPlayer.badges.length : 0;
+                                  const franchiseBadges = franchiseBadges || [];
+                                  const collectiveCount = franchiseBadges.filter(b => 
+                                    b.franchise === foundPlayer.franchise
+                                  ).length;
+                                  return Math.min(individualCount, collectiveCount);
+                                })(), 
+                                target: 6,
+                                description: 'Obtenir 6+ badges individuels ET 6+ badges collectifs'
                               }
                             ];
 
