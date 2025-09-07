@@ -23,6 +23,16 @@ app.use(express.static('public', {
 // 🔒 MOT DE PASSE PROFESSEUR - MODIFIABLE ICI
 const TEACHER_PASSWORD = 'GPwinner2026';
 
+// 🔐 Fonction pour générer un code d'accès unique pour chaque élève
+function generateStudentCode(playerName) {
+  const crypto = require('crypto');
+  const secret = 'GPBasketball2026Secret'; // Clé secrète pour la génération des codes
+  const hash = crypto.createHash('md5').update(secret + playerName.toLowerCase()).digest('hex');
+  // Prendre les 6 premiers caractères et les convertir en format XXX-XXX
+  const code = hash.substring(0, 6).toUpperCase();
+  return code.substring(0, 3) + '-' + code.substring(3, 6);
+}
+
 // Initialiser la base de données
 const dataDir = process.env.NODE_ENV === 'production' ? '/tmp' : path.join(__dirname, 'data');
 if (!fs.existsSync(dataDir)) {
@@ -939,15 +949,29 @@ app.get('/api/players', (req, res) => {
   }
 });
 
-// Récupérer un joueur spécifique
+// Récupérer un joueur spécifique avec vérification du code d'accès
 app.get('/api/player/:playerName', (req, res) => {
   try {
-    const player = db.prepare('SELECT * FROM players WHERE name = ?').get(req.params.playerName);
+    const { playerName } = req.params;
+    const { code } = req.query;
+    
+    // Vérifier si le code d'accès est fourni et correct
+    const expectedCode = generateStudentCode(playerName);
+    
+    if (!code || code !== expectedCode) {
+      return res.status(403).json({ 
+        error: 'Code d\'accès requis',
+        message: 'Veuillez entrer votre code d\'accès personnel pour consulter votre profil.',
+        needsCode: true
+      });
+    }
+    
+    const player = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
     if (player) {
       const badges = db.prepare(`
         SELECT * FROM player_badges 
         WHERE player_name = ?
-      `).all(req.params.playerName);
+      `).all(playerName);
       
       res.json({ ...player, badges });
     } else {
@@ -958,15 +982,45 @@ app.get('/api/player/:playerName', (req, res) => {
   }
 });
 
-// Récupérer l'historique d'un joueur
+// Récupérer le code d'accès d'un élève (pour les professeurs uniquement)
+app.get('/api/student-code/:playerName', (req, res) => {
+  try {
+    const { password } = req.query;
+    
+    if (password !== TEACHER_PASSWORD) {
+      return res.status(403).json({ error: 'Accès non autorisé' });
+    }
+    
+    const code = generateStudentCode(req.params.playerName);
+    res.json({ code, playerName: req.params.playerName });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Récupérer l'historique d'un joueur avec vérification du code d'accès
 app.get('/api/history/:playerName', (req, res) => {
   try {
+    const { playerName } = req.params;
+    const { code } = req.query;
+    
+    // Vérifier si le code d'accès est fourni et correct
+    const expectedCode = generateStudentCode(playerName);
+    
+    if (!code || code !== expectedCode) {
+      return res.status(403).json({ 
+        error: 'Code d\'accès requis',
+        message: 'Veuillez entrer votre code d\'accès personnel pour consulter votre historique.',
+        needsCode: true
+      });
+    }
+    
     const history = db.prepare(`
       SELECT * FROM history 
       WHERE player_name = ? 
       ORDER BY id DESC 
       LIMIT 50
-    `).all(req.params.playerName);
+    `).all(playerName);
     res.json(history);
   } catch (error) {
     res.status(500).json({ error: error.message });
