@@ -2205,6 +2205,9 @@ if (!hofData) {
             setShowCodeInput(false);
             setAccessCode('');
             setPendingPlayerName('');
+            // Réinitialiser complètement la recherche
+            setFoundPlayer(null);
+            setSearchHistory([]);
           };
 
           // Fonction pour charger les codes d'accès (professeurs uniquement)
@@ -3889,7 +3892,7 @@ if (currentView === 'teacher-actions') {
                               onClick={cancelCodeInput}
                               className="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-3 rounded-lg font-bold transition-colors"
                             >
-                              ❌ Annuler
+                              🔍 Nouvelle recherche
                             </button>
                           </div>
                           
@@ -3936,6 +3939,7 @@ if (currentView === 'teacher-actions') {
                             setAccessCode('');
                             setSearchName('');
                             setPendingPlayerName('');
+                            setShowCodeInput(false); // Important : réinitialiser l'état du code
                           }}
                           className="bg-red-600/80 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm transition-colors"
                         >
