@@ -5161,11 +5161,17 @@ if (currentView === 'grades') {
                           <h3 className="text-2xl font-semibold text-yellow-300 mb-4 flex items-center gap-2">
                             🎯 Qu'est-ce que le système de points ?
                           </h3>
-                          <p className="leading-relaxed">
+                          <p className="leading-relaxed mb-4">
                             Le Basketball Manager est un système de motivation et de récompense qui permet aux élèves de gagner des points 
                             pour leurs efforts académiques et sportifs. Chaque action positive est récompensée ! 
                             Ce système encourage l'engagement, la progression et l'esprit d'équipe.
                           </p>
+                          <div className="bg-blue-500/20 border-l-4 border-blue-400 pl-4 py-3 rounded">
+                            <p className="text-blue-200 font-medium text-sm">
+                              📅 <span className="font-semibold">Période de comptage :</span> Les points sont comptabilisés du 6 septembre au 1er juin, 
+                              soit toute l'année scolaire. 🏆 La meilleure franchise sera récompensée en fin d'année !
+                            </p>
+                          </div>
                         </div>
 
                         {/* Section 2 */}
@@ -5220,34 +5226,80 @@ if (currentView === 'grades') {
                             <span className="bg-orange-600/30 px-3 py-2 rounded-lg text-center">🔥 Phoenix</span>
                             <span className="bg-green-600/30 px-3 py-2 rounded-lg text-center">🐺 Werewolves</span>
                           </div>
-                          <p className="text-sm text-white/70 mt-3">
-                            Les points individuels contribuent aussi aux performances de la franchise !
-                          </p>
+                          <div className="text-sm text-white/70 mt-3 space-y-2">
+                            <p>Les points individuels contribuent aux performances de la franchise !</p>
+                            <div className="bg-green-500/20 border border-green-400/30 px-3 py-2 rounded">
+                              <p className="text-green-200 font-medium">
+                                🏆 <strong>Prix spécial :</strong> La franchise avec le plus de points à la fin de l'année scolaire (1er juin) 
+                                recevra une récompense exclusive !
+                              </p>
+                            </div>
+                          </div>
                         </div>
 
                       </div>
 
-                      {/* Section large sur les badges */}
+                      {/* Section large sur les grades et badges */}
                       <div className="bg-white/10 p-6 rounded-xl">
                         <h3 className="text-2xl font-semibold text-orange-300 mb-4 flex items-center gap-2">
-                          🏅 Badges et Récompenses
+                          🏅 Grades et Badges
                         </h3>
-                        <p className="leading-relaxed mb-4">
-                          En accumulant des points, les élèves débloquent différents badges et grades : 
-                          <span className="font-semibold text-yellow-200"> Rookie → Starter → All-Star → MVP → Legend</span>.
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                          <div className="bg-blue-500/20 p-3 rounded-lg">
-                            <div className="font-semibold mb-1">🏆 Badges de Performance</div>
-                            <div className="text-white/80">Récompensent l'excellence et les progrès</div>
+                        
+                        {/* Explication des grades */}
+                        <div className="mb-6">
+                          <h4 className="text-lg font-semibold text-yellow-200 mb-3 flex items-center gap-2">
+                            🎆 Grades Basketball (selon votre score total)
+                          </h4>
+                          <p className="leading-relaxed mb-3">
+                            Votre score total détermine votre grade basketball, qui évolue automatiquement :
+                          </p>
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
+                            <span className="bg-gray-600/30 px-3 py-2 rounded-lg text-center">Rookie (0-24 pts)</span>
+                            <span className="bg-blue-600/30 px-3 py-2 rounded-lg text-center">Starter (25-49 pts)</span>
+                            <span className="bg-green-600/30 px-3 py-2 rounded-lg text-center">All-Star (50-99 pts)</span>
+                            <span className="bg-orange-600/30 px-3 py-2 rounded-lg text-center">MVP (100-249 pts)</span>
+                            <span className="bg-purple-600/30 px-3 py-2 rounded-lg text-center">GOAT (250+ pts)</span>
                           </div>
-                          <div className="bg-green-500/20 p-3 rounded-lg">
-                            <div className="font-semibold mb-1">🎯 Badges d'Assiduité</div>
-                            <div className="text-white/80">Récompensent la régularité et l'engagement</div>
+                        </div>
+                        
+                        {/* Explication des badges */}
+                        <div>
+                          <h4 className="text-lg font-semibold text-cyan-200 mb-3 flex items-center gap-2">
+                            🏅 Badges (récompenses spéciales + points bonus)
+                          </h4>
+                          <p className="leading-relaxed mb-4">
+                            Les badges sont des récompenses spéciales que vous débloquez en accomplissant des défis particuliers. 
+                            Chaque badge rapport <strong>des points bonus</strong> qui s'ajoutent à votre score !
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <div className="bg-blue-500/20 p-3 rounded-lg mb-3">
+                                <div className="font-semibold mb-2">💪 Badges Individuels (14 badges)</div>
+                                <ul className="text-white/80 space-y-1 text-xs">
+                                  <li>• Séries : Hot Streak, Tsunami, Unstoppable...</li>
+                                  <li>• Persévérance : Phoenix, Marathon Runner</li>
+                                  <li>• Sociaux : Veteran, Team Player</li>
+                                  <li>• Spéciaux : Captain Courage, Game Changer...</li>
+                                </ul>
+                              </div>
+                            </div>
+                            <div>
+                              <div className="bg-purple-500/20 p-3 rounded-lg mb-3">
+                                <div className="font-semibold mb-2">👥 Badges Collectifs (10 badges)</div>
+                                <ul className="text-white/80 space-y-1 text-xs">
+                                  <li>• Performances : Rocket Launch, Tidal Wave...</li>
+                                  <li>• Solidarité : United We Stand, No Weak Link...</li>
+                                  <li>• Collaboration : Triple Threat, Mutual Support</li>
+                                  <li>• Tous les membres de la franchise les obtiennent !</li>
+                                </ul>
+                              </div>
+                            </div>
                           </div>
-                          <div className="bg-purple-500/20 p-3 rounded-lg">
-                            <div className="font-semibold mb-1">👥 Badges d'Équipe</div>
-                            <div className="text-white/80">Récompensent l'esprit d'équipe et l'entraide</div>
+                          <div className="bg-amber-500/20 border-l-4 border-amber-400 pl-4 py-3 rounded mt-4">
+                            <p className="text-amber-200 font-medium text-sm">
+                              💡 <span className="font-semibold">Astuce :</span> Consultez la section "Badges" pour voir tous les défis disponibles 
+                              et suivre votre progression vers les prochains badges !
+                            </p>
                           </div>
                         </div>
                       </div>
