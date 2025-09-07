@@ -998,6 +998,28 @@ app.get('/api/student-code/:playerName', (req, res) => {
   }
 });
 
+// Récupérer tous les codes d'accès (pour les professeurs uniquement)
+app.get('/api/all-student-codes', (req, res) => {
+  try {
+    const { password } = req.query;
+    
+    if (password !== TEACHER_PASSWORD) {
+      return res.status(403).json({ error: 'Accès non autorisé' });
+    }
+    
+    const players = db.prepare('SELECT name, franchise FROM players ORDER BY name').all();
+    const codes = players.map(player => ({
+      name: player.name,
+      franchise: player.franchise,
+      code: generateStudentCode(player.name)
+    }));
+    
+    res.json(codes);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Récupérer l'historique d'un joueur avec vérification du code d'accès
 app.get('/api/history/:playerName', (req, res) => {
   try {
