@@ -1420,6 +1420,225 @@ if (!hofData) {
     </div>
   );
 };
+
+        // Tableau des 40 citations avec traductions
+        const dailyQuotes = [
+          // Citations 1-20 (existantes)
+          {
+            en: "Hard work beats talent when talent refuses to work hard.",
+            author: "Tim Notke",
+            fr: "Le travail acharné bat le talent quand le talent refuse de travailler dur."
+          },
+          {
+            en: "Every practice is a chance to get closer to your best self.",
+            author: "Anonyme",
+            fr: "Chaque entraînement est une chance de se rapprocher de votre meilleur vous-même."
+          },
+          {
+            en: "Success looks easy on game day, but it's built behind closed doors in sweat and silence.",
+            author: "Anonyme",
+            fr: "Le succès semble facile le jour du match, mais il se construit derrière des portes fermées dans la sueur et le silence."
+          },
+          {
+            en: "Discipline is choosing what you want most, over what you want now.",
+            author: "Anonyme",
+            fr: "La discipline, c'est choisir ce que vous voulez le plus, plutôt que ce que vous voulez maintenant."
+          },
+          {
+            en: "Greatness is never given, it's earned in hours nobody sees.",
+            author: "Anonyme",
+            fr: "La grandeur n'est jamais donnée, elle se mérite dans les heures que personne ne voit."
+          },
+          {
+            en: "Stay humble in victory, stay hungry in defeat.",
+            author: "Anonyme",
+            fr: "Restez humble dans la victoire, restez affamé dans la défaite."
+          },
+          {
+            en: "The scoreboard doesn't lie, but neither does the effort you gave to get there.",
+            author: "Anonyme",
+            fr: "Le tableau de score ne ment pas, mais l'effort que vous avez donné pour y arriver non plus."
+          },
+          {
+            en: "Respect the game, respect your opponents, but never stop believing in your own grind.",
+            author: "Anonyme",
+            fr: "Respectez le jeu, respectez vos adversaires, mais n'arrêtez jamais de croire en votre propre travail."
+          },
+          {
+            en: "Confidence comes from preparation, not from talking.",
+            author: "Anonyme",
+            fr: "La confiance vient de la préparation, pas des paroles."
+          },
+          {
+            en: "The best players never act like they're bigger than the team.",
+            author: "Anonyme",
+            fr: "Les meilleurs joueurs n'agissent jamais comme s'ils étaient plus grands que l'équipe."
+          },
+          {
+            en: "Champions are built from resilience, not comfort.",
+            author: "Anonyme",
+            fr: "Les champions sont construits à partir de la résilience, pas du confort."
+          },
+          {
+            en: "Failing is part of learning; quitting is not an option.",
+            author: "Anonyme",
+            fr: "Échouer fait partie de l'apprentissage ; abandonner n'est pas une option."
+          },
+          {
+            en: "Pain is temporary, but quitting lasts forever.",
+            author: "Anonyme",
+            fr: "La douleur est temporaire, mais abandonner dure pour toujours."
+          },
+          {
+            en: "Pressure is a privilege — it means you've earned the right to compete.",
+            author: "Anonyme",
+            fr: "La pression est un privilège — cela signifie que vous avez gagné le droit de concourir."
+          },
+          {
+            en: "If you fall ten times, stand up eleven.",
+            author: "Anonyme",
+            fr: "Si vous tombez dix fois, relevez-vous onze fois."
+          },
+          {
+            en: "Don't chase trophies, chase growth — the trophies will follow.",
+            author: "Anonyme",
+            fr: "Ne courez pas après les trophées, courez après la croissance — les trophées suivront."
+          },
+          {
+            en: "Dreams don't come true without sweat as their foundation.",
+            author: "Anonyme",
+            fr: "Les rêves ne se réalisent pas sans la sueur comme fondation."
+          },
+          {
+            en: "Your body is pulled by fatigue, but your mind decides the limit.",
+            author: "Anonyme",
+            fr: "Votre corps est tiré par la fatigue, mais votre esprit décide de la limite."
+          },
+          {
+            en: "Leaders aren't born in the spotlight, they are forged in the unseen grind.",
+            author: "Anonyme",
+            fr: "Les leaders ne naissent pas sous les projecteurs, ils sont forgés dans le travail invisible."
+          },
+          {
+            en: "Believe in the work you've put in — the results will eventually speak for you.",
+            author: "Anonyme",
+            fr: "Croyez dans le travail que vous avez accompli — les résultats finiront par parler pour vous."
+          },
+          // Citations 21-40 (nouvelles)
+          {
+            en: "Excellence is never an accident. It is always the result of high intention, sincere effort, and intelligent execution.",
+            author: "Aristote",
+            fr: "L'excellence n'est jamais un accident. Elle est toujours le résultat d'une intention élevée, d'un effort sincère et d'une exécution intelligente."
+          },
+          {
+            en: "The strength of the team is each individual member. The strength of each member is the team.",
+            author: "Phil Jackson",
+            fr: "La force de l'équipe, c'est chaque membre individuel. La force de chaque membre, c'est l'équipe."
+          },
+          {
+            en: "I've missed more than 9,000 shots in my career. I've lost almost 300 games. That's why I succeed.",
+            author: "Michael Jordan",
+            fr: "J'ai raté plus de 9 000 tirs dans ma carrière. J'ai perdu presque 300 matchs. C'est pourquoi je réussis."
+          },
+          {
+            en: "Talent wins games, but teamwork and intelligence wins championships.",
+            author: "Michael Jordan",
+            fr: "Le talent gagne des matchs, mais le travail d'équipe et l'intelligence gagnent les championnats."
+          },
+          {
+            en: "It is during our darkest moments that we must focus to see the light.",
+            author: "Winston Churchill",
+            fr: "C'est pendant nos moments les plus sombres que nous devons nous concentrer pour voir la lumière."
+          },
+          {
+            en: "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+            author: "Winston Churchill",
+            fr: "Le succès n'est pas final, l'échec n'est pas fatal : c'est le courage de continuer qui compte."
+          },
+          {
+            en: "The way to get started is to quit talking and begin doing.",
+            author: "Walt Disney",
+            fr: "La façon de commencer est d'arrêter de parler et de commencer à faire."
+          },
+          {
+            en: "Don't watch the clock; do what it does. Keep going.",
+            author: "Anonyme",
+            fr: "Ne regardez pas l'horloge ; faites ce qu'elle fait. Continuez."
+          },
+          {
+            en: "Individual commitment to a group effort — that is what makes a team work, a company work, a society work, a civilization work.",
+            author: "Vince Lombardi",
+            fr: "L'engagement individuel dans un effort de groupe — c'est ce qui fait fonctionner une équipe, une entreprise, une société, une civilisation."
+          },
+          {
+            en: "Perfection is not attainable, but if we chase perfection we can catch excellence.",
+            author: "Vince Lombardi",
+            fr: "La perfection n'est pas atteignable, mais si nous poursuivons la perfection, nous pouvons atteindre l'excellence."
+          },
+          {
+            en: "The only impossible journey is the one you never begin.",
+            author: "Tony Robbins",
+            fr: "Le seul voyage impossible est celui que vous ne commencez jamais."
+          },
+          {
+            en: "Champions keep playing until they get it right.",
+            author: "Billie Jean King",
+            fr: "Les champions continuent à jouer jusqu'à ce qu'ils y arrivent."
+          },
+          {
+            en: "You miss 100% of the shots you don't take.",
+            author: "Wayne Gretzky",
+            fr: "Vous ratez 100% des tirs que vous ne tentez pas."
+          },
+          {
+            en: "The difference between ordinary and extraordinary is that little extra.",
+            author: "Anonyme",
+            fr: "La différence entre ordinaire et extraordinaire, c'est ce petit plus."
+          },
+          {
+            en: "Success is where preparation and opportunity meet.",
+            author: "Bobby Unser",
+            fr: "Le succès, c'est quand la préparation rencontre l'opportunité."
+          },
+          {
+            en: "A champion is someone who gets up when they can't.",
+            author: "Jack Dempsey",
+            fr: "Un champion, c'est quelqu'un qui se relève quand il ne peut pas."
+          },
+          {
+            en: "The more difficult the victory, the greater the happiness in winning.",
+            author: "Pelé",
+            fr: "Plus la victoire est difficile, plus grand est le bonheur de gagner."
+          },
+          {
+            en: "Alone we can do so little; together we can do so much.",
+            author: "Helen Keller",
+            fr: "Seuls, nous pouvons faire si peu ; ensemble, nous pouvons faire tant."
+          },
+          {
+            en: "What lies behind us and what lies before us are tiny matters compared to what lies within us.",
+            author: "Ralph Waldo Emerson",
+            fr: "Ce qui est derrière nous et ce qui nous attend sont des détails comparés à ce qui est en nous."
+          },
+          {
+            en: "Be yourself; everyone else is already taken.",
+            author: "Oscar Wilde",
+            fr: "Soyez vous-même ; tous les autres sont déjà pris."
+          }
+        ];
+
+        // Fonction pour obtenir la citation du jour
+        const getDailyQuote = () => {
+          const startDate = new Date('2024-09-06'); // 6 septembre 2024 - début de l'année scolaire
+          const today = new Date();
+          const diffTime = Math.abs(today - startDate);
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          
+          // Rotation sur 40 jours
+          const quoteIndex = diffDays % 40;
+          return dailyQuotes[quoteIndex];
+        };
+        
         const App = () => {
           const [currentView, setCurrentView] = useState('home');
           const [userType, setUserType] = useState(null);
@@ -2495,6 +2714,35 @@ if (currentView === 'home') {
               </p>
             </div>
             
+            {/* Citation du jour */}
+            {(() => {
+              const todaysQuote = getDailyQuote();
+              return (
+                <div className="mb-8 max-w-2xl mx-auto">
+                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6 shadow-2xl">
+                    <div className="flex items-start gap-3 mb-4">
+                      <span className="text-3xl flex-shrink-0">💬</span>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold text-yellow-300 mb-3 text-center">Citation du Jour</h3>
+                        <blockquote className="text-white text-lg md:text-xl font-medium leading-relaxed text-center mb-4">
+                          "{todaysQuote.en}"
+                        </blockquote>
+                        <blockquote className="text-white/80 text-base md:text-lg italic leading-relaxed text-center mb-4">
+                          "{todaysQuote.fr}"
+                        </blockquote>
+                        <p className="text-right text-cyan-300 font-semibold text-sm md:text-base">
+                          — {todaysQuote.author}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-center text-xs text-white/60 border-t border-white/10 pt-3">
+                      📅 Citation renouvelée chaque jour • Cycle de 40 citations uniques
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+            
             {/* Sélecteur de thème */}
             <div className="mb-6">
               <div className="flex flex-wrap justify-center gap-3 mb-4">
@@ -2529,32 +2777,10 @@ if (currentView === 'home') {
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-8 border border-white/20">
               <p className="text-sm text-orange-300 font-semibold mb-1">Citation du jour</p>
               <p className="text-white text-base md:text-lg italic">
-                {(() => {
-                  const quotes = [
-                    "Hard work beats talent when talent refuses to work hard.",
-                    "Every practice is a chance to get closer to your best self.",
-                    "Success looks easy on game day, but it's built behind closed doors in sweat and silence.",
-                    "Discipline is choosing what you want most, over what you want now.",
-                    "Greatness is never given, it's earned in hours nobody sees.",
-                    "Stay humble in victory, stay hungry in defeat.",
-                    "The scoreboard doesn't lie, but neither does the effort you gave to get there.",
-                    "Respect the game, respect your opponents, but never stop believing in your own grind.",
-                    "Confidence comes from preparation, not from talking.",
-                    "The best players never act like they're bigger than the team.",
-                    "Champions are built from resilience, not comfort.",
-                    "Failing is part of learning; quitting is not an option.",
-                    "Pain is temporary, but quitting lasts forever.",
-                    "Pressure is a privilege — it means you've earned the right to compete.",
-                    "If you fall ten times, stand up eleven.",
-                    "Don't chase trophies, chase growth — the trophies will follow.",
-                    "Dreams don't come true without sweat as their foundation.",
-                    "Your body is pulled by fatigue, but your mind decides the limit.",
-                    "Leaders aren't born in the spotlight, they are forged in the unseen grind.",
-                    "Believe in the work you've put in — the results will eventually speak for you."
-                  ];
-                  const today = new Date().getDate();
-                  return quotes[today % quotes.length];
-                })()}
+                {getDailyQuote().fr}
+              </p>
+              <p className="text-right text-cyan-300 text-xs mt-2">
+                — {getDailyQuote().author}
               </p>
             </div>
             
