@@ -457,16 +457,7 @@ const BADGES = {
       }
     },
     
-    // === SOCIAUX/ÉQUIPE (3 badges) ===
-    team_captain: {
-      id: 'team_captain',
-      name: 'Team Captain',
-      emoji: '👑',
-      description: 'Meilleur de sa franchise pendant 1 semaine',
-      points: 10,
-      rarity: 'argent',
-      condition: null // Vérifié séparément avec une fonction spéciale
-    },
+    // === SOCIAUX/ÉQUIPE (2 badges) ===
     veteran: {
       id: 'veteran',
       name: 'Veteran',
@@ -486,7 +477,7 @@ const BADGES = {
       condition: null // Vérifié séparément avec une fonction spéciale
     },
     
-    // === SPÉCIAUX & RARES (3 badges) ===
+    // === SPÉCIAUX & RARES (4 badges) ===
     showtime: {
       id: 'showtime',
       name: 'Showtime',
@@ -496,14 +487,23 @@ const BADGES = {
       rarity: 'diamant',
       condition: (stats) => stats.felicitations_count >= 3
     },
-    halloween_spirit: {
-      id: 'halloween_spirit',
-      name: 'Halloween Spirit',
-      emoji: '🎃',
-      description: '3 Actions positives semaine Halloween',
-      points: 50,
-      rarity: 'legendaire',
-      condition: null // Vérifié dans checkIndividualBadges avec la date
+    captain_courage: {
+      id: 'captain_courage',
+      name: 'Captain Courage',
+      emoji: '🦾',
+      description: 'Arbitrer ou tenir table de marque 5 fois en 3 mois',
+      points: 18,
+      rarity: 'or',
+      condition: null // Vérifié dans checkIndividualBadges avec l'historique
+    },
+    clockwork: {
+      id: 'clockwork',
+      name: 'Clockwork',
+      emoji: '⏰',
+      description: 'Aucun retard pendant 3 mois',
+      points: 12,
+      rarity: 'argent',
+      condition: null // Vérifié dans checkIndividualBadges avec l'historique
     },
     christmas_magic: {
       id: 'christmas_magic',
@@ -704,22 +704,48 @@ const checkIndividualBadges = (playerName) => {
     }
   });
   
-  // Vérifications spéciales pour badges temporels
+  // Vérifications spéciales pour badges temporels et historiques
   const now = new Date();
   const month = now.getMonth();
   const day = now.getDate();
   
-  // Halloween (dernière semaine d'octobre)
-  if (month === 9 && day >= 25) {
-    const halloweenActions = db.prepare(`
-      SELECT COUNT(*) as count FROM history 
-      WHERE player_name = ? 
-      AND points > 0 
-      AND DATE(timestamp) >= DATE('now', '-7 days')
-    `).get(playerName);
+  // Captain Courage - Vérifier arbitrage/table de marque sur 3 mois
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+  
+  const arbitrageCount = db.prepare(`
+    SELECT COUNT(*) as count FROM history 
+    WHERE player_name = ? 
+    AND (LOWER(action) LIKE '%table de marque%' OR LOWER(action) LIKE '%arbitrage%')
+    AND timestamp >= ?
+  `).get(playerName, threeMonthsAgo.toISOString());
+  
+  if (arbitrageCount && arbitrageCount.count >= 5) {
+    awardPlayerBadge(playerName, BADGES.individual.captain_courage);
+  }
+  
+  // Clockwork - Vérifier aucun retard pendant 3 mois
+  const retardCount = db.prepare(`
+    SELECT COUNT(*) as count FROM history 
+    WHERE player_name = ? 
+    AND (LOWER(action) LIKE '%retard%' OR LOWER(action) LIKE '%absence non justifiée%')
+    AND timestamp >= ?
+  `).get(playerName, threeMonthsAgo.toISOString());
+  
+  // Vérifier si le joueur a au moins 3 mois d'historique
+  const firstAction = db.prepare(`
+    SELECT MIN(timestamp) as first_date FROM history 
+    WHERE player_name = ?
+  `).get(playerName);
+  
+  if (firstAction && firstAction.first_date) {
+    const firstDate = new Date(firstAction.first_date);
+    const threeMonthsOld = new Date(firstDate);
+    threeMonthsOld.setMonth(threeMonthsOld.getMonth() + 3);
     
-    if (halloweenActions.count > 0) {
-      awardPlayerBadge(playerName, BADGES.individual.halloween_spirit);
+    // Si le joueur a plus de 3 mois d'historique et aucun retard
+    if (now >= threeMonthsOld && retardCount && retardCount.count === 0) {
+      awardPlayerBadge(playerName, BADGES.individual.clockwork);
     }
   }
   
@@ -736,8 +762,6 @@ const checkIndividualBadges = (playerName) => {
       awardPlayerBadge(playerName, BADGES.individual.christmas_magic);
     }
   }
-  
-  // Note: back_to_school badge removed - not defined in BADGES object
 };
 
 // Fonction pour recalculer tous les badges d'un joueur lors d'une annulation
@@ -823,6 +847,21 @@ const checkCollectiveBadges = (franchise) => {
   const allInRange = players.every(p => p.score >= 25 && p.score <= 75);
   if (allInRange && players.length > 0) {
     awardFranchiseBadge(franchise, BADGES.collective.perfect_balance);
+  }
+  
+  // Harmony (écart <50 points entre 1er et dernier) - Actif uniquement à partir de décembre
+  const now = new Date();
+  const month = now.getMonth();
+  
+  if (month === 11 && players.length > 0) { // Décembre = mois 11
+    const scores = players.map(p => p.score).sort((a, b) => b - a);
+    const highestScore = scores[0];
+    const lowestScore = scores[scores.length - 1];
+    const gap = highestScore - lowestScore;
+    
+    if (gap < 50) {
+      awardFranchiseBadge(franchise, BADGES.collective.harmony);
+    }
   }
 };
 
