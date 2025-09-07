@@ -477,7 +477,7 @@ const BADGES = {
       condition: null // Vérifié séparément avec une fonction spéciale
     },
     
-    // === SPÉCIAUX & RARES (4 badges) ===
+    // === SPÉCIAUX & RARES (6 badges) ===
     showtime: {
       id: 'showtime',
       name: 'Showtime',
@@ -513,6 +513,24 @@ const BADGES = {
       points: 50,
       rarity: 'legendaire',
       condition: null // Vérifié dans checkIndividualBadges avec la date
+    },
+    game_changer: {
+      id: 'game_changer',
+      name: 'Game Changer',
+      emoji: '⚡',
+      description: 'Passer des deux dernières places au top 3 de sa franchise',
+      points: 40,
+      rarity: 'diamant',
+      condition: null // Vérifié dans checkIndividualBadges avec le classement
+    },
+    collectionneur: {
+      id: 'collectionneur',
+      name: 'Collectionneur',
+      emoji: '🏆',
+      description: 'Obtenir au moins 6 badges individuels et 6 badges collectifs',
+      points: 12,
+      rarity: 'or',
+      condition: null // Vérifié dans checkIndividualBadges avec le compte de badges
     }
   },
   
@@ -551,7 +569,7 @@ const BADGES = {
       rarity: 'argent'
     },
     
-    // === SOLIDARITÉ (3 badges) ===
+    // === SOLIDARITÉ (6 badges) ===
     united_we_stand: {
       id: 'united_we_stand',
       name: 'United We Stand',
@@ -575,6 +593,30 @@ const BADGES = {
       description: 'Écart <50 points entre 1er et dernier',
       points: 50,
       rarity: 'argent'
+    },
+    no_weak_link: {
+      id: 'no_weak_link',
+      name: 'No Weak Link',
+      emoji: '🔗',
+      description: 'Dernier de la franchise au-dessus de +25 points pendant 2 mois',
+      points: 60,
+      rarity: 'argent'
+    },
+    triple_threat: {
+      id: 'triple_threat',
+      name: 'Triple Threat',
+      emoji: '🎯',
+      description: '3 membres dans le top 10 général pendant 1 mois',
+      points: 75,
+      rarity: 'argent'
+    },
+    mutual_support: {
+      id: 'mutual_support',
+      name: 'Mutual Support',
+      emoji: '💪',
+      description: '80% des membres ont des activités facultatives en 2 semaines',
+      points: 50,
+      rarity: 'bronze'
     }
   }
 };
@@ -595,6 +637,21 @@ const initDatabase = () => {
   const columnExists = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('players') WHERE name='is_drafted'").get();
   if (columnExists.count === 0) {
     db.exec('ALTER TABLE players ADD COLUMN is_drafted INTEGER DEFAULT 1');
+  }
+  
+  // Ajouter la colonne was_bottom_two dans player_stats si elle n'existe pas
+  const wasBottomTwoExists = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('player_stats') WHERE name='was_bottom_two'").get();
+  if (wasBottomTwoExists.count === 0) {
+    db.exec('ALTER TABLE player_stats ADD COLUMN was_bottom_two INTEGER DEFAULT 0');
+  }
+  
+  // Ajouter colonnes pour tracking des nouveaux badges collectifs
+  const noWeakLinkExists = db.prepare("SELECT COUNT(*) as count FROM pragma_table_info('franchise_stats') WHERE name='no_weak_link_start'").get();
+  if (noWeakLinkExists.count === 0) {
+    db.exec(`
+      ALTER TABLE franchise_stats ADD COLUMN no_weak_link_start TEXT;
+      ALTER TABLE franchise_stats ADD COLUMN triple_threat_start TEXT;
+    `);
   }
   
   if (existingPlayers.count === 0) {
@@ -762,6 +819,49 @@ const checkIndividualBadges = (playerName) => {
       awardPlayerBadge(playerName, BADGES.individual.christmas_magic);
     }
   }
+  
+  // Game Changer - Vérifier passage des 2 derniers au top 3
+  const franchisePlayers = db.prepare(`
+    SELECT name, score FROM players 
+    WHERE franchise = (SELECT franchise FROM players WHERE name = ?)
+    ORDER BY score DESC
+  `).all(playerName);
+  
+  if (franchisePlayers.length >= 3) {
+    const playerRank = franchisePlayers.findIndex(p => p.name === playerName) + 1;
+    const isInTop3 = playerRank <= 3;
+    
+    // Vérifier si le joueur était dans les 2 derniers
+    const wasBottomTwo = stats.was_bottom_two === 1;
+    
+    // Si actuellement dans les 2 derniers, marquer le statut
+    if (playerRank >= franchisePlayers.length - 1) {
+      db.prepare('UPDATE player_stats SET was_bottom_two = 1 WHERE player_name = ?').run(playerName);
+    }
+    
+    // Si était dans les 2 derniers et maintenant dans le top 3
+    if (wasBottomTwo && isInTop3) {
+      awardPlayerBadge(playerName, BADGES.individual.game_changer);
+      // Réinitialiser le flag après avoir donné le badge
+      db.prepare('UPDATE player_stats SET was_bottom_two = 0 WHERE player_name = ?').run(playerName);
+    }
+  }
+  
+  // Collectionneur - Vérifier 6+ badges individuels et 6+ badges collectifs
+  const individualBadgeCount = db.prepare(`
+    SELECT COUNT(*) as count FROM player_badges 
+    WHERE player_name = ?
+  `).get(playerName);
+  
+  const franchiseBadgeCount = db.prepare(`
+    SELECT COUNT(*) as count FROM franchise_badges 
+    WHERE franchise = (SELECT franchise FROM players WHERE name = ?)
+  `).get(playerName);
+  
+  if (individualBadgeCount && franchiseBadgeCount && 
+      individualBadgeCount.count >= 6 && franchiseBadgeCount.count >= 6) {
+    awardPlayerBadge(playerName, BADGES.individual.collectionneur);
+  }
 };
 
 // Fonction pour recalculer tous les badges d'un joueur lors d'une annulation
@@ -861,6 +961,91 @@ const checkCollectiveBadges = (franchise) => {
     
     if (gap < 50) {
       awardFranchiseBadge(franchise, BADGES.collective.harmony);
+    }
+  }
+  
+  // No Weak Link - Dernier de la franchise au-dessus de 25 points pendant 2 mois
+  if (players.length > 0) {
+    const lowestScore = Math.min(...players.map(p => p.score));
+    
+    if (lowestScore >= 25) {
+      // Vérifier si c'est le début de la période
+      if (!franchiseStats.no_weak_link_start) {
+        db.prepare('UPDATE franchise_stats SET no_weak_link_start = ? WHERE franchise = ?')
+          .run(now.toISOString(), franchise);
+      } else {
+        // Vérifier si 2 mois se sont écoulés
+        const startDate = new Date(franchiseStats.no_weak_link_start);
+        const twoMonthsLater = new Date(startDate);
+        twoMonthsLater.setMonth(twoMonthsLater.getMonth() + 2);
+        
+        if (now >= twoMonthsLater) {
+          awardFranchiseBadge(franchise, BADGES.collective.no_weak_link);
+          // Réinitialiser pour permettre de ré-obtenir le badge
+          db.prepare('UPDATE franchise_stats SET no_weak_link_start = NULL WHERE franchise = ?')
+            .run(franchise);
+        }
+      }
+    } else {
+      // Réinitialiser si quelqu'un descend sous 25 points
+      if (franchiseStats.no_weak_link_start) {
+        db.prepare('UPDATE franchise_stats SET no_weak_link_start = NULL WHERE franchise = ?')
+          .run(franchise);
+      }
+    }
+  }
+  
+  // Triple Threat - 3 membres dans le top 10 général pendant 1 mois
+  const allPlayersRanked = db.prepare('SELECT name, franchise, score FROM players ORDER BY score DESC').all();
+  const top10 = allPlayersRanked.slice(0, 10);
+  const franchiseInTop10 = top10.filter(p => p.franchise === franchise);
+  
+  if (franchiseInTop10.length >= 3) {
+    if (!franchiseStats.triple_threat_start) {
+      db.prepare('UPDATE franchise_stats SET triple_threat_start = ? WHERE franchise = ?')
+        .run(now.toISOString(), franchise);
+    } else {
+      const startDate = new Date(franchiseStats.triple_threat_start);
+      const oneMonthLater = new Date(startDate);
+      oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+      
+      if (now >= oneMonthLater) {
+        awardFranchiseBadge(franchise, BADGES.collective.triple_threat);
+        db.prepare('UPDATE franchise_stats SET triple_threat_start = NULL WHERE franchise = ?')
+          .run(franchise);
+      }
+    }
+  } else {
+    // Réinitialiser si moins de 3 dans le top 10
+    if (franchiseStats.triple_threat_start) {
+      db.prepare('UPDATE franchise_stats SET triple_threat_start = NULL WHERE franchise = ?')
+        .run(franchise);
+    }
+  }
+  
+  // Mutual Support - 80% des membres ont des activités facultatives en 2 semaines
+  if (players.length > 0) {
+    const twoWeeksAgo = new Date();
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+    
+    const playersWithFacultativeActivities = players.filter(player => {
+      const facultativeActions = db.prepare(`
+        SELECT COUNT(*) as count FROM history 
+        WHERE player_name = ? 
+        AND timestamp >= ?
+        AND (LOWER(action) LIKE '%sentinelle%' OR 
+             LOWER(action) LIKE '%atelier%' OR 
+             LOWER(action) LIKE '%délégué%' OR 
+             LOWER(action) LIKE '%conseil%')
+      `).get(player.name, twoWeeksAgo.toISOString());
+      
+      return facultativeActions && facultativeActions.count > 0;
+    });
+    
+    const percentage = (playersWithFacultativeActivities.length / players.length) * 100;
+    
+    if (percentage >= 80) {
+      awardFranchiseBadge(franchise, BADGES.collective.mutual_support);
     }
   }
 };
