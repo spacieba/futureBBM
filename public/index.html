@@ -906,15 +906,7 @@ const individualBadges = {
     rarity: 'bronze'
   },
   
-  // === SOCIAUX/ÉQUIPE (3 badges) ===
-  team_captain: {
-    id: 'team_captain',
-    name: 'Team Captain',
-    emoji: '👑',
-    description: 'Meilleur de sa franchise pendant 1 semaine',
-    points: 10,
-    rarity: 'argent'
-  },
+  // === SOCIAUX/ÉQUIPE (2 badges) ===
   veteran: {
     id: 'veteran',
     name: 'Veteran',
@@ -932,7 +924,7 @@ const individualBadges = {
     rarity: 'bronze'
   },
   
-  // === SPÉCIAUX & RARES (3 badges) ===
+  // === SPÉCIAUX & RARES (4 badges) ===
   showtime: {
     id: 'showtime',
     name: 'Showtime',
@@ -941,11 +933,19 @@ const individualBadges = {
     points: 35,
     rarity: 'diamant'
   },
-  halloween_spirit: {
-    id: 'halloween_spirit',
-    name: 'Halloween Spirit',
-    emoji: '🎃',
-    description: '3 Actions positives du 3 au 9 novembre (aucune négative)',
+  captain_courage: {
+    id: 'captain_courage',
+    name: 'Captain Courage',
+    emoji: '🦾',
+    description: 'Arbitrer ou tenir table de marque 5 fois en 3 mois',
+    points: 18,
+    rarity: 'or'
+  },
+  clockwork: {
+    id: 'clockwork',
+    name: 'Clockwork',
+    emoji: '⏰',
+    description: 'Aucun retard pendant 3 mois',
     points: 12,
     rarity: 'argent'
   },
@@ -1015,7 +1015,7 @@ const individualBadges = {
     id: 'harmony',
     name: 'Harmony',
     emoji: '🌈',
-    description: 'Écart <50 points entre 1er et dernier',
+    description: 'Écart <50 points entre 1er et dernier (actif en décembre)',
     points: 50,
     rarity: 'argent'
   }
@@ -1541,11 +1541,6 @@ if (!hofData) {
             const currentMonth = now.getMonth() + 1; // getMonth() retourne 0-11
             const currentDay = now.getDate();
             
-            // Halloween : 3-9 novembre (mois 11)
-            if (currentMonth === 11 && currentDay >= 3 && currentDay <= 9) {
-              return 'halloween';
-            }
-            
             // Noël : 15-21 décembre (mois 12)
             if (currentMonth === 12 && currentDay >= 15 && currentDay <= 21) {
               return 'christmas';
@@ -1559,10 +1554,6 @@ if (!hofData) {
             const checkDate = new Date(date);
             const month = checkDate.getMonth() + 1;
             const day = checkDate.getDate();
-            
-            if (period === 'halloween') {
-              return month === 11 && day >= 3 && day <= 9;
-            }
             
             if (period === 'christmas') {
               return month === 12 && day >= 15 && day <= 21;
@@ -1593,13 +1584,6 @@ if (!hofData) {
           const checkSeasonalBadges = (playerName) => {
             const earnedBadges = [];
             const currentPeriod = getCurrentSeasonalPeriod();
-            
-            // Vérifier Halloween (besoin de 3 actions positives du 3-9 octobre ET aucune action négative)
-            const halloweenActions = countSeasonalActions(playerName, 'halloween');
-            const hasHalloweenNegative = hasNegativeSeasonalActions(playerName, 'halloween');
-            if (halloweenActions >= 3 && !hasHalloweenNegative) {
-              earnedBadges.push('halloween_spirit');
-            }
             
             // Vérifier Noël (besoin de 3 actions positives du 15-21 décembre ET aucune action négative)  
             const christmasActions = countSeasonalActions(playerName, 'christmas');
@@ -2693,21 +2677,6 @@ if (currentView === 'home') {
                   {/* Affichage des événements saisonniers actifs pour professeur */}
                   {(() => {
                     const currentSeason = getCurrentSeasonalPeriod();
-                    if (currentSeason === 'halloween') {
-                      return (
-                        <div className="mb-6 bg-gradient-to-r from-orange-600/20 to-purple-600/20 border-l-4 border-orange-400 p-6 rounded-lg shadow-lg">
-                          <div className="flex items-start gap-3">
-                            <span className="text-3xl">🎃</span>
-                            <div className="flex-1">
-                              <h3 className="text-xl font-bold text-white mb-2">🔥 Événement Halloween Actif ! (3-9 novembre)</h3>
-                              <p className="text-white/90 leading-relaxed">
-                                Badge <strong>Halloween Spirit</strong> disponible : les élèves qui obtiennent 3 actions positives <strong>sans aucune action négative</strong> gagneront +12 points automatiquement ! 🎃
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
                     if (currentSeason === 'christmas') {
                       return (
                         <div className="mb-6 bg-gradient-to-r from-red-600/20 to-green-600/20 border-l-4 border-red-400 p-6 rounded-lg shadow-lg">
@@ -3604,21 +3573,6 @@ if (currentView === 'teacher-actions') {
                   {/* Affichage des événements saisonniers actifs */}
                   {(() => {
                     const currentSeason = getCurrentSeasonalPeriod();
-                    if (currentSeason === 'halloween') {
-                      return (
-                        <div className="mb-6 bg-gradient-to-r from-orange-600/20 to-purple-600/20 border-l-4 border-orange-400 p-6 rounded-lg shadow-lg">
-                          <div className="flex items-start gap-3">
-                            <span className="text-3xl">🎃</span>
-                            <div className="flex-1">
-                              <h3 className="text-xl font-bold text-white mb-2">🔥 Événement Halloween Actif !</h3>
-                              <p className="text-white/90 text-lg leading-relaxed">
-                                Du 3 au 9 novembre • Obtenez 3 actions positives <strong>sans aucune action négative</strong> pour débloquer le badge <strong>Halloween Spirit</strong> (+12 points) ! 🎃
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
                     if (currentSeason === 'christmas') {
                       return (
                         <div className="mb-6 bg-gradient-to-r from-red-600/20 to-green-600/20 border-l-4 border-red-400 p-6 rounded-lg shadow-lg">
@@ -4323,14 +4277,44 @@ if (currentView === 'teacher-actions') {
                                 description: '5 actions positives en 7 jours'
                               },
                               { 
-                                name: 'Halloween Spirit', 
-                                emoji: '🎃', 
-                                current: countSeasonalActions(foundPlayer.name, 'halloween'), 
-                                target: 3,
-                                description: '3 actions positives du 3 au 9 novembre (aucune négative)',
-                                seasonal: true,
-                                period: 'halloween',
-                                blocked: hasNegativeSeasonalActions(foundPlayer.name, 'halloween')
+                                name: 'Captain Courage', 
+                                emoji: '🦾', 
+                                current: (() => {
+                                  // Compter les actions d'arbitrage/table sur 3 mois
+                                  const threeMonthsAgo = new Date();
+                                  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+                                  return searchHistory.filter(h => 
+                                    new Date(h.timestamp) >= threeMonthsAgo &&
+                                    (h.action.toLowerCase().includes('table de marque') || 
+                                     h.action.toLowerCase().includes('arbitrage'))
+                                  ).length;
+                                })(), 
+                                target: 5,
+                                description: 'Arbitrer ou tenir table de marque 5 fois en 3 mois'
+                              },
+                              { 
+                                name: 'Clockwork', 
+                                emoji: '⏰', 
+                                current: (() => {
+                                  // Vérifier les retards sur 3 mois
+                                  const threeMonthsAgo = new Date();
+                                  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+                                  const retards = searchHistory.filter(h => 
+                                    new Date(h.timestamp) >= threeMonthsAgo &&
+                                    (h.action.toLowerCase().includes('retard') || 
+                                     h.action.toLowerCase().includes('absence non justifiée'))
+                                  ).length;
+                                  // Si pas de retard, montrer la progression (3 mois = 90 jours)
+                                  if (retards === 0 && searchHistory.length > 0) {
+                                    const firstDate = new Date(searchHistory[0].timestamp);
+                                    const daysSince = Math.floor((new Date() - firstDate) / (1000 * 60 * 60 * 24));
+                                    return Math.min(daysSince, 90);
+                                  }
+                                  return 0; // Reset si retard
+                                })(), 
+                                target: 90,
+                                description: 'Aucun retard pendant 3 mois (90 jours)',
+                                special: true
                               },
                               { 
                                 name: 'Christmas Magic', 
