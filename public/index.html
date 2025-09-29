@@ -4103,19 +4103,38 @@ if (currentView === 'teacher-actions') {
 
           // TABLEAU DE BORD ÉLÈVE
           if (currentView === 'student-dashboard') {
+            // Vérifier si on arrive depuis l'interface professeur
+            const isFromTeacher = userType === 'teacher' && selectedStudent;
+            const currentStudentData = isFromTeacher ? 
+              players.find(p => p.name === selectedStudent) : 
+              null;
+            
+            // Si on arrive depuis l'interface professeur mais qu'aucun élève n'est sélectionné, revenir à l'accueil prof
+            if (userType === 'teacher' && !selectedStudent) {
+              setCurrentView('teacher-student-profiles');
+              return null;
+            }
+            
             return (
               <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4 md:p-8">
                 <div className="max-w-4xl mx-auto">
                   <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4 sm:gap-0">
-                    <h1 className="text-2xl sm:text-4xl font-bold text-white text-center sm:text-left">👨‍🎓 Espace Élève</h1>
+                    <h1 className="text-2xl sm:text-4xl font-bold text-white text-center sm:text-left">
+                      {isFromTeacher ? `📋 Fiche de ${selectedStudent}` : '👨‍🎓 Espace Élève'}
+                    </h1>
                     <button
                       onClick={() => {
-                        setCurrentView('home');
-                        setUserType(null);
+                        if (isFromTeacher) {
+                          setSelectedStudent('');
+                          setCurrentView('teacher-student-profiles');
+                        } else {
+                          setCurrentView('home');
+                          setUserType(null);
+                        }
                       }}
                       className="bg-gray-600 hover:bg-gray-500 text-white px-4 py-3 md:px-6 md:py-3 rounded-lg transition-colors min-h-12 flex items-center justify-center text-sm md:text-base"
                     >
-                      ← Retour Accueil
+                      {isFromTeacher ? '← Retour Fiches' : '← Retour Accueil'}
                     </button>
                   </div>
 
@@ -5902,7 +5921,7 @@ if (currentView === 'grades') {
                                 <button
                                   key={player.name}
                                   onClick={() => {
-                                    setSelectedStudentName(player.name);
+                                    setSelectedStudent(player.name);
                                     setCurrentView('student-dashboard');
                                   }}
                                   className="w-full p-3 bg-white/10 hover:bg-white/20 rounded-lg transition-all duration-200 text-left group"
@@ -5953,7 +5972,7 @@ if (currentView === 'grades') {
                               <button
                                 key={player.name}
                                 onClick={() => {
-                                  setSelectedStudentName(player.name);
+                                  setSelectedStudent(player.name);
                                   setCurrentView('student-dashboard');
                                 }}
                                 className="w-full p-3 bg-white/10 hover:bg-white/20 rounded-lg transition-all duration-200 text-left group"
