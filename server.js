@@ -190,9 +190,19 @@ db.exec(`
 
 // Ajouter la colonne total_points si elle n'existe pas (pour les bases existantes)
 try {
-  db.exec(`ALTER TABLE franchise_stats ADD COLUMN total_points INTEGER DEFAULT 0`);
+  // Vérifier si la colonne existe déjà
+  const columns = db.pragma('table_info(franchise_stats)');
+  const hasColumn = columns.some(col => col.name === 'total_points');
+  
+  if (!hasColumn) {
+    console.log('🔧 Ajout de la colonne total_points à franchise_stats...');
+    db.exec(`ALTER TABLE franchise_stats ADD COLUMN total_points INTEGER DEFAULT 0`);
+    console.log('✅ Colonne total_points ajoutée avec succès');
+  } else {
+    console.log('✅ Colonne total_points déjà présente');
+  }
 } catch (error) {
-  // Colonne existe déjà, ignorer l'erreur
+  console.error('❌ Erreur lors de l\'ajout de la colonne total_points:', error.message);
 }
 
 // FONCTIONS UTILITAIRES
@@ -1176,16 +1186,31 @@ app.get('/api/players', (req, res) => {
     });
     
     // Récupérer les statistiques des franchises incluant les total_points
-    const franchiseStats = db.prepare(`
-      SELECT 
-        franchise,
-        weekly_points,
-        monthly_points,
-        total_points,
-        consecutive_positive_weeks,
-        best_rank_duration
-      FROM franchise_stats
-    `).all();
+    let franchiseStats;
+    try {
+      franchiseStats = db.prepare(`
+        SELECT 
+          franchise,
+          weekly_points,
+          monthly_points,
+          COALESCE(total_points, 0) as total_points,
+          consecutive_positive_weeks,
+          best_rank_duration
+        FROM franchise_stats
+      `).all();
+    } catch (error) {
+      console.log('⚠️ Colonne total_points non disponible, utilisation mode compatibilité');
+      franchiseStats = db.prepare(`
+        SELECT 
+          franchise,
+          weekly_points,
+          monthly_points,
+          0 as total_points,
+          consecutive_positive_weeks,
+          best_rank_duration
+        FROM franchise_stats
+      `).all();
+    }
     
     // Calculer le total de chaque franchise (joueurs + points directs)
     const franchiseTotals = ['Minotaurs', 'Krakens', 'Phoenix', 'Eagles'].map(franchiseName => {
@@ -2034,6 +2059,7 @@ app.post('/api/reset-monthly', (req, res) => {
 app.post('/api/add-franchise-points', (req, res) => {
   try {
     const { franchise, points, action, teacherName = 'Anonyme' } = req.body;
+    console.log('📥 Requête reçue:', { franchise, points, action, teacherName });
     
     // Validation des paramètres
     if (!franchise || typeof points !== 'number') {
@@ -2048,23 +2074,62 @@ app.post('/api/add-franchise-points', (req, res) => {
     const actionDescription = action || `Points franchise (${points > 0 ? '+' : ''}${points})`;
     const currentTime = new Date().toISOString();
     
+    console.log('🔍 Vérification franchise existante...');
     // S'assurer que la franchise existe dans franchise_stats
     const existingFranchise = db.prepare('SELECT * FROM franchise_stats WHERE franchise = ?').get(franchise);
+    console.log('📋 Franchise existante:', existingFranchise);
+    
     if (!existingFranchise) {
-      db.prepare(`
-        INSERT INTO franchise_stats (franchise, weekly_points, monthly_points, total_points) 
-        VALUES (?, 0, 0, 0)
-      `).run(franchise);
+      console.log('➕ Création nouvelle franchise...');
+      try {
+        db.prepare(`
+          INSERT INTO franchise_stats (franchise, weekly_points, monthly_points, total_points) 
+          VALUES (?, 0, 0, 0)
+        `).run(franchise);
+        console.log('✅ Franchise créée');
+      } catch (insertError) {
+        console.error('❌ Erreur création franchise:', insertError.message);
+        // Essayer avec les colonnes de base seulement
+        try {
+          db.prepare(`
+            INSERT INTO franchise_stats (franchise, weekly_points, monthly_points) 
+            VALUES (?, 0, 0)
+          `).run(franchise);
+          console.log('✅ Franchise créée (mode compatibilité)');
+        } catch (compatError) {
+          console.error('❌ Erreur création franchise (compatibilité):', compatError.message);
+          return res.status(500).json({ error: 'Erreur création franchise: ' + compatError.message });
+        }
+      }
     }
     
+    console.log('📊 Mise à jour des points...');
     // Mettre à jour les points de la franchise
-    db.prepare(`
-      UPDATE franchise_stats 
-      SET total_points = total_points + ?,
-          weekly_points = weekly_points + ?,
-          monthly_points = monthly_points + ?
-      WHERE franchise = ?
-    `).run(points, points, points, franchise);
+    try {
+      const updateResult = db.prepare(`
+        UPDATE franchise_stats 
+        SET total_points = COALESCE(total_points, 0) + ?,
+            weekly_points = weekly_points + ?,
+            monthly_points = monthly_points + ?
+        WHERE franchise = ?
+      `).run(points, points, points, franchise);
+      console.log('📈 Points mis à jour:', updateResult);
+    } catch (updateError) {
+      console.error('❌ Erreur mise à jour avec total_points:', updateError.message);
+      // Essayer sans la colonne total_points si elle n'existe pas
+      try {
+        const compatResult = db.prepare(`
+          UPDATE franchise_stats 
+          SET weekly_points = weekly_points + ?,
+              monthly_points = monthly_points + ?
+          WHERE franchise = ?
+        `).run(points, points, franchise);
+        console.log('📈 Points mis à jour (mode compatibilité):', compatResult);
+      } catch (compatUpdateError) {
+        console.error('❌ Erreur mise à jour compatibilité:', compatUpdateError.message);
+        return res.status(500).json({ error: 'Erreur mise à jour: ' + compatUpdateError.message });
+      }
+    }
     
     // Ajouter une entrée dans l'historique (temporairement désactivé à cause de la contrainte FK)
     // On pourrait créer une table séparée pour l'historique des franchises
@@ -2722,84 +2787,4 @@ app.get('/api/export-csv', (req, res) => {
       csvContent += Object.keys(franchises[0]).join(';') + '\n';
       franchises.forEach(franchise => {
         csvContent += Object.values(franchise).map(v => 
-          typeof v === 'number' && !Number.isInteger(v) ? v.toFixed(1) : v
-        ).join(';') + '\n';
-      });
-    }
-
-    // Ajouter les badges par franchise
-    const franchiseBadges = db.prepare(`
-      SELECT 
-        franchise as Franchise,
-        COUNT(*) as Total_Badges_Collectifs
-      FROM franchise_badges
-      GROUP BY franchise
-    `).all();
-
-    if (franchiseBadges.length > 0) {
-      csvContent += '\n\n=== BADGES COLLECTIFS ===\n';
-      csvContent += 'Franchise;Nombre de Badges\n';
-      franchiseBadges.forEach(fb => {
-        csvContent += `${fb.Franchise};${fb.Total_Badges_Collectifs}\n`;
-      });
-    }
-
-    // Configurer les headers pour le téléchargement
-    const filename = `export_basketball_${new Date().toISOString().split('T')[0]}.csv`;
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(csvContent);
-
-  } catch (error) {
-    console.error('Erreur lors de l\'export CSV:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Servir l'application React
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Lancer le serveur
-app.listen(port, () => {
-  console.log(`🚀 Serveur démarré sur le port ${port}`);
-  console.log(`🔐 Mot de passe professeur: ${TEACHER_PASSWORD}`);
-  console.log(`🏅 Système de badges automatique activé`);
-  console.log(`📊 Base de données: ${dbPath}`);
-  
-  // Vérifier les classements toutes les heures
-  setInterval(checkFranchiseRankings, 3600000);
-  
-  // Reset hebdomadaire (tous les lundis à minuit)
-  setInterval(() => {
-    const now = new Date();
-    if (now.getDay() === 1 && now.getHours() === 0 && now.getMinutes() === 0) {
-      db.prepare('UPDATE franchise_stats SET weekly_points = 0').run();
-      db.prepare('UPDATE player_stats SET weekly_actions = 0').run();
-      console.log('📅 Reset hebdomadaire effectué');
-    }
-  }, 60000); // Vérifier chaque minute
-  
-  // Reset mensuel (le 1er de chaque mois)
-  setInterval(() => {
-    const now = new Date();
-    if (now.getDate() === 1 && now.getHours() === 0 && now.getMinutes() === 0) {
-      db.prepare('UPDATE franchise_stats SET monthly_points = 0').run();
-      db.prepare('UPDATE player_stats SET monthly_actions = 0').run();
-      console.log('📅 Reset mensuel effectué');
-    }
-  }, 60000);
-  
-  // Route fallback pour SPA - doit être APRÈS toutes les routes API
-  app.get('*', (req, res) => {
-    // Ne pas servir index.html pour les requêtes API ou de ressources
-    if (req.path.startsWith('/api/') || 
-        req.path.includes('.js') ||
-        req.path.includes('.css') ||
-        req.path.includes('favicon')) {
-      return res.status(404).send('Not Found');
-    }
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-  });
-});
+          typeof v === 'number'
