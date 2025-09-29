@@ -2151,6 +2151,34 @@ if (!hofData) {
             setLoading(false);
           };
 
+          // Réinitialiser les points d'une franchise
+          const resetFranchisePoints = async (franchise) => {
+            if (!confirm(`Êtes-vous sûr de vouloir réinitialiser tous les points franchise de ${franchise} ? Cette action est irréversible.`)) {
+              return;
+            }
+            
+            setLoading(true);
+            try {
+              const response = await fetch('/api/reset-franchise-points', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ franchise, teacherName })
+              });
+              if (response.ok) {
+                const result = await response.json();
+                alert(result.message);
+                await loadPlayers();
+              } else {
+                const error = await response.json();
+                alert('Erreur: ' + error.error);
+              }
+            } catch (error) {
+              console.error('Erreur lors de la réinitialisation:', error);
+              alert('Erreur lors de la réinitialisation des points franchise');
+            }
+            setLoading(false);
+          };
+
           // Charger l'historique d'un joueur
           const loadPlayerHistory = async (playerName) => {
             try {
@@ -3983,22 +4011,42 @@ if (currentView === 'teacher-actions') {
 
                         return (
                           <div key={franchise} className="bg-white/10 rounded-lg p-4">
-                            <div className="flex items-center mb-2">
-                              <span className="text-2xl mr-2">
-                                {franchise === 'Minotaurs' ? '🐂' : 
-                                 franchise === 'Krakens' ? '🐙' : 
-                                 franchise === 'Phoenix' ? '🔥' : '🦅'}
-                              </span>
-                              <h4 className="font-bold text-white">{franchise}</h4>
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center">
+                                <span className="text-2xl mr-2">
+                                  {franchise === 'Minotaurs' ? '🐂' : 
+                                   franchise === 'Krakens' ? '🐙' : 
+                                   franchise === 'Phoenix' ? '🔥' : '🦅'}
+                                </span>
+                                <h4 className="font-bold text-white">{franchise}</h4>
+                              </div>
+                              {franchisePoints > 0 && (
+                                <button
+                                  onClick={() => resetFranchisePoints(franchise)}
+                                  disabled={loading}
+                                  className="bg-red-600 hover:bg-red-500 disabled:bg-gray-600 text-white px-2 py-1 rounded text-xs transition-colors"
+                                  title={`Réinitialiser les ${franchisePoints} points franchise`}
+                                >
+                                  🗑️ Reset
+                                </button>
+                              )}
                             </div>
                             <div className="text-white/80 text-sm space-y-1">
                               <div>Points joueurs: {playerPoints}</div>
-                              <div>Points franchise: {franchisePoints}</div>
+                              <div>Points franchise: <span className={franchisePoints > 0 ? 'font-bold text-yellow-300' : ''}>{franchisePoints}</span></div>
                               <div className="font-bold text-white">Total: {totalScore} points</div>
                             </div>
                           </div>
                         );
                       })}
+                    </div>
+                    
+                    {/* Section d'aide */}
+                    <div className="mt-4 p-3 bg-blue-500/20 border-l-4 border-blue-400 rounded">
+                      <p className="text-blue-200 text-sm">
+                        💡 <span className="font-semibold">Info :</span> Le bouton "Reset" permet de remettre à zéro uniquement les points franchise, 
+                        sans affecter les points des joueurs. Une confirmation sera demandée.
+                      </p>
                     </div>
                   </div>
                 </div>
