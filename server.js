@@ -2164,6 +2164,61 @@ app.post('/api/add-franchise-points', (req, res) => {
   }
 });
 
+// Réinitialiser les points d'une franchise
+app.post('/api/reset-franchise-points', (req, res) => {
+  try {
+    const { franchise, teacherName = 'Anonyme' } = req.body;
+    console.log('🔄 Requête de réinitialisation:', { franchise, teacherName });
+    
+    // Validation des paramètres
+    if (!franchise) {
+      return res.status(400).json({ error: 'Franchise requise' });
+    }
+    
+    const validFranchises = ['Minotaurs', 'Krakens', 'Phoenix', 'Eagles'];
+    if (!validFranchises.includes(franchise)) {
+      return res.status(400).json({ error: 'Franchise invalide' });
+    }
+    
+    console.log('🔍 Vérification franchise existante...');
+    // Vérifier que la franchise existe
+    const existingFranchise = db.prepare('SELECT * FROM franchise_stats WHERE franchise = ?').get(franchise);
+    console.log('📋 Franchise actuelle:', existingFranchise);
+    
+    if (!existingFranchise) {
+      return res.status(404).json({ error: 'Franchise non trouvée' });
+    }
+    
+    const currentPoints = existingFranchise.total_points || 0;
+    
+    console.log('🔄 Réinitialisation des points...');
+    // Réinitialiser les points de la franchise
+    try {
+      const resetResult = db.prepare(`
+        UPDATE franchise_stats 
+        SET total_points = 0
+        WHERE franchise = ?
+      `).run(franchise);
+      console.log('🔄 Points réinitialisés:', resetResult);
+    } catch (updateError) {
+      console.error('❌ Erreur mise à jour:', updateError.message);
+      return res.status(500).json({ error: 'Erreur lors de la réinitialisation: ' + updateError.message });
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `Points franchise de ${franchise} réinitialisés (${currentPoints} → 0)`,
+      franchise: franchise,
+      previousPoints: currentPoints,
+      newPoints: 0
+    });
+    
+  } catch (error) {
+    console.error('Erreur lors de la réinitialisation:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Récupérer les données de progression d'un joueur
 app.get('/api/progression/:playerName', (req, res) => {
   try {
