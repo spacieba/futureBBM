@@ -2219,6 +2219,17 @@ if (!hofData) {
             }
           };
 
+          // Charger l'historique pour les professeurs (sans code d'accès)
+          const loadPlayerHistoryForTeacher = async (playerName) => {
+            try {
+              const response = await fetch(`/api/teacher/history/${encodeURIComponent(playerName)}`);
+              const data = await response.json();
+              setSearchHistory(data);
+            } catch (error) {
+              console.error('Erreur lors du chargement de l\'historique:', error);
+            }
+          };
+
           // Charger les données de progression d'un joueur
           const loadPlayerProgression = async (playerName) => {
             try {
@@ -5927,7 +5938,9 @@ if (currentView === 'grades') {
                                   onClick={() => {
                                     console.log('Clicking on player:', player.name);
                                     setFoundPlayer(player);
-                                    setCurrentView('my-score');
+                                    // Charger l'historique pour les professeurs
+                                    loadPlayerHistoryForTeacher(player.name);
+                                    setCurrentView('student-search');
                                   }}
                                   className="w-full p-3 bg-white/10 hover:bg-white/20 rounded-lg transition-all duration-200 text-left group"
                                 >
@@ -5977,8 +5990,11 @@ if (currentView === 'grades') {
                               <button
                                 key={player.name}
                                 onClick={() => {
+                                  console.log('Clicking on undrafted player:', player.name);
                                   setFoundPlayer(player);
-                                  setCurrentView('my-score');
+                                  // Charger l'historique pour les professeurs
+                                  loadPlayerHistoryForTeacher(player.name);
+                                  setCurrentView('student-search');
                                 }}
                                 className="w-full p-3 bg-white/10 hover:bg-white/20 rounded-lg transition-all duration-200 text-left group"
                               >
