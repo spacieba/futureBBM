@@ -2787,4 +2787,84 @@ app.get('/api/export-csv', (req, res) => {
       csvContent += Object.keys(franchises[0]).join(';') + '\n';
       franchises.forEach(franchise => {
         csvContent += Object.values(franchise).map(v => 
-          typeof v === 'number'
+          typeof v === 'number' && !Number.isInteger(v) ? v.toFixed(1) : v
+        ).join(';') + '\n';
+      });
+    }
+
+    // Ajouter les badges par franchise
+    const franchiseBadges = db.prepare(`
+      SELECT 
+        franchise as Franchise,
+        COUNT(*) as Total_Badges_Collectifs
+      FROM franchise_badges
+      GROUP BY franchise
+    `).all();
+
+    if (franchiseBadges.length > 0) {
+      csvContent += '\n\n=== BADGES COLLECTIFS ===\n';
+      csvContent += 'Franchise;Nombre de Badges\n';
+      franchiseBadges.forEach(fb => {
+        csvContent += `${fb.Franchise};${fb.Total_Badges_Collectifs}\n`;
+      });
+    }
+
+    // Configurer les headers pour le téléchargement
+    const filename = `export_basketball_${new Date().toISOString().split('T')[0]}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csvContent);
+
+  } catch (error) {
+    console.error('Erreur lors de l\'export CSV:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Servir l'application React
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Route fallback pour SPA - doit être APRÈS toutes les routes API
+app.get('*', (req, res) => {
+  // Ne pas servir index.html pour les requêtes API ou de ressources
+  if (req.path.startsWith('/api/') || 
+      req.path.includes('.js') ||
+      req.path.includes('.css') ||
+      req.path.includes('favicon')) {
+    return res.status(404).send('Not Found');
+  }
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Lancer le serveur
+app.listen(port, () => {
+  console.log(`🚀 Serveur démarré sur le port ${port}`);
+  console.log(`🔐 Mot de passe professeur: ${TEACHER_PASSWORD}`);
+  console.log(`🏅 Système de badges automatique activé`);
+  console.log(`📊 Base de données: ${dbPath}`);
+  
+  // Vérifier les classements toutes les heures
+  setInterval(checkFranchiseRankings, 3600000);
+  
+  // Reset hebdomadaire (tous les lundis à minuit)
+  setInterval(() => {
+    const now = new Date();
+    if (now.getDay() === 1 && now.getHours() === 0 && now.getMinutes() === 0) {
+      db.prepare('UPDATE franchise_stats SET weekly_points = 0').run();
+      db.prepare('UPDATE player_stats SET weekly_actions = 0').run();
+      console.log('📅 Reset hebdomadaire effectué');
+    }
+  }, 60000); // Vérifier chaque minute
+  
+  // Reset mensuel (le 1er de chaque mois)
+  setInterval(() => {
+    const now = new Date();
+    if (now.getDate() === 1 && now.getHours() === 0 && now.getMinutes() === 0) {
+      db.prepare('UPDATE franchise_stats SET monthly_points = 0').run();
+      db.prepare('UPDATE player_stats SET monthly_actions = 0').run();
+      console.log('📅 Reset mensuel effectué');
+    }
+  }, 60000);
+});
