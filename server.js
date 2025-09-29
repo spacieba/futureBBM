@@ -121,6 +121,15 @@ db.exec(`
     best_rank_duration INTEGER DEFAULT 0,
     last_rank_check TEXT
   );
+  CREATE TABLE IF NOT EXISTS franchise_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    franchise TEXT NOT NULL,
+    action TEXT NOT NULL,
+    points INTEGER NOT NULL,
+    timestamp TEXT NOT NULL,
+    new_total INTEGER NOT NULL,
+    teacher_name TEXT DEFAULT 'Anonyme'
+  );
 `);
 
 db.exec(`
@@ -2131,22 +2140,26 @@ app.post('/api/add-franchise-points', (req, res) => {
       }
     }
     
-    // Ajouter une entrée dans l'historique (temporairement désactivé à cause de la contrainte FK)
-    // On pourrait créer une table séparée pour l'historique des franchises
-    /* 
-    db.prepare(`
-      INSERT INTO history (player_name, action, points, timestamp, new_total, teacher_name, category)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      `[${franchise}]`,
-      actionDescription,
-      points,
-      currentTime,
-      0,
-      teacherName,
-      'franchise'
-    );
-    */
+    // Ajouter une entrée dans l'historique des franchises
+    console.log('📝 Ajout dans l\'historique franchise...');
+    try {
+      const newTotalPoints = (existingFranchise.total_points || 0) + points;
+      db.prepare(`
+        INSERT INTO franchise_history (franchise, action, points, timestamp, new_total, teacher_name)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(
+        franchise,
+        actionDescription,
+        points,
+        currentTime,
+        newTotalPoints,
+        teacherName
+      );
+      console.log('✅ Historique franchise ajouté');
+    } catch (historyError) {
+      console.error('⚠️  Erreur ajout historique (non critique):', historyError.message);
+      // L'erreur d'historique n'est pas critique, on continue
+    }
     
     // Vérifier les badges collectifs après l'ajout de points (temporairement désactivé)
     // checkAndAwardCollectiveBadges(franchise);
@@ -2215,6 +2228,121 @@ app.post('/api/reset-franchise-points', (req, res) => {
     
   } catch (error) {
     console.error('Erreur lors de la réinitialisation:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Annuler la dernière action de points franchise
+app.post('/api/undo-last-franchise-action', (req, res) => {
+  try {
+    const { franchise, teacherName = 'Anonyme' } = req.body;
+    console.log('⏪ Requête d\'annulation dernière action:', { franchise, teacherName });
+    
+    // Validation des paramètres
+    if (!franchise) {
+      return res.status(400).json({ error: 'Franchise requise' });
+    }
+    
+    const validFranchises = ['Minotaurs', 'Krakens', 'Phoenix', 'Eagles'];
+    if (!validFranchises.includes(franchise)) {
+      return res.status(400).json({ error: 'Franchise invalide' });
+    }
+    
+    console.log('🔍 Recherche de la dernière action...');
+    // Récupérer la dernière action de cette franchise
+    const lastAction = db.prepare(`
+      SELECT * FROM franchise_history 
+      WHERE franchise = ? 
+      ORDER BY id DESC 
+      LIMIT 1
+    `).get(franchise);
+    
+    if (!lastAction) {
+      return res.status(404).json({ error: 'Aucune action à annuler pour cette franchise' });
+    }
+    
+    console.log('📋 Dernière action trouvée:', lastAction);
+    
+    // Vérifier que la franchise existe dans franchise_stats
+    const existingFranchise = db.prepare('SELECT * FROM franchise_stats WHERE franchise = ?').get(franchise);
+    if (!existingFranchise) {
+      return res.status(404).json({ error: 'Franchise non trouvée' });
+    }
+    
+    // Calculer les nouveaux points (soustraire l'action annulée)
+    const currentPoints = existingFranchise.total_points || 0;
+    const newPoints = currentPoints - lastAction.points;
+    
+    console.log('🔄 Annulation en cours...');
+    console.log(`Points actuels: ${currentPoints}, Action à annuler: ${lastAction.points}, Nouveaux points: ${newPoints}`);
+    
+    // Mettre à jour les points de la franchise
+    try {
+      const updateResult = db.prepare(`
+        UPDATE franchise_stats 
+        SET total_points = ?,
+            weekly_points = weekly_points - ?,
+            monthly_points = monthly_points - ?
+        WHERE franchise = ?
+      `).run(newPoints, lastAction.points, lastAction.points, franchise);
+      console.log('📈 Points mis à jour:', updateResult);
+    } catch (updateError) {
+      console.error('❌ Erreur mise à jour avec total_points:', updateError.message);
+      // Essayer sans la colonne total_points si elle n'existe pas
+      try {
+        const compatResult = db.prepare(`
+          UPDATE franchise_stats 
+          SET weekly_points = weekly_points - ?,
+              monthly_points = monthly_points - ?
+          WHERE franchise = ?
+        `).run(lastAction.points, lastAction.points, franchise);
+        console.log('📈 Points mis à jour (mode compatibilité):', compatResult);
+      } catch (compatUpdateError) {
+        console.error('❌ Erreur mise à jour compatibilité:', compatUpdateError.message);
+        return res.status(500).json({ error: 'Erreur mise à jour: ' + compatUpdateError.message });
+      }
+    }
+    
+    // Supprimer l'action de l'historique
+    console.log('🗑️ Suppression de l\'action de l\'historique...');
+    const deleteResult = db.prepare('DELETE FROM franchise_history WHERE id = ?').run(lastAction.id);
+    console.log('✅ Action supprimée de l\'historique:', deleteResult);
+    
+    // Ajouter une entrée d'annulation dans l'historique
+    console.log('📝 Ajout de l\'entrée d\'annulation...');
+    try {
+      db.prepare(`
+        INSERT INTO franchise_history (franchise, action, points, timestamp, new_total, teacher_name)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(
+        franchise,
+        `Annulation: ${lastAction.action}`,
+        -lastAction.points,
+        new Date().toISOString(),
+        newPoints,
+        teacherName
+      );
+      console.log('✅ Entrée d\'annulation ajoutée');
+    } catch (historyError) {
+      console.error('⚠️  Erreur ajout historique annulation (non critique):', historyError.message);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `Dernière action annulée pour ${franchise}`,
+      franchise: franchise,
+      cancelledAction: {
+        action: lastAction.action,
+        points: lastAction.points,
+        timestamp: lastAction.timestamp,
+        teacher: lastAction.teacher_name
+      },
+      previousPoints: currentPoints,
+      newPoints: newPoints
+    });
+    
+  } catch (error) {
+    console.error('Erreur lors de l\'annulation:', error);
     res.status(500).json({ error: error.message });
   }
 });
