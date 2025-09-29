@@ -1346,6 +1346,23 @@ app.get('/api/history/:playerName', (req, res) => {
   }
 });
 
+// API pour les professeurs - Récupérer l'historique d'un joueur sans code d'accès
+app.get('/api/teacher/history/:playerName', (req, res) => {
+  try {
+    const { playerName } = req.params;
+    
+    const history = db.prepare(`
+      SELECT * FROM history 
+      WHERE player_name = ? 
+      ORDER BY id DESC 
+      LIMIT 50
+    `).all(playerName);
+    res.json(history);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Ajouter des points avec vérification automatique des badges
 app.post('/api/add-points', (req, res) => {
   try {
