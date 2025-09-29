@@ -4479,15 +4479,13 @@ if (currentView === 'teacher-actions') {
                             setPendingPlayerName('');
                             setShowCodeInput(false); // Important : réinitialiser l'état du code
                             // Si on vient des fiches élèves, y retourner
-                            // (on le détecte car foundPlayer est défini depuis teacher-student-profiles)
-                            const wasFromTeacherProfiles = window.location.href.includes('localhost') || foundPlayer.badges;
-                            if (wasFromTeacherProfiles) {
+                            if (foundPlayer && foundPlayer.badges && foundPlayer.badges.length >= 0) {
                               setCurrentView('teacher-student-profiles');
                             }
                           }}
                           className="bg-red-600/80 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm transition-colors"
                         >
-                          {foundPlayer.badges ? '← Retour Fiches' : '🔓 Se déconnecter'}
+                          {foundPlayer && foundPlayer.badges ? '← Retour Fiches' : '🔓 Se déconnecter'}
                         </button>
                       </div>
                       
@@ -4659,16 +4657,14 @@ if (currentView === 'teacher-actions') {
                                 setFoundPlayer(null);
                                 setSearchHistory([]);
                                 setSearchName('');
-                                // Si on vient des fiches élèves, y retourner  
-                                // (on le détecte car foundPlayer est défini depuis teacher-student-profiles)
-                                const wasFromTeacherProfiles = window.location.href.includes('localhost') || foundPlayer.badges;
-                                if (wasFromTeacherProfiles) {
+                                // Si on vient des fiches élèves, y retourner
+                                if (foundPlayer && foundPlayer.badges && foundPlayer.badges.length >= 0) {
                                   setCurrentView('teacher-student-profiles');
                                 }
                               }}
                               className="bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 text-white px-6 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 mx-auto"
                             >
-                              {foundPlayer.badges ? '← Retour Fiches' : '🔍 Nouvelle recherche'}
+                              {foundPlayer && foundPlayer.badges ? '← Retour Fiches' : '🔍 Nouvelle recherche'}
                             </button>
                           </div>
                         </div>
