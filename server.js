@@ -115,6 +115,7 @@ db.exec(`
     franchise TEXT PRIMARY KEY,
     weekly_points INTEGER DEFAULT 0,
     monthly_points INTEGER DEFAULT 0,
+    total_points INTEGER DEFAULT 0,
     last_negative_date TEXT,
     consecutive_positive_weeks INTEGER DEFAULT 0,
     best_rank_duration INTEGER DEFAULT 0,
@@ -186,6 +187,13 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_history_date ON history(DATE(timestamp));
   CREATE INDEX IF NOT EXISTS idx_period_stats_period ON period_stats(period_type, period_start);
 `);
+
+// Ajouter la colonne total_points si elle n'existe pas (pour les bases existantes)
+try {
+  db.exec(`ALTER TABLE franchise_stats ADD COLUMN total_points INTEGER DEFAULT 0`);
+} catch (error) {
+  // Colonne existe déjà, ignorer l'erreur
+}
 
 // FONCTIONS UTILITAIRES
 
@@ -1167,7 +1175,38 @@ app.get('/api/players', (req, res) => {
       return { ...player, badges, is_drafted: 1 };
     });
     
-    res.json(playersWithBadges);
+    // Récupérer les statistiques des franchises incluant les total_points
+    const franchiseStats = db.prepare(`
+      SELECT 
+        franchise,
+        weekly_points,
+        monthly_points,
+        total_points,
+        consecutive_positive_weeks,
+        best_rank_duration
+      FROM franchise_stats
+    `).all();
+    
+    // Calculer le total de chaque franchise (joueurs + points directs)
+    const franchiseTotals = ['Minotaurs', 'Krakens', 'Phoenix', 'Eagles'].map(franchiseName => {
+      const playersTotal = players
+        .filter(p => p.franchise === franchiseName && p.is_drafted === 1)
+        .reduce((sum, p) => sum + p.score, 0);
+      
+      const franchiseDirectPoints = franchiseStats.find(f => f.franchise === franchiseName)?.total_points || 0;
+      
+      return {
+        franchise: franchiseName,
+        players_total: playersTotal,
+        franchise_points: franchiseDirectPoints,
+        total: playersTotal + franchiseDirectPoints
+      };
+    });
+    
+    res.json({ 
+      players: playersWithBadges,
+      franchiseStats: franchiseTotals
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -1987,6 +2026,75 @@ app.post('/api/reset-monthly', (req, res) => {
     db.prepare('UPDATE player_stats SET monthly_actions = 0').run();
     res.json({ success: true });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Ajouter des points directement à une franchise
+app.post('/api/add-franchise-points', (req, res) => {
+  try {
+    const { franchise, points, action, teacherName = 'Anonyme' } = req.body;
+    
+    // Validation des paramètres
+    if (!franchise || typeof points !== 'number') {
+      return res.status(400).json({ error: 'Franchise et points requis' });
+    }
+    
+    const validFranchises = ['Minotaurs', 'Krakens', 'Phoenix', 'Eagles'];
+    if (!validFranchises.includes(franchise)) {
+      return res.status(400).json({ error: 'Franchise invalide' });
+    }
+    
+    const actionDescription = action || `Points franchise (${points > 0 ? '+' : ''}${points})`;
+    const currentTime = new Date().toISOString();
+    
+    // S'assurer que la franchise existe dans franchise_stats
+    const existingFranchise = db.prepare('SELECT * FROM franchise_stats WHERE franchise = ?').get(franchise);
+    if (!existingFranchise) {
+      db.prepare(`
+        INSERT INTO franchise_stats (franchise, weekly_points, monthly_points, total_points) 
+        VALUES (?, 0, 0, 0)
+      `).run(franchise);
+    }
+    
+    // Mettre à jour les points de la franchise
+    db.prepare(`
+      UPDATE franchise_stats 
+      SET total_points = total_points + ?,
+          weekly_points = weekly_points + ?,
+          monthly_points = monthly_points + ?
+      WHERE franchise = ?
+    `).run(points, points, points, franchise);
+    
+    // Ajouter une entrée dans l'historique (temporairement désactivé à cause de la contrainte FK)
+    // On pourrait créer une table séparée pour l'historique des franchises
+    /* 
+    db.prepare(`
+      INSERT INTO history (player_name, action, points, timestamp, new_total, teacher_name, category)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      `[${franchise}]`,
+      actionDescription,
+      points,
+      currentTime,
+      0,
+      teacherName,
+      'franchise'
+    );
+    */
+    
+    // Vérifier les badges collectifs après l'ajout de points (temporairement désactivé)
+    // checkAndAwardCollectiveBadges(franchise);
+    
+    res.json({ 
+      success: true, 
+      message: `${points} points ajoutés à ${franchise}`,
+      franchise: franchise,
+      pointsAdded: points
+    });
+    
+  } catch (error) {
+    console.error('Erreur lors de l\'ajout de points franchise:', error);
     res.status(500).json({ error: error.message });
   }
 });
