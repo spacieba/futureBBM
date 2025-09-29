@@ -2690,9 +2690,14 @@ if (!hofData) {
           const getFranchiseRankings = () => {
             const franchiseScores = {};
             ['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves', 'Non-Draftés'].forEach(franchise => {
-              franchiseScores[franchise] = players
+              const playersTotal = players
                 .filter(player => player.franchise === franchise)
                 .reduce((total, player) => total + player.score, 0);
+              
+              const franchiseData = window.franchiseStats?.find(f => f.franchise === franchise);
+              const franchisePoints = franchiseData?.franchise_points || 0;
+              
+              franchiseScores[franchise] = playersTotal + franchisePoints;
             });
             
             return Object.entries(franchiseScores)
@@ -3060,7 +3065,10 @@ if (currentView === 'home') {
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
                       {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves', 'Non-Draftés'].map(franchise => {
                         const franchisePlayers = getSortedPlayers(franchise);
-                        const totalPoints = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
+                        const playersTotal = franchisePlayers.reduce((sum, player) => sum + player.score, 0);
+                        const franchiseData = window.franchiseStats?.find(f => f.franchise === franchise);
+                        const franchisePoints = franchiseData?.franchise_points || 0;
+                        const totalPoints = playersTotal + franchisePoints;
                         const avatar = getFranchiseAvatar(franchise);
                         return (
                           <div 
