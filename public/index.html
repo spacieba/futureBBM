@@ -4478,14 +4478,12 @@ if (currentView === 'teacher-actions') {
                             setSearchName('');
                             setPendingPlayerName('');
                             setShowCodeInput(false); // Important : réinitialiser l'état du code
-                            // Si on vient des fiches élèves, y retourner
-                            if (foundPlayer && foundPlayer.badges && foundPlayer.badges.length >= 0) {
-                              setCurrentView('teacher-student-profiles');
-                            }
+                            // Retourner aux fiches élèves pour les profs
+                            setCurrentView('teacher-student-profiles');
                           }}
                           className="bg-red-600/80 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm transition-colors"
                         >
-                          {foundPlayer && foundPlayer.badges ? '← Retour Fiches' : '🔓 Se déconnecter'}
+                          ← Retour Fiches
                         </button>
                       </div>
                       
@@ -4657,14 +4655,12 @@ if (currentView === 'teacher-actions') {
                                 setFoundPlayer(null);
                                 setSearchHistory([]);
                                 setSearchName('');
-                                // Si on vient des fiches élèves, y retourner
-                                if (foundPlayer && foundPlayer.badges && foundPlayer.badges.length >= 0) {
-                                  setCurrentView('teacher-student-profiles');
-                                }
+                                // Retourner aux fiches élèves pour les profs
+                                setCurrentView('teacher-student-profiles');
                               }}
                               className="bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-500 hover:to-gray-700 text-white px-6 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 mx-auto"
                             >
-                              {foundPlayer && foundPlayer.badges ? '← Retour Fiches' : '🔍 Nouvelle recherche'}
+                              ← Retour Fiches
                             </button>
                           </div>
                         </div>
@@ -5929,6 +5925,7 @@ if (currentView === 'grades') {
                                 <button
                                   key={player.name}
                                   onClick={() => {
+                                    console.log('Clicking on player:', player.name);
                                     setFoundPlayer(player);
                                     setCurrentView('my-score');
                                   }}
