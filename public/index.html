@@ -2853,6 +2853,23 @@ if (currentView === 'home') {
               );
             })()}
             
+            {/* Message du jour du professeur */}
+            {studentPageMessage && (
+              <div className="mb-8 max-w-2xl mx-auto">
+                <div className="bg-gradient-to-r from-green-500/20 to-blue-500/20 border-l-4 border-green-400 p-6 rounded-lg shadow-lg backdrop-blur-sm">
+                  <div className="flex items-start gap-3">
+                    <span className="text-3xl">📢</span>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-white mb-2">Message du jour</h3>
+                      <p className="text-white/90 text-lg leading-relaxed">
+                        {studentPageMessage}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {/* Sélecteur de thème */}
             <div className="mb-6">
               <div className="flex flex-wrap justify-center gap-3 mb-4">
