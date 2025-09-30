@@ -23,12 +23,18 @@ app.use(express.static('public', {
 // 🔒 MOT DE PASSE PROFESSEUR - MODIFIABLE ICI
 const TEACHER_PASSWORD = 'GPwinner2026';
 
-// 🔐 Fonction pour générer un code d'accès unique pour chaque élève
+// 🔐 Fonction pour générer un code d'accès basé sur la date de naissance
 function generateStudentCode(playerName) {
+  // Trouver le joueur dans les données initiales pour récupérer sa date de naissance
+  const player = Object.values(initialFranchises).flat().find(p => p.name === playerName);
+  if (player && player.birthDate) {
+    return player.birthDate; // Retourner directement la date de naissance (8 chiffres)
+  }
+  
+  // Fallback vers l'ancien système si pas trouvé
   const crypto = require('crypto');
-  const secret = 'GPBasketball2026Secret'; // Clé secrète pour la génération des codes
+  const secret = 'GPBasketball2026Secret';
   const hash = crypto.createHash('md5').update(secret + playerName.toLowerCase()).digest('hex');
-  // Prendre les 6 premiers caractères et les convertir en format XXX-XXX
   const code = hash.substring(0, 6).toUpperCase();
   return code.substring(0, 3) + '-' + code.substring(3, 6);
 }
@@ -650,10 +656,51 @@ const BADGES = {
 
 // Données initiales des franchises
 const initialFranchises = {
-  Minotaurs: ['Leny', 'Lyam', 'Augustin', 'Lino', 'Lina D', 'Djilane', 'Talia'],
-  Krakens: ['Swan', 'Nolann', 'Enery', 'Marie', 'Seyma Nur', 'Willow'],
-  Phoenix: ['Mahé', 'Narcisse', 'Daniella', 'Matis.B', 'Jamila'],
-  Werewolves: ['Assia', 'Ethaniel', 'Russy', 'Youssef', 'Lisa L', 'Noa', 'Lenny K']
+  Werewolves: [
+    { name: 'Bellet Noa', birthDate: '13012013' },
+    { name: 'Kouma Leny', birthDate: '27012013' },
+    { name: 'Nzunga Benga Russy', birthDate: '04042013' },
+    { name: 'Lunda Ethaniel', birthDate: '19092011' },
+    { name: 'Milo Carpentier', birthDate: '06102014' },
+    { name: 'Mjid Assia', birthDate: '24112011' },
+    { name: 'Buffet Youssef', birthDate: '13042012' },
+    { name: 'Lassonier Lina', birthDate: '25052012' },
+    { name: 'Diop M\'Bayang', birthDate: '13022014' }
+  ],
+  Phoenix: [
+    { name: 'Bernaoui Matys', birthDate: '12022012' },
+    { name: 'Said Rachdi', birthDate: '25012013' },
+    { name: 'Massamba Narcisse', birthDate: '21052012' },
+    { name: 'Berchemin Matis', birthDate: '28052013' },
+    { name: 'Kelly Daniella', birthDate: '05012013' },
+    { name: 'Cisse Allaya', birthDate: '21032012' },
+    { name: 'Massamba Briana', birthDate: '13122014' },
+    { name: 'Tliba Lyna', birthDate: '22072014' },
+    { name: 'Mariko N\'Deye Penda', birthDate: '08012014' },
+    { name: 'Pelissard Mahé', birthDate: '30012011' }
+  ],
+  Minotaurs: [
+    { name: 'Lastella Julia', birthDate: '08102014' },
+    { name: 'Saidani Rania', birthDate: '10042014' },
+    { name: 'Arnaud Augustin', birthDate: '05102012' },
+    { name: 'Sene Djilane', birthDate: '26042013' },
+    { name: 'Timoteo-Cruz Talia', birthDate: '20112013' },
+    { name: 'Alibert Leny', birthDate: '16062011' },
+    { name: 'Rehioui Lyam', birthDate: '19072011' },
+    { name: 'Maurice Lino', birthDate: '22062012' },
+    { name: 'Derrahi Lina', birthDate: '11082012' }
+  ],
+  Krakens: [
+    { name: 'Berkoukeche Swann', birthDate: '15042011' },
+    { name: 'Michel Nolann', birthDate: '09022011' },
+    { name: 'Moro Enery', birthDate: '04102012' },
+    { name: 'Ravet Marie', birthDate: '22052012' },
+    { name: 'Icart Colin', birthDate: '04092014' },
+    { name: 'Detinger Willow', birthDate: '31032014' },
+    { name: 'Simsek Seyma Nur', birthDate: '06072012' },
+    { name: 'Dekon Alicia', birthDate: '25012010' },
+    { name: 'Saglam Elizan', birthDate: '10042014' }
+  ]
 };
 
 // Initialiser les joueurs et stats
@@ -681,14 +728,23 @@ const initDatabase = () => {
     `);
   }
   
-  if (existingPlayers.count === 0) {
+  // Forcer la mise à jour avec les nouveaux élèves
+  if (existingPlayers.count === 0 || existingPlayers.count === 25) {
+    // Vider les tables si elles contiennent les anciens élèves
+    if (existingPlayers.count === 25) {
+      db.prepare('DELETE FROM players').run();
+      db.prepare('DELETE FROM player_stats').run();
+      db.prepare('DELETE FROM history').run();
+      db.prepare('DELETE FROM player_badges').run();
+    }
+    
     const insertPlayer = db.prepare('INSERT INTO players (name, franchise, score, is_drafted) VALUES (?, ?, ?, ?)');
     const insertStats = db.prepare('INSERT INTO player_stats (player_name) VALUES (?)');
     
     Object.entries(initialFranchises).forEach(([franchise, players]) => {
       players.forEach(player => {
-        insertPlayer.run(player, franchise, 0, 1);
-        insertStats.run(player);
+        insertPlayer.run(player.name, franchise, 0, 1);
+        insertStats.run(player.name);
       });
     });
   }
@@ -700,6 +756,32 @@ const initDatabase = () => {
 };
 
 initDatabase();
+
+// === API DE RÉINITIALISATION DES DONNÉES ===
+app.post('/api/admin/reset-players', (req, res) => {
+  try {
+    // Vider les tables existantes
+    db.prepare('DELETE FROM players').run();
+    db.prepare('DELETE FROM player_stats').run();
+    db.prepare('DELETE FROM history').run();
+    db.prepare('DELETE FROM player_badges').run();
+    
+    // Réinsérer les nouveaux joueurs
+    const insertPlayer = db.prepare('INSERT INTO players (name, franchise, score, is_drafted) VALUES (?, ?, ?, ?)');
+    const insertStats = db.prepare('INSERT INTO player_stats (player_name) VALUES (?)');
+    
+    Object.entries(initialFranchises).forEach(([franchise, players]) => {
+      players.forEach(player => {
+        insertPlayer.run(player.name, franchise, 0, 1);
+        insertStats.run(player.name);
+      });
+    });
+    
+    res.json({ success: true, message: 'Joueurs réinitialisés avec succès!' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // === FONCTIONS DE VÉRIFICATION DES BADGES ===
 
