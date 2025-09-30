@@ -4507,11 +4507,11 @@ if (currentView === 'teacher-actions') {
                             <input
                               type="text"
                               value={accessCode}
-                              onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
+                              onChange={(e) => setAccessCode(e.target.value)}
                               onKeyPress={(e) => e.key === 'Enter' && submitAccessCode()}
                               className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white/70 focus:outline-none text-center text-lg font-mono tracking-wider"
-                              placeholder="XXX-XXX"
-                              maxLength="7"
+                              placeholder="12345678"
+                              maxLength="8"
                             />
                             <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/60">
                               🔑
