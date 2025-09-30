@@ -31,6 +31,16 @@ function generateStudentCode(playerName) {
     return player.birthDate; // Retourner directement la date de naissance (8 chiffres)
   }
   
+  // Si pas trouvé dans initialFranchises, chercher dans la base de données
+  try {
+    const playerFromDB = db.prepare('SELECT birth_date FROM players WHERE name = ?').get(playerName);
+    if (playerFromDB && playerFromDB.birth_date) {
+      return playerFromDB.birth_date;
+    }
+  } catch (error) {
+    console.log('Erreur lors de la recherche du joueur:', error.message);
+  }
+  
   // Fallback vers l'ancien système si pas trouvé
   const crypto = require('crypto');
   const secret = 'GPBasketball2026Secret';
@@ -62,7 +72,8 @@ db.exec(`
     name TEXT UNIQUE NOT NULL,
     franchise TEXT NOT NULL,
     score INTEGER DEFAULT 0,
-    is_drafted INTEGER DEFAULT 1
+    is_drafted INTEGER DEFAULT 1,
+    birth_date TEXT
   );
 
   CREATE TABLE IF NOT EXISTS history (
@@ -738,12 +749,12 @@ const initDatabase = () => {
       db.prepare('DELETE FROM player_badges').run();
     }
     
-    const insertPlayer = db.prepare('INSERT INTO players (name, franchise, score, is_drafted) VALUES (?, ?, ?, ?)');
+    const insertPlayer = db.prepare('INSERT INTO players (name, franchise, score, is_drafted, birth_date) VALUES (?, ?, ?, ?, ?)');
     const insertStats = db.prepare('INSERT INTO player_stats (player_name) VALUES (?)');
     
     Object.entries(initialFranchises).forEach(([franchise, players]) => {
       players.forEach(player => {
-        insertPlayer.run(player.name, franchise, 0, 1);
+        insertPlayer.run(player.name, franchise, 0, 1, player.birthDate);
         insertStats.run(player.name);
       });
     });
@@ -767,12 +778,12 @@ app.post('/api/admin/reset-players', (req, res) => {
     db.prepare('DELETE FROM player_badges').run();
     
     // Réinsérer les nouveaux joueurs
-    const insertPlayer = db.prepare('INSERT INTO players (name, franchise, score, is_drafted) VALUES (?, ?, ?, ?)');
+    const insertPlayer = db.prepare('INSERT INTO players (name, franchise, score, is_drafted, birth_date) VALUES (?, ?, ?, ?, ?)');
     const insertStats = db.prepare('INSERT INTO player_stats (player_name) VALUES (?)');
     
     Object.entries(initialFranchises).forEach(([franchise, players]) => {
       players.forEach(player => {
-        insertPlayer.run(player.name, franchise, 0, 1);
+        insertPlayer.run(player.name, franchise, 0, 1, player.birthDate);
         insertStats.run(player.name);
       });
     });
