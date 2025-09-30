@@ -3745,104 +3745,175 @@ if (currentView === 'teacher-actions') {
                           <span className="text-2xl">💡</span>
                           <div className="text-white text-sm">
                             <p className="font-semibold mb-1">Information importante</p>
-                            <p>Chaque élève possède un code d'accès unique pour accéder à sa section "Mon Score". Ces codes sont générés automatiquement et restent constants.</p>
+                            <p>Chaque élève utilise sa date de naissance (8 chiffres) comme code d'accès pour la section "Mon Score".</p>
                           </div>
                         </div>
                       </div>
                       
-                      {/* Bouton pour charger les codes */}
-                      {studentCodes.length === 0 && !loadingCodes && (
-                        <div className="text-center py-8">
-                          <button
-                            onClick={() => {
-                              console.log('Bouton cliqué - Chargement des codes...');
-                              loadStudentCodes();
-                            }}
-                            className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-lg transition-colors text-lg font-bold"
-                          >
-                            🔐 Charger les codes d'accès
-                          </button>
-                          <p className="text-white/70 text-sm mt-4">
-                            Cliquez pour afficher tous les codes d'accès des élèves
-                          </p>
-                        </div>
-                      )}
-
-                      {/* État de chargement */}
-                      {loadingCodes && (
-                        <div className="text-center py-8">
-                          <div className="text-white text-lg">⏳ Chargement des codes d'accès...</div>
-                          <div className="text-white/60 text-sm mt-2">Veuillez patienter</div>
-                        </div>
-                      )}
-
-                      {/* Affichage des codes */}
-                      {studentCodes.length > 0 && !loadingCodes && (
-                        <>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto mb-6">
-                            {studentCodes.map(student => {
-                              const avatar = getFranchiseAvatar(student.franchise);
-                              
-                              return (
-                                <div key={student.name} className="bg-white/10 rounded-lg p-3">
-                                  <div className="flex items-center gap-3 mb-2">
-                                    <span className={`franchise-avatar ${avatar.class} text-xl`}>
-                                      {avatar.emoji}
-                                    </span>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-white font-medium text-sm truncate">
-                                        {student.name}
-                                      </div>
-                                      <div className="text-white/60 text-xs">
-                                        {student.franchise}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="bg-black/20 rounded p-2 text-center">
-                                    <div className="text-white font-mono text-lg tracking-wider">
-                                      {student.code}
-                                    </div>
-                                    <button
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(student.code);
-                                        alert(`Code copié: ${student.code}`);
-                                      }}
-                                      className="text-blue-300 hover:text-blue-100 text-xs mt-1 underline"
-                                    >
-                                      Copier
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                          
-                          <div className="text-center">
-                            <button
-                              onClick={() => {
-                                const codes = studentCodes.map(student => 
-                                  `${student.name}: ${student.code}`
-                                ).join('\n');
+                      {/* Tableau simple avec tous les codes */}
+                      <div className="bg-white/5 rounded-lg overflow-hidden">
+                        <div className="overflow-x-auto max-h-96">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="bg-white/10">
+                                <th className="text-left text-white font-semibold px-4 py-3 border-b border-white/20">Élève</th>
+                                <th className="text-left text-white font-semibold px-4 py-3 border-b border-white/20">Franchise</th>
+                                <th className="text-center text-white font-semibold px-4 py-3 border-b border-white/20">Code d'accès</th>
+                                <th className="text-center text-white font-semibold px-4 py-3 border-b border-white/20">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(() => {
+                                // Créer la liste de tous les élèves avec leurs codes
+                                const allStudents = [];
                                 
-                                navigator.clipboard.writeText(codes);
-                                alert('Tous les codes ont été copiés dans le presse-papier !');
-                              }}
-                              className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg transition-colors mr-4"
-                            >
-                              📋 Copier tous les codes
-                            </button>
-                            <button
-                              onClick={() => {
-                                console.log('Actualisation des codes...');
-                                loadStudentCodes();
-                              }}
-                              className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg transition-colors"
-                            >
-                              🔄 Actualiser
-                            </button>
-                          </div>
-                        </>
-                      )}
+                                // Werewolves
+                                const werewolvesStudents = [
+                                  { name: 'Bellet Noa', birthDate: '13012013' },
+                                  { name: 'Kouma Leny', birthDate: '27012013' },
+                                  { name: 'Lamghari Yacine', birthDate: '20012013' },
+                                  { name: 'Benimam Naël', birthDate: '14052013' },
+                                  { name: 'Mansouri Rayane', birthDate: '29112013' },
+                                  { name: 'Hadou Hakim', birthDate: '21012014' },
+                                  { name: 'Azizi Youssef', birthDate: '14062014' },
+                                  { name: 'Idrihou Kemal', birthDate: '02062014' },
+                                  { name: 'Bouloudiame Rayan', birthDate: '13082014' }
+                                ];
+                                
+                                // Phoenix
+                                const phoenixStudents = [
+                                  { name: 'Bernaoui Matys', birthDate: '12022012' },
+                                  { name: 'Ayad Yaniss', birthDate: '05032012' },
+                                  { name: 'Agnel Achraf', birthDate: '11082012' },
+                                  { name: 'Moufid Abdel-Jalil', birthDate: '25062012' },
+                                  { name: 'Boukhalfa Lounès', birthDate: '15042013' },
+                                  { name: 'Aidoud Nassim', birthDate: '08052013' },
+                                  { name: 'Khelif Sofiane', birthDate: '09052013' },
+                                  { name: 'Malki Mohamed', birthDate: '27092013' },
+                                  { name: 'Amzert Saadi', birthDate: '01122013' },
+                                  { name: 'Barès Killian', birthDate: '19102014' }
+                                ];
+                                
+                                // Minotaurs
+                                const minotaursStudents = [
+                                  { name: 'Lastella Julia', birthDate: '08102014' },
+                                  { name: 'Saglam Turay', birthDate: '16062011' },
+                                  { name: 'Sabraoui Ilyes', birthDate: '03052012' },
+                                  { name: 'Benrezkellah Yanis', birthDate: '14072012' },
+                                  { name: 'Benamirouche Mohamed', birthDate: '11102012' },
+                                  { name: 'Hamlat Younesse', birthDate: '14062013' },
+                                  { name: 'Bentoumi Rayane', birthDate: '17082013' },
+                                  { name: 'Trad Abdellah', birthDate: '05112013' },
+                                  { name: 'Henni Abdellah', birthDate: '18112013' }
+                                ];
+                                
+                                // Krakens
+                                const krakensStudents = [
+                                  { name: 'Berkoukeche Swann', birthDate: '15042011' },
+                                  { name: 'Saglam Elizan', birthDate: '10042014' },
+                                  { name: 'Aït Braham Ilhan', birthDate: '27052012' },
+                                  { name: 'Meliane Farouk', birthDate: '30082012' },
+                                  { name: 'Dedjaoui Adam', birthDate: '08122012' },
+                                  { name: 'Bounoua Adam', birthDate: '06022013' },
+                                  { name: 'Ouagued Sohaïb', birthDate: '12022013' },
+                                  { name: 'Guendouz Zakaria', birthDate: '01072013' }
+                                ];
+                                
+                                // Ajouter tous les élèves avec leur franchise
+                                werewolvesStudents.forEach(student => allStudents.push({...student, franchise: 'Werewolves', emoji: '🐺'}));
+                                phoenixStudents.forEach(student => allStudents.push({...student, franchise: 'Phoenix', emoji: '🔥'}));
+                                minotaursStudents.forEach(student => allStudents.push({...student, franchise: 'Minotaurs', emoji: '🐂'}));
+                                krakensStudents.forEach(student => allStudents.push({...student, franchise: 'Krakens', emoji: '🐙'}));
+                                
+                                // Trier par nom
+                                allStudents.sort((a, b) => a.name.localeCompare(b.name));
+                                
+                                return allStudents.map((student, index) => (
+                                  <tr key={student.name} className={index % 2 === 0 ? 'bg-white/5' : 'bg-transparent'}>
+                                    <td className="text-white px-4 py-3 border-b border-white/10">{student.name}</td>
+                                    <td className="text-white px-4 py-3 border-b border-white/10">
+                                      <span className="inline-flex items-center gap-2">
+                                        <span>{student.emoji}</span>
+                                        <span>{student.franchise}</span>
+                                      </span>
+                                    </td>
+                                    <td className="text-center px-4 py-3 border-b border-white/10">
+                                      <span className="bg-black/30 text-white font-mono text-lg px-3 py-1 rounded tracking-wider">
+                                        {student.birthDate}
+                                      </span>
+                                    </td>
+                                    <td className="text-center px-4 py-3 border-b border-white/10">
+                                      <button
+                                        onClick={() => {
+                                          navigator.clipboard.writeText(student.birthDate);
+                                          alert(`Code copié: ${student.birthDate}`);
+                                        }}
+                                        className="text-blue-300 hover:text-blue-100 text-xs underline"
+                                      >
+                                        📋 Copier
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ));
+                              })()}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                      
+                      <div className="text-center mt-4">
+                        <button
+                          onClick={() => {
+                            const allCodes = `Codes d'accès Basketball Team Manager\n\n` +
+                              `Werewolves:\n` +
+                              `Bellet Noa: 13012013\n` +
+                              `Kouma Leny: 27012013\n` +
+                              `Lamghari Yacine: 20012013\n` +
+                              `Benimam Naël: 14052013\n` +
+                              `Mansouri Rayane: 29112013\n` +
+                              `Hadou Hakim: 21012014\n` +
+                              `Azizi Youssef: 14062014\n` +
+                              `Idrihou Kemal: 02062014\n` +
+                              `Bouloudiame Rayan: 13082014\n\n` +
+                              `Phoenix:\n` +
+                              `Bernaoui Matys: 12022012\n` +
+                              `Ayad Yaniss: 05032012\n` +
+                              `Agnel Achraf: 11082012\n` +
+                              `Moufid Abdel-Jalil: 25062012\n` +
+                              `Boukhalfa Lounès: 15042013\n` +
+                              `Aidoud Nassim: 08052013\n` +
+                              `Khelif Sofiane: 09052013\n` +
+                              `Malki Mohamed: 27092013\n` +
+                              `Amzert Saadi: 01122013\n` +
+                              `Barès Killian: 19102014\n\n` +
+                              `Minotaurs:\n` +
+                              `Lastella Julia: 08102014\n` +
+                              `Saglam Turay: 16062011\n` +
+                              `Sabraoui Ilyes: 03052012\n` +
+                              `Benrezkellah Yanis: 14072012\n` +
+                              `Benamirouche Mohamed: 11102012\n` +
+                              `Hamlat Younesse: 14062013\n` +
+                              `Bentoumi Rayane: 17082013\n` +
+                              `Trad Abdellah: 05112013\n` +
+                              `Henni Abdellah: 18112013\n\n` +
+                              `Krakens:\n` +
+                              `Berkoukeche Swann: 15042011\n` +
+                              `Saglam Elizan: 10042014\n` +
+                              `Aït Braham Ilhan: 27052012\n` +
+                              `Meliane Farouk: 30082012\n` +
+                              `Dedjaoui Adam: 08122012\n` +
+                              `Bounoua Adam: 06022013\n` +
+                              `Ouagued Sohaïb: 12022013\n` +
+                              `Guendouz Zakaria: 01072013`;
+                            
+                            navigator.clipboard.writeText(allCodes);
+                            alert('Tous les codes ont été copiés dans le presse-papier !');
+                          }}
+                          className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg transition-colors"
+                        >
+                          📋 Copier tous les codes
+                        </button>
+                      </div>
                     </div>
                   </div>
 
