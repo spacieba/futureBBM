@@ -4068,7 +4068,7 @@ if (currentView === 'teacher-actions') {
                   <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6">
                     <h3 className="text-xl font-bold text-white mb-4">📊 Totaux actuels des franchises</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {['Minotaurs', 'Krakens', 'Phoenix', 'Eagles'].map(franchise => {
+                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
                         const franchiseData = window.franchiseStats?.find(f => f.franchise === franchise);
                         const totalScore = franchiseData?.total || 0;
                         const franchisePoints = franchiseData?.franchise_points || 0;
@@ -5930,13 +5930,14 @@ if (currentView === 'grades') {
                     
                     {/* Groupement par franchises */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {['Minotaurs', 'Krakens', 'Phoenix', 'Eagles'].map(franchise => {
+                      {['Minotaurs', 'Krakens', 'Phoenix', 'Werewolves'].map(franchise => {
                         const franchisePlayers = players.filter(p => p.franchise === franchise);
                         if (franchisePlayers.length === 0) return null;
                         
                         const franchiseEmoji = franchise === 'Minotaurs' ? '🐂' : 
                                                franchise === 'Krakens' ? '🐙' : 
-                                               franchise === 'Phoenix' ? '🔥' : '🦅';
+                                               franchise === 'Phoenix' ? '🔥' : 
+                                               franchise === 'Werewolves' ? '🐺' : '🦅';
                         
                         return (
                           <div key={franchise} className="bg-white/10 rounded-xl p-4">
