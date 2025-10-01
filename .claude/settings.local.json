@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm start)",
+      "Bash(taskkill:*)",
+      "Bash(tasklist)",
+      "Bash(findstr:*)",
+      "Bash(del /f datateams.db)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(netstat:*)",
+      "Bash(npm install)",
+      "Bash(set PORT=3003)",
+      "Bash(set PORT=3004)",
+      "Bash(set PORT=3001)",
+      "Bash(set PORT=3005)",
+      "Bash(set PORT=3010)",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nAjout des données historiques du 7 septembre 2025\n\n- Import de 14 actions historiques dans la base de données\n- Attribution des badges Hot Streak et On Fire\n- Mise à jour des scores des joueurs concernés\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git config:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
