@@ -1,0 +1,6 @@
+node_modules/
+.claude/
+*.log
+.env
+import_data.js
+import_historical_data.sql
