@@ -505,6 +505,85 @@
             pointer-events: none;
             opacity: 0.3;
         }
+
+        /* Sélection de classe RPG */
+        .class-selector-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .class-card {
+            background: linear-gradient(135deg, rgba(45, 27, 14, 0.95), rgba(26, 15, 10, 0.95));
+            border: 3px solid #8B7355;
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .class-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            border-color: #FFD700;
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4);
+        }
+
+        .class-card.selected {
+            border-color: #FFD700;
+            border-width: 4px;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+        }
+
+        .class-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(45deg, transparent, rgba(255, 215, 0, 0.1), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.5s ease;
+        }
+
+        .class-card:hover::before {
+            transform: translateX(100%);
+        }
+
+        .class-icon-large {
+            font-size: 64px;
+            margin-bottom: 10px;
+            filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.5));
+        }
+
+        .class-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .stat-bar {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 5px;
+            overflow: hidden;
+            height: 6px;
+        }
+
+        .stat-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #FFD700, #FFA500);
+            transition: width 0.5s ease;
+        }
     </style>
 
     <style>
@@ -2157,6 +2236,10 @@ if (!hofData) {
           const [foundPlayer, setFoundPlayer] = useState(null);
           const [searchHistory, setSearchHistory] = useState([]);
           const [showEvolutionChart, setShowEvolutionChart] = useState(false);
+          const [showClassSelector, setShowClassSelector] = useState(false);
+          const [selectedClass, setSelectedClass] = useState(null);
+          const [playerCurrentClass, setPlayerCurrentClass] = useState(null);
+          const [canChangeClass, setCanChangeClass] = useState(true);
           const [showDraftCelebration, setShowDraftCelebration] = useState(false);
           const [hasSeenDraftMessage, setHasSeenDraftMessage] = useState({});
           const [chartData, setChartData] = useState(null);
