@@ -393,6 +393,118 @@
             font-size: 48px;
             display: block;
         }
+
+        /* Carte du monde interactive */
+        .world-map-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            height: 500px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, #2d1b0e 0%, #1a0f0a 100%);
+            border: 4px solid #8B7355;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow:
+                0 10px 40px rgba(0, 0, 0, 0.8),
+                inset 0 0 100px rgba(0, 0, 0, 0.5);
+        }
+
+        .world-map-container::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.05' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.15'/%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+
+        .kingdom-territory {
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 3px solid rgba(255, 215, 0, 0.3);
+            backdrop-filter: blur(5px);
+        }
+
+        .kingdom-territory:hover {
+            transform: scale(1.15);
+            border-width: 4px;
+            z-index: 10;
+        }
+
+        .kingdom-territory.tauros {
+            top: 10%;
+            left: 10%;
+            background: radial-gradient(circle, rgba(220, 38, 38, 0.4), rgba(153, 27, 27, 0.2));
+            border-color: #DC2626;
+        }
+
+        .kingdom-territory.abyssia {
+            top: 10%;
+            right: 10%;
+            background: radial-gradient(circle, rgba(8, 145, 178, 0.4), rgba(12, 74, 110, 0.2));
+            border-color: #0891B2;
+        }
+
+        .kingdom-territory.pyralis {
+            bottom: 10%;
+            left: 10%;
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.4), rgba(91, 33, 182, 0.2));
+            border-color: #7C3AED;
+        }
+
+        .kingdom-territory.lunaris {
+            bottom: 10%;
+            right: 10%;
+            background: radial-gradient(circle, rgba(22, 163, 74, 0.4), rgba(21, 128, 61, 0.2));
+            border-color: #16A34A;
+        }
+
+        .kingdom-icon {
+            font-size: 64px;
+            margin-bottom: 10px;
+            filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.5));
+        }
+
+        .kingdom-name {
+            font-family: 'MedievalSharp', serif;
+            font-size: 18px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            margin-bottom: 5px;
+        }
+
+        .kingdom-desc {
+            font-family: 'MedievalSharp', serif;
+            font-size: 11px;
+            color: #f4e4c1;
+            text-align: center;
+            padding: 0 10px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .kingdom-territory:hover .kingdom-desc {
+            opacity: 1;
+        }
+
+        /* Routes entre royaumes */
+        .kingdom-path {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #8B7355, transparent);
+            transform-origin: left center;
+            pointer-events: none;
+            opacity: 0.3;
+        }
     </style>
 
     <style>
@@ -1545,10 +1657,10 @@ const MVPSection = ({ period = 'week' }) => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* MVP Académique */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-6 shadow-2xl">
-          <h3 className="text-2xl font-bold text-white mb-4 text-center">
-            MVP Académique {getPeriodLabel(period)}
+        {/* Maître de la Sagesse */}
+        <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-6 shadow-2xl medieval-border">
+          <h3 className="text-2xl font-bold text-white mb-4 text-center ancient-text">
+            🧙 Maître de la Sagesse {getPeriodLabel(period)}
           </h3>
           {mvpData.mvps.academic ? (
             <div className="text-center">
@@ -2391,78 +2503,142 @@ if (!hofData) {
             return { title: '🎒 Novice', color: 'text-yellow-300' };
           };
 
-          // Fonction pour obtenir l'avatar animé de la franchise
+          // Mapping des franchises vers les royaumes
+          const getKingdomName = (franchise) => {
+            const kingdoms = {
+              'Minotaurs': 'Tauros',
+              'Krakens': 'Abyssia',
+              'Phoenix': 'Pyralis',
+              'Werewolves': 'Lunaris',
+              'Non-Draftés': 'Sans-Royaume'
+            };
+            return kingdoms[franchise] || franchise;
+          };
+
+          // Fonction pour obtenir l'avatar animé du royaume (ancienne franchise)
           const getFranchiseAvatar = (franchise) => {
             const avatars = {
-              Minotaurs: { emoji: '🐂', class: 'minotaur-avatar', name: 'Taureau Enragé' },
-              Krakens: { emoji: '🐙', class: 'kraken-avatar', name: 'Kraken des Profondeurs' },
-              Phoenix: { emoji: '🔥', class: 'phoenix-avatar', name: 'Phoenix Éternel' },
-              Werewolves: { emoji: '🐺', class: 'werewolf-avatar', name: 'Loup-Garou' },
-              'Non-Draftés': { emoji: '✨', class: 'undrafted-avatar', name: 'Espoir' }
+              Minotaurs: { emoji: '🐂', class: 'minotaur-avatar', name: 'Taureau Enragé', kingdom: 'Tauros', description: 'Montagne du Taureau Enragé' },
+              Krakens: { emoji: '🐙', class: 'kraken-avatar', name: 'Kraken des Profondeurs', kingdom: 'Abyssia', description: 'Îles des Profondeurs' },
+              Phoenix: { emoji: '🔥', class: 'phoenix-avatar', name: 'Phoenix Éternel', kingdom: 'Pyralis', description: 'Terres du Phénix Éternel' },
+              Werewolves: { emoji: '🐺', class: 'werewolf-avatar', name: 'Loup-Garou', kingdom: 'Lunaris', description: 'Forêt des Loups Lunaires' },
+              'Non-Draftés': { emoji: '✨', class: 'undrafted-avatar', name: 'Espoir', kingdom: 'Sans-Royaume', description: 'Terres Inconnues' }
             };
-            return avatars[franchise] || { emoji: '⚡', class: 'franchise-avatar', name: 'Guerrier' };
+            return avatars[franchise] || { emoji: '⚡', class: 'franchise-avatar', name: 'Guerrier', kingdom: 'Inconnu', description: '' };
+          };
+
+          // Système de classes RPG
+          const playerClasses = {
+            warrior: {
+              emoji: '⚔️',
+              name: 'Guerrier',
+              color: 'text-red-400',
+              bgColor: 'from-red-600 to-red-800',
+              description: 'Force et défense - Maître du combat rapproché',
+              stats: { force: 5, agilite: 2, intelligence: 2, charisme: 3 }
+            },
+            archer: {
+              emoji: '🏹',
+              name: 'Archer',
+              color: 'text-green-400',
+              bgColor: 'from-green-600 to-green-800',
+              description: 'Précision et agilité - Expert des tirs longue distance',
+              stats: { force: 2, agilite: 5, intelligence: 3, charisme: 2 }
+            },
+            mage: {
+              emoji: '🧙',
+              name: 'Mage',
+              color: 'text-purple-400',
+              bgColor: 'from-purple-600 to-purple-800',
+              description: 'Intelligence et stratégie - Maître de la tactique',
+              stats: { force: 1, agilite: 2, intelligence: 5, charisme: 4 }
+            },
+            assassin: {
+              emoji: '🗡️',
+              name: 'Assassin',
+              color: 'text-gray-400',
+              bgColor: 'from-gray-700 to-black',
+              description: 'Vitesse et furtivité - Spécialiste des contre-attaques',
+              stats: { force: 3, agilite: 5, intelligence: 3, charisme: 1 }
+            },
+            paladin: {
+              emoji: '🛡️',
+              name: 'Paladin',
+              color: 'text-yellow-400',
+              bgColor: 'from-yellow-600 to-yellow-800',
+              description: 'Honneur et courage - Champion du fair-play',
+              stats: { force: 4, agilite: 2, intelligence: 3, charisme: 5 }
+            },
+            bard: {
+              emoji: '🎭',
+              name: 'Barde',
+              color: 'text-pink-400',
+              bgColor: 'from-pink-600 to-pink-800',
+              description: 'Charisme et soutien - Inspirateur d\'équipe',
+              stats: { force: 1, agilite: 3, intelligence: 3, charisme: 5 }
+            }
           };
 
           // Actions positives et négatives
           const positiveActions = [
-  // ====== CATÉGORIE SPORT ====== 
-  { label: '🏀 Hardworker', points: 6, category: 'sport' },
-  { label: '🏀 Bon entrainement club', points: 4, category: 'sport' },
-  { label: '🏆 Victoire weekend (Région/France)', points: 6, category: 'sport' },
-  { label: '🥈 Défaite weekend (Région/France)', points: 2, category: 'sport' },
-  { label: '🏅 Victoire weekend (Département)', points: 4, category: 'sport' },
-  { label: '🎯 Défaite weekend (Département)', points: 1, category: 'sport' },
-  { label: '⭐ Extra basket (cross, AS...) - Excellent', points: 10, category: 'sport' },
-  { label: '⭐ Extra basket (cross, AS...) - Très bien', points: 6, category: 'sport' },
-  { label: '⭐ Extra basket (cross, AS...) - Bien', points: 3, category: 'sport' },
-  { label: '🎖️ Parcours sélection', points: 10, category: 'sport' },
-  { label: '🌟 Tournoi des étoiles', points: 25, category: 'sport' },
-  { label: '💪 Entrainements facultatifs', points: 3, category: 'sport' },
-  { label: '📊 Table de marque/Arbitrage weekend', points: 5, category: 'sport' },
-  
-  // ====== CATÉGORIE ACADÉMIQUE ======
-  { label: '📚 Observation positive', points: 5, category: 'academic' },
-  { label: '📚 Participation active en classe', points: 4, category: 'academic' },
-  { label: '📚 Travail de qualité (oral/écrit)', points: 4, category: 'academic' },
-  { label: '📚 Activités facultatives (sentinelle)', points: 5, category: 'academic' },
-  { label: '📚 Activités facultatives (ateliers devoirs)', points: 4, category: 'academic' },
-  { label: '📚 Activités facultatives (délégué)', points: 6, category: 'academic' },
-  { label: '📚 Activités facultatives (conseil admin)', points: 8, category: 'academic' },
-  { label: '🏆 Félicitations', points: 25, category: 'academic' },
-  { label: '🎖️ Compliments', points: 15, category: 'academic' },
-  { label: '👍 Encouragements', points: 10, category: 'academic' },
-  
+  // ====== EXPÉRIENCE (anciennement Sport) ======
+  { label: '⚔️ Hardworker', points: 6, category: 'experience' },
+  { label: '⚔️ Bon entrainement club', points: 4, category: 'experience' },
+  { label: '🏆 Victoire weekend (Région/France)', points: 6, category: 'experience' },
+  { label: '🥈 Défaite weekend (Région/France)', points: 2, category: 'experience' },
+  { label: '🏅 Victoire weekend (Département)', points: 4, category: 'experience' },
+  { label: '🎯 Défaite weekend (Département)', points: 1, category: 'experience' },
+  { label: '⭐ Extra basket (cross, AS...) - Excellent', points: 10, category: 'experience' },
+  { label: '⭐ Extra basket (cross, AS...) - Très bien', points: 6, category: 'experience' },
+  { label: '⭐ Extra basket (cross, AS...) - Bien', points: 3, category: 'experience' },
+  { label: '🎖️ Parcours sélection', points: 10, category: 'experience' },
+  { label: '🌟 Tournoi des étoiles', points: 25, category: 'experience' },
+  { label: '💪 Entrainements facultatifs', points: 3, category: 'experience' },
+  { label: '📊 Table de marque/Arbitrage weekend', points: 5, category: 'experience' },
+
+  // ====== SAGESSE (anciennement Académique) ======
+  { label: '📖 Observation positive', points: 5, category: 'wisdom' },
+  { label: '📖 Participation active en classe', points: 4, category: 'wisdom' },
+  { label: '📖 Travail de qualité (oral/écrit)', points: 4, category: 'wisdom' },
+  { label: '📖 Activités facultatives (sentinelle)', points: 5, category: 'wisdom' },
+  { label: '📖 Activités facultatives (ateliers devoirs)', points: 4, category: 'wisdom' },
+  { label: '📖 Activités facultatives (délégué)', points: 6, category: 'wisdom' },
+  { label: '📖 Activités facultatives (conseil admin)', points: 8, category: 'wisdom' },
+  { label: '🏆 Félicitations', points: 25, category: 'wisdom' },
+  { label: '🎖️ Compliments', points: 15, category: 'wisdom' },
+  { label: '👍 Encouragements', points: 10, category: 'wisdom' },
+
   // === BONUS FLEXIBLES ===
-  { label: 'Bonus Sport', points: 2, category: 'sport' },
-  { label: 'Bonus Scolaire', points: 2, category: 'academic' },
-  { label: 'Bonus Sport', points: 3, category: 'sport' },
-  { label: 'Bonus Scolaire', points: 3, category: 'academic' },
-  { label: 'Bonus Sport', points: 5, category: 'sport' },
-  { label: 'Bonus Scolaire', points: 5, category: 'academic' },
-  { label: 'Bonus Sport', points: 10, category: 'sport' },
-  { label: 'Bonus Scolaire', points: 10, category: 'academic' }
+  { label: 'Bonus Expérience', points: 2, category: 'experience' },
+  { label: 'Bonus Sagesse', points: 2, category: 'wisdom' },
+  { label: 'Bonus Expérience', points: 3, category: 'experience' },
+  { label: 'Bonus Sagesse', points: 3, category: 'wisdom' },
+  { label: 'Bonus Expérience', points: 5, category: 'experience' },
+  { label: 'Bonus Sagesse', points: 5, category: 'wisdom' },
+  { label: 'Bonus Expérience', points: 10, category: 'experience' },
+  { label: 'Bonus Sagesse', points: 10, category: 'wisdom' }
 ];
           
               const negativeActions = [
-  // ====== CATÉGORIE SPORT ====== 
-  { label: 'Mauvaise attitude/retard entrainement', points: -4, category: 'sport' },
-  { label: 'Absences répétées/non justifiées club', points: -4, category: 'sport' },
-  
-  // ====== CATÉGORIE ACADÉMIQUE ======
-  { label: 'Observation négative', points: -5, category: 'academic' },
-  { label: 'Exclusion de cours', points: -8, category: 'academic' },
-  { label: 'Exclusion temporaire établissement', points: -15, category: 'academic' },
-  { label: 'Travail non fait', points: -3, category: 'academic' },
-  { label: 'Retard/absence non justifiée', points: -3, category: 'academic' },
-  { label: 'Mauvaise attitude en classe (perturbe)', points: -5, category: 'academic' },
-  
+  // ====== PERTE D'EXPÉRIENCE ======
+  { label: '⚔️ Mauvaise attitude/retard entrainement', points: -4, category: 'experience' },
+  { label: '⚔️ Absences répétées/non justifiées club', points: -4, category: 'experience' },
+
+  // ====== PERTE DE SAGESSE ======
+  { label: '📖 Observation négative', points: -5, category: 'wisdom' },
+  { label: '📖 Exclusion de cours', points: -8, category: 'wisdom' },
+  { label: '📖 Exclusion temporaire établissement', points: -15, category: 'wisdom' },
+  { label: '📖 Travail non fait', points: -3, category: 'wisdom' },
+  { label: '📖 Retard/absence non justifiée', points: -3, category: 'wisdom' },
+  { label: '📖 Mauvaise attitude en classe (perturbe)', points: -5, category: 'wisdom' },
+
   // === PÉNALITÉS FLEXIBLES ===
-  { label: 'Pénalité Sport', points: -2, category: 'sport' },
-  { label: 'Pénalité Scolaire', points: -2, category: 'academic' },
-  { label: 'Pénalité Sport', points: -3, category: 'sport' },
-  { label: 'Pénalité Scolaire', points: -3, category: 'academic' },
-  { label: 'Pénalité Sport', points: -5, category: 'sport' },
-  { label: 'Pénalité Scolaire', points: -5, category: 'academic' }
+  { label: 'Pénalité Expérience', points: -2, category: 'experience' },
+  { label: 'Pénalité Sagesse', points: -2, category: 'wisdom' },
+  { label: 'Pénalité Expérience', points: -3, category: 'experience' },
+  { label: 'Pénalité Sagesse', points: -3, category: 'wisdom' },
+  { label: 'Pénalité Expérience', points: -5, category: 'experience' },
+  { label: 'Pénalité Sagesse', points: -5, category: 'wisdom' }
 ];
 
           // Couleurs des franchises
@@ -3294,6 +3470,62 @@ if (currentView === 'home') {
               </div>
             )}
             
+            {/* Carte du Monde Interactive */}
+            <div className="mb-8">
+              <h3 className="text-center text-amber-200 ancient-text mb-4 text-2xl">🗺️ Carte du Monde 🗺️</h3>
+              <div className="world-map-container">
+                {/* Royaume Tauros (Minotaurs) - Haut Gauche */}
+                <div
+                  className="kingdom-territory tauros"
+                  onClick={() => handleFranchiseClick('Minotaurs')}
+                >
+                  <div className="kingdom-icon">🐂</div>
+                  <div className="kingdom-name">Tauros</div>
+                  <div className="kingdom-desc">Montagne du Taureau Enragé</div>
+                </div>
+
+                {/* Royaume Abyssia (Krakens) - Haut Droit */}
+                <div
+                  className="kingdom-territory abyssia"
+                  onClick={() => handleFranchiseClick('Krakens')}
+                >
+                  <div className="kingdom-icon">🐙</div>
+                  <div className="kingdom-name">Abyssia</div>
+                  <div className="kingdom-desc">Îles des Profondeurs</div>
+                </div>
+
+                {/* Royaume Pyralis (Phoenix) - Bas Gauche */}
+                <div
+                  className="kingdom-territory pyralis"
+                  onClick={() => handleFranchiseClick('Phoenix')}
+                >
+                  <div className="kingdom-icon">🔥</div>
+                  <div className="kingdom-name">Pyralis</div>
+                  <div className="kingdom-desc">Terres du Phénix Éternel</div>
+                </div>
+
+                {/* Royaume Lunaris (Werewolves) - Bas Droit */}
+                <div
+                  className="kingdom-territory lunaris"
+                  onClick={() => handleFranchiseClick('Werewolves')}
+                >
+                  <div className="kingdom-icon">🐺</div>
+                  <div className="kingdom-name">Lunaris</div>
+                  <div className="kingdom-desc">Forêt des Loups Lunaires</div>
+                </div>
+
+                {/* Centre de la carte - Titre */}
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+                  <div className="text-amber-600/30 ancient-text text-6xl font-bold">
+                    TERRA
+                  </div>
+                  <div className="text-amber-700/20 ancient-text text-2xl">
+                    Basketballia
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Sélecteur de royaume/faction */}
             <div className="mb-6">
               <h3 className="text-center text-amber-200 ancient-text mb-3 text-lg">Choisis ton Royaume</h3>
