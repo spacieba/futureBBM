@@ -73,7 +73,9 @@ db.exec(`
     franchise TEXT NOT NULL,
     score INTEGER DEFAULT 0,
     is_drafted INTEGER DEFAULT 1,
-    birth_date TEXT
+    birth_date TEXT,
+    player_class TEXT DEFAULT NULL,
+    class_change_date TEXT DEFAULT NULL
   );
 
   CREATE TABLE IF NOT EXISTS history (
@@ -216,10 +218,9 @@ db.exec(`
 
 // Ajouter la colonne total_points si elle n'existe pas (pour les bases existantes)
 try {
-  // Vérifier si la colonne existe déjà
   const columns = db.pragma('table_info(franchise_stats)');
   const hasColumn = columns.some(col => col.name === 'total_points');
-  
+
   if (!hasColumn) {
     console.log('🔧 Ajout de la colonne total_points à franchise_stats...');
     db.exec(`ALTER TABLE franchise_stats ADD COLUMN total_points INTEGER DEFAULT 0`);
@@ -229,6 +230,31 @@ try {
   }
 } catch (error) {
   console.error('❌ Erreur lors de l\'ajout de la colonne total_points:', error.message);
+}
+
+// Ajouter les colonnes player_class et class_change_date si elles n'existent pas
+try {
+  const playerColumns = db.pragma('table_info(players)');
+  const hasPlayerClass = playerColumns.some(col => col.name === 'player_class');
+  const hasClassChangeDate = playerColumns.some(col => col.name === 'class_change_date');
+
+  if (!hasPlayerClass) {
+    console.log('🔧 Ajout de la colonne player_class à players...');
+    db.exec(`ALTER TABLE players ADD COLUMN player_class TEXT DEFAULT NULL`);
+    console.log('✅ Colonne player_class ajoutée avec succès');
+  }
+
+  if (!hasClassChangeDate) {
+    console.log('🔧 Ajout de la colonne class_change_date à players...');
+    db.exec(`ALTER TABLE players ADD COLUMN class_change_date TEXT DEFAULT NULL`);
+    console.log('✅ Colonne class_change_date ajoutée avec succès');
+  }
+
+  if (hasPlayerClass && hasClassChangeDate) {
+    console.log('✅ Colonnes de classe RPG déjà présentes');
+  }
+} catch (error) {
+  console.error('❌ Erreur lors de l\'ajout des colonnes de classe:', error.message);
 }
 
 // FONCTIONS UTILITAIRES
@@ -3122,13 +3148,112 @@ app.get('/', (req, res) => {
 // Route fallback pour SPA - doit être APRÈS toutes les routes API
 app.get('*', (req, res) => {
   // Ne pas servir index.html pour les requêtes API ou de ressources
-  if (req.path.startsWith('/api/') || 
+  if (req.path.startsWith('/api/') ||
       req.path.includes('.js') ||
       req.path.includes('.css') ||
       req.path.includes('favicon')) {
     return res.status(404).send('Not Found');
   }
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ========== API CLASSES RPG ==========
+
+// Définir/Changer la classe d'un joueur
+app.post('/api/player/class', (req, res) => {
+  try {
+    const { playerName, playerClass } = req.body;
+
+    if (!playerName || !playerClass) {
+      return res.status(400).json({ error: 'Nom du joueur et classe requis' });
+    }
+
+    // Vérifier que la classe est valide
+    const validClasses = ['warrior', 'archer', 'mage', 'assassin', 'paladin', 'bard'];
+    if (!validClasses.includes(playerClass)) {
+      return res.status(400).json({ error: 'Classe invalide' });
+    }
+
+    // Vérifier si le joueur existe
+    const player = db.prepare('SELECT * FROM players WHERE name = ?').get(playerName);
+    if (!player) {
+      return res.status(404).json({ error: 'Joueur non trouvé' });
+    }
+
+    // Vérifier la dernière date de changement de classe (1 changement par trimestre)
+    if (player.class_change_date) {
+      const lastChangeDate = new Date(player.class_change_date);
+      const now = new Date();
+      const monthsDiff = (now.getFullYear() - lastChangeDate.getFullYear()) * 12 + now.getMonth() - lastChangeDate.getMonth();
+
+      // Trimestre = 3 mois
+      if (monthsDiff < 3) {
+        return res.status(403).json({
+          error: 'Changement de classe autorisé une fois par trimestre',
+          nextChangeDate: new Date(lastChangeDate.setMonth(lastChangeDate.getMonth() + 3)).toISOString()
+        });
+      }
+    }
+
+    // Mettre à jour la classe
+    const updateStmt = db.prepare(`
+      UPDATE players
+      SET player_class = ?, class_change_date = ?
+      WHERE name = ?
+    `);
+
+    updateStmt.run(playerClass, new Date().toISOString(), playerName);
+
+    res.json({
+      success: true,
+      playerClass,
+      message: 'Classe mise à jour avec succès'
+    });
+
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de la classe:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Récupérer la classe d'un joueur
+app.get('/api/player/class/:playerName', (req, res) => {
+  try {
+    const { playerName } = req.params;
+    const player = db.prepare('SELECT player_class, class_change_date FROM players WHERE name = ?').get(playerName);
+
+    if (!player) {
+      return res.status(404).json({ error: 'Joueur non trouvé' });
+    }
+
+    // Calculer si le joueur peut changer de classe
+    let canChange = true;
+    let nextChangeDate = null;
+
+    if (player.class_change_date) {
+      const lastChangeDate = new Date(player.class_change_date);
+      const now = new Date();
+      const monthsDiff = (now.getFullYear() - lastChangeDate.getFullYear()) * 12 + now.getMonth() - lastChangeDate.getMonth();
+
+      if (monthsDiff < 3) {
+        canChange = false;
+        const nextDate = new Date(lastChangeDate);
+        nextDate.setMonth(nextDate.getMonth() + 3);
+        nextChangeDate = nextDate.toISOString();
+      }
+    }
+
+    res.json({
+      playerClass: player.player_class,
+      classChangeDate: player.class_change_date,
+      canChange,
+      nextChangeDate
+    });
+
+  } catch (error) {
+    console.error('Erreur lors de la récupération de la classe:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
 });
 
 // Lancer le serveur
